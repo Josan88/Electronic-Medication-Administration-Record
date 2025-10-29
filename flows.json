@@ -1,0 +1,533 @@
+[
+    {
+        "id": "07d76569158b2783",
+        "type": "tab",
+        "label": "ThingSpeak",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "c7fc8cde013689f2",
+        "type": "tab",
+        "label": "Management Dashboard",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "4ec3f416abe10b48",
+        "type": "modbus-client",
+        "name": "",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "failureLogEnabled": true,
+        "tcpHost": "192.168.250.2",
+        "tcpPort": "10502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": 9600,
+        "serialDatabits": 8,
+        "serialStopbits": 1,
+        "serialParity": "none",
+        "serialConnectionDelay": 100,
+        "serialAsciiResponseStartDelimiter": "0x3A",
+        "unit_id": 1,
+        "commandDelay": 1,
+        "clientTimeout": 1000,
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": 2000,
+        "parallelUnitIdsAllowed": true,
+        "showErrors": false,
+        "showWarnings": true,
+        "showLogs": true
+    },
+    {
+        "id": "3479e569b2d2ac9d",
+        "type": "ui-base",
+        "name": "My Dashboard",
+        "path": "/dashboard",
+        "appIcon": "",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "headerContent": "page",
+        "navigationStyle": "default",
+        "titleBarStyle": "default",
+        "showReconnectNotification": true,
+        "notificationDisplayTime": 1,
+        "showDisconnectNotification": true,
+        "allowInstall": false
+    },
+    {
+        "id": "f87b4ce37222269d",
+        "type": "ui-theme",
+        "name": "Default Theme",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094CE",
+            "bgPage": "#eeeeee",
+            "groupBg": "#ffffff",
+            "groupOutline": "#cccccc"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "4px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "b42b0c6f780fb24a",
+        "type": "ui-page",
+        "name": "Management Dashboard",
+        "ui": "3479e569b2d2ac9d",
+        "path": "/page1",
+        "icon": "home",
+        "layout": "grid",
+        "theme": "f87b4ce37222269d",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": "0",
+                "cols": "3"
+            },
+            {
+                "name": "Tablet",
+                "px": "576",
+                "cols": "6"
+            },
+            {
+                "name": "Small Desktop",
+                "px": "768",
+                "cols": "9"
+            },
+            {
+                "name": "Desktop",
+                "px": "1024",
+                "cols": "12"
+            }
+        ],
+        "order": 1,
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "b607b132000004c0",
+        "type": "ui-group",
+        "name": "Live Alerts",
+        "page": "b42b0c6f780fb24a",
+        "width": "12",
+        "height": 1,
+        "order": 1,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
+        "id": "a123b456c789d0e1",
+        "type": "ui-group",
+        "name": "Key Performance Indicators",
+        "page": "b42b0c6f780fb24a",
+        "width": 6,
+        "height": 1,
+        "order": 2,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
+        "id": "4845c11939e274e4",
+        "type": "inject",
+        "z": "07d76569158b2783",
+        "name": "Medicine_Prescription",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{   \"channel\": {     \"id\": 3124898,     \"name\": \"Medicine_Prescription\",     \"field1\": \"Patient_ID\",     \"field2\": \"Medicine_Name\",     \"field3\": \"Dosage\",     \"field4\": \"Frequency\",     \"field5\": \"Start_Date\",     \"field6\": \"End_Date\",     \"field7\": \"Time_Slot\"   },   \"feeds\": [     {       \"created_at\": \"2025-10-28T15:00:12+08:00\",       \"entry_id\": 1,       \"field1\": \"PID-101\",       \"field2\": \"Paracetamol\",       \"field3\": \"500mg\",       \"field4\": \"2/day\",       \"field5\": \"2025-10-28\",       \"field6\": \"2025-10-30\",       \"field7\": \"08:00\"     },     {       \"created_at\": \"2025-10-28T15:00:12+08:00\",       \"entry_id\": 2,       \"field1\": \"PID-101\",       \"field2\": \"Paracetamol\",       \"field3\": \"500mg\",       \"field4\": \"2/day\",       \"field5\": \"2025-10-28\",       \"field6\": \"2025-10-30\",       \"field7\": \"20:00\"     },     {       \"created_at\": \"2025-10-29T09:30:00+08:00\",       \"entry_id\": 3,       \"field1\": \"PID-102\",       \"field2\": \"Atorvastatin\",       \"field3\": \"40mg\",       \"field4\": \"2/day\",       \"field5\": \"2025-10-29\",       \"field6\": \"2025-11-05\",       \"field7\": \"09:00\"     },         {       \"created_at\": \"2025-10-29T09:30:00+08:00\",       \"entry_id\": 4,       \"field1\": \"PID-102\",       \"field2\": \"Atorvastatin\",       \"field3\": \"40mg\",       \"field4\": \"2/day\",       \"field5\": \"2025-10-29\",       \"field6\": \"2025-11-05\",       \"field7\": \"21:00\"     },     {       \"created_at\": \"2025-10-29T09:35:00+08:00\",       \"entry_id\": 5,       \"field1\": \"PID-102\",       \"field2\": \"Metformin\",       \"field3\": \"1000mg\",       \"field4\": \"1/day\",       \"field5\": \"2025-10-29\",       \"field6\": \"2025-11-12\",       \"field7\": \"09:00\"     }   ] }",
+        "payloadType": "json",
+        "x": 200,
+        "y": 220,
+        "wires": [
+            [
+                "69027567f25a8496"
+            ]
+        ]
+    },
+    {
+        "id": "8d793a139c3150ac",
+        "type": "inject",
+        "z": "07d76569158b2783",
+        "name": "Medicine_Prescription_Track",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"channel\":{\"id\":3131200,\"name\":\"Medicine_Prescription_Track\",\"field1\":\"Patient_ID\",\"field2\":\"Medicine_Name\",\"field3\":\"Dosage\",\"field4\":\"Consume_Date\",\"field5\":\"Time_Slot\"},\"feeds\":[{\"created_at\":\"2025-10-29T08:05:14+08:00\",\"entry_id\":1,\"field1\":\"PID-101\",\"field2\":\"Paracetamol\",\"field3\":\"500mg\",\"field4\":\"2025-10-29\",\"field5\":\"08:05\"},{\"created_at\":\"2025-10-29T09:22:31+08:00\",\"entry_id\":2,\"field1\":\"PID-102\",\"field2\":\"Atorvastatin\",\"field3\":\"40mg\",\"field4\":\"2025-10-29\",\"field5\":\"09:22\"}]}",
+        "payloadType": "json",
+        "x": 220,
+        "y": 280,
+        "wires": [
+            [
+                "0a024daf8a4eeacb"
+            ]
+        ]
+    },
+    {
+        "id": "ce72459cef8bad27",
+        "type": "link out",
+        "z": "07d76569158b2783",
+        "name": "Send_Mock_Track_Data",
+        "mode": "link",
+        "links": [
+            "76c7dd0d76aaa35c"
+        ],
+        "x": 385,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "5333710e1d5db768",
+        "type": "inject",
+        "z": "07d76569158b2783",
+        "name": "Patient_Info",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{   \"channel\": {     \"id\": 3124887,     \"name\": \"Patient_Info\",     \"field1\": \"Patient_ID\",     \"field2\": \"Name\",     \"field3\": \"Floor\",     \"field4\": \"Room\",     \"field5\": \"Bed\",     \"field6\": \"Age\",     \"field7\": \"Gender\",     \"field8\": \"Notes\"   },   \"feeds\": [     {       \"created_at\": \"2025-10-28T14:30:00+08:00\",       \"entry_id\": 1,       \"field1\": \"PID-101\",       \"field2\": \"John Doe\",       \"field3\": \"3\",       \"field4\": \"310A\",       \"field5\": \"1\",       \"field6\": \"65\",       \"field7\": \"Male\",       \"field8\": \"NKA\"     },     {       \"created_at\": \"2025-10-29T09:15:00+08:00\",       \"entry_id\": 2,       \"field1\": \"PID-102\",       \"field2\": \"Jane Smith\",       \"field3\": \"3\",       \"field4\": \"312B\",       \"field5\": \"2\",       \"field6\": \"72\",       \"field7\": \"Female\",       \"field8\": \"Allergy: Penicillin\"     }   ] }",
+        "payloadType": "json",
+        "x": 170,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0a024daf8a4eeacb",
+        "type": "change",
+        "z": "07d76569158b2783",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "track_data",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 480,
+        "y": 280,
+        "wires": [
+            [
+                "6802cfdf2bf70f96"
+            ]
+        ]
+    },
+    {
+        "id": "69027567f25a8496",
+        "type": "change",
+        "z": "07d76569158b2783",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "prescription_data",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 480,
+        "y": 220,
+        "wires": [
+            [
+                "3847026aa300ccef"
+            ]
+        ]
+    },
+    {
+        "id": "28f50c29f78b8ee0",
+        "type": "inject",
+        "z": "07d76569158b2783",
+        "name": "Run Calculation",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.2",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 180,
+        "y": 100,
+        "wires": [
+            [
+                "ce72459cef8bad27"
+            ]
+        ]
+    },
+    {
+        "id": "3847026aa300ccef",
+        "type": "debug",
+        "z": "07d76569158b2783",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 700,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "6802cfdf2bf70f96",
+        "type": "debug",
+        "z": "07d76569158b2783",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "350e36d8074aaf3e",
+        "type": "ui-table",
+        "z": "c7fc8cde013689f2",
+        "group": "b607b132000004c0",
+        "name": "Missed Medication Alerts",
+        "label": "",
+        "order": 1,
+        "width": "0",
+        "height": "0",
+        "maxrows": 0,
+        "passthru": false,
+        "autocols": false,
+        "showSearch": true,
+        "deselect": true,
+        "selectionType": "none",
+        "columns": [
+            {
+                "title": "Patient ID",
+                "key": "Patient",
+                "keyType": "key",
+                "type": "text",
+                "width": "100",
+                "align": "start"
+            },
+            {
+                "title": "Medicine",
+                "key": "Medicine",
+                "keyType": "key",
+                "type": "text",
+                "width": "150",
+                "align": "start"
+            },
+            {
+                "title": "Scheduled Time",
+                "key": "Time",
+                "keyType": "key",
+                "type": "text",
+                "width": "100",
+                "align": "center"
+            }
+        ],
+        "mobileBreakpoint": "lg",
+        "mobileBreakpointType": "defaults",
+        "action": "append",
+        "className": "",
+        "x": 450,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f12a34b5c6d7e8f9",
+        "type": "ui-gauge",
+        "z": "c7fc8cde013689f2",
+        "name": "Overall Adherence",
+        "group": "a123b456c789d0e1",
+        "order": 2,
+        "value": "payload",
+        "valueType": "msg",
+        "width": 0,
+        "height": 0,
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "title": "Overall Adherence",
+        "alwaysShowTitle": false,
+        "units": "",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353",
+                "text": "",
+                "textType": "label"
+            },
+            {
+                "from": "80",
+                "color": "#ffc800",
+                "text": "",
+                "textType": "label"
+            },
+            {
+                "from": "50",
+                "color": "#5cd65c",
+                "text": "",
+                "textType": "label"
+            }
+        ],
+        "min": 0,
+        "max": "100",
+        "sizeThickness": "",
+        "sizeGap": "",
+        "sizeKeyThickness": "",
+        "className": "",
+        "x": 430,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e9f8d7c6b5a43210",
+        "type": "ui-text",
+        "z": "c7fc8cde013689f2",
+        "group": "a123b456c789d0e1",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "Avg. Admin Delay",
+        "label": "Avg. Admin Delay",
+        "format": "{{msg.payload}} minutes",
+        "layout": "col-center",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "wrapText": false,
+        "className": "",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 430,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "76c7dd0d76aaa35c",
+        "type": "link in",
+        "z": "c7fc8cde013689f2",
+        "name": "link in 1",
+        "links": [
+            "ce72459cef8bad27"
+        ],
+        "x": 55,
+        "y": 120,
+        "wires": [
+            [
+                "8cf2a470973c11bb"
+            ]
+        ]
+    },
+    {
+        "id": "8cf2a470973c11bb",
+        "type": "function",
+        "z": "c7fc8cde013689f2",
+        "name": "Calculate KPIs",
+        "func": "// 1. Get the data we stored\nvar scheduledDoses = global.get(\"prescription_data\") || { feeds: [] };\nvar actualDoses = global.get(\"track_data\") || { feeds: [] };\n\n// --- SAFETY CHECK ---\n// If data isn't loaded yet, stop the flow.\nif (scheduledDoses.feeds.length === 0 || actualDoses.feeds.length === 0) {\n  return null; // Stop flow if no data\n}\n\n// 2. Define KPI variables\nvar totalScheduled = 0;\nvar totalAdministered = 0;\nvar totalDelayInMinutes = 0;\nvar missedDoseAlerts = [];\n\n// 3. --- CORE LOGIC ---\n// Loop through each SCHEDULED dose\nfor (var sched of scheduledDoses.feeds) {\n  var patientID = sched.field1;\n  var medicine = sched.field2;\n  var scheduledTimeStr = sched.field7; // e.g., \"08:00\" \n\n  var hasBeenAdministered = false;\n\n  // Now, loop through the ACTUAL doses to find a match\n  for (var actual of actualDoses.feeds) {\n    var actualTimeStr = actual.field5; // e.g., \"08:05\" \n\n    // Check for a match (same patient, same medicine)\n    if (actual.field1 === patientID && actual.field2 === medicine) {\n\n      // --- Found a match! Calculate delay. ---\n      // This is a simplified example. You'll need more robust date/time parsing.\n      var schedTime = new Date(\"1970-01-01T\" + scheduledTimeStr + \":00\");\n      var actualTime = new Date(\"1970-01-01T\" + actualTimeStr + \":00\");\n\n      var delay = (actualTime.getTime() - schedTime.getTime()) / 60000; // Delay in minutes\n\n      if (delay > 0) { // Only count if administered *after* schedule\n        totalDelayInMinutes += delay;\n      }\n\n      totalAdministered++;\n      hasBeenAdministered = true;\n      break; // Stop inner loop once match is found\n    }\n  } // end of inner loop (actual)\n\n  totalScheduled++;\n\n  // 4. --- GENERATE ALERTS ---\n  // If no match was found after checking all actual doses, it's a missed dose.\n  if (!hasBeenAdministered) {\n    missedDoseAlerts.push({\n      \"Patient\": patientID,\n      \"Medicine\": medicine,\n      \"Time\": scheduledTimeStr\n    });\n  }\n\n} // end of outer loop (scheduled)\n\n// 5. --- CALCULATE FINAL KPIs ---\nvar adherence = (totalAdministered / totalScheduled) * 100;\nvar avgDelay = totalDelayInMinutes / totalAdministered;\n\n// 6. --- PREPARE OUTPUTS ---\n// Create three separate message objects\nvar msg1_adherence = { payload: adherence.toFixed(1) };\nvar msg2_avgDelay = { payload: avgDelay.toFixed(1) };\nvar msg3_alerts = { payload: missedDoseAlerts };\n\n// Return messages to their corresponding outputs\nreturn [ msg1_adherence, msg2_avgDelay, msg3_alerts ];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 200,
+        "y": 120,
+        "wires": [
+            [
+                "f12a34b5c6d7e8f9"
+            ],
+            [
+                "e9f8d7c6b5a43210"
+            ],
+            [
+                "350e36d8074aaf3e"
+            ]
+        ]
+    }
+]
