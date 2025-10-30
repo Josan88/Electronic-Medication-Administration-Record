@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Electronic Medication Administration Record</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Electronic Medication Administration Record (eMAR)</h1>
+      </header>
+
+      <main>
+        <div class="welcome-section">
+          <h2>Welcome to eMAR System</h2>
+          <p>
+            Manage and track medication administration records electronically.
+          </p>
+        </div>
+
+        <div class="features">
+          <div class="feature-card">
+            <h3>Patient Management</h3>
+            <p>Track patient information and medication history</p>
+          </div>
+          <div class="feature-card">
+            <h3>Medication Tracking</h3>
+            <p>Record and monitor medication administration</p>
+          </div>
+          <div class="feature-card">
+            <h3>Reports & Analytics</h3>
+            <p>Generate reports and analyze medication data</p>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <p>&copy; 2025 Electronic Medication Administration Record System</p>
+      </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>
