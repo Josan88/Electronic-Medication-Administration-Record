@@ -8,16 +8,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get(
-    "SECRET_KEY", "dev-secret-key-change-in-production"
-)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+if not app.config["SECRET_KEY"]:
+    raise ValueError("SECRET_KEY environment variable is not set")
 
 # ThingSpeak Channel Configuration
 THINGSPEAK_CHANNELS = {
     "patient_info": {
-        "channel_id": os.environ.get("PATIENT_CHANNEL_ID", "3124887"),
-        "write_api_key": os.environ.get("PATIENT_WRITE_KEY", "SI3A2R579YEOZBNF"),
-        "read_api_key": os.environ.get("PATIENT_READ_KEY", "EIHZ4M56P78UQGL1"),
+        "channel_id": os.environ.get("PATIENT_CHANNEL_ID"),
+        "write_api_key": os.environ.get("PATIENT_WRITE_KEY"),
+        "read_api_key": os.environ.get("PATIENT_READ_KEY"),
         "fields": {
             "field1": "Patient_ID",
             "field2": "Name",
@@ -30,9 +30,9 @@ THINGSPEAK_CHANNELS = {
         },
     },
     "medicine_prescription": {
-        "channel_id": os.environ.get("PRESCRIPTION_CHANNEL_ID", "3124898"),
-        "write_api_key": os.environ.get("PRESCRIPTION_WRITE_KEY", "4SPLC67X22H1ZKDW"),
-        "read_api_key": os.environ.get("PRESCRIPTION_READ_KEY", "39HWHBXVF29VTRRU"),
+        "channel_id": os.environ.get("PRESCRIPTION_CHANNEL_ID"),
+        "write_api_key": os.environ.get("PRESCRIPTION_WRITE_KEY"),
+        "read_api_key": os.environ.get("PRESCRIPTION_READ_KEY"),
         "fields": {
             "field1": "Patient_ID",
             "field2": "Medicine_Name",
@@ -44,9 +44,9 @@ THINGSPEAK_CHANNELS = {
         },
     },
     "medicine_track": {
-        "channel_id": os.environ.get("TRACKING_CHANNEL_ID", "3131200"),
-        "write_api_key": os.environ.get("TRACKING_WRITE_KEY", "LOFTBPN6E2O124FE"),
-        "read_api_key": os.environ.get("TRACKING_READ_KEY", "L5EM2MRTXX0ISV40"),
+        "channel_id": os.environ.get("TRACKING_CHANNEL_ID"),
+        "write_api_key": os.environ.get("TRACKING_WRITE_KEY"),
+        "read_api_key": os.environ.get("TRACKING_READ_KEY"),
         "fields": {
             "field1": "Patient_ID",
             "field2": "Medicine_Name",
