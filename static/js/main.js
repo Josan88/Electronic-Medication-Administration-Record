@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeEventListeners();
 
   // Load initial data
+  // The showDashboard function will trigger initial tab loading
+  // Ensure the Nurse Dashboard is active by default
+  showDashboard('nurseDashboard'); 
   loadPatients();
   loadPrescriptions();
   loadTracking();
@@ -41,14 +44,6 @@ function initializeEventListeners() {
       await addPatient();
     });
 
-  // Prescription Form
-  document
-    .getElementById("prescriptionForm")
-    .addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await addPrescription();
-    });
-
   // Tracking Form
   document
     .getElementById("trackingForm")
@@ -57,31 +52,77 @@ function initializeEventListeners() {
       await addTracking();
     });
 
+  // Confirm button and submission logic
+  document
+      .getElementById("confirmSubmissionBtn")
+      .addEventListener("click", async () => {
+          // Close the modal and then run the submission logic
+          closeModal('confirmPrescriptionModal'); 
+          await addPrescription();
+      });
+
   // Set default date to today
   const today = new Date().toISOString().split("T")[0];
-  document.getElementById("start_date").value = today;
-  document.getElementById("consume_date").value = today;
+  const startDateInput = document.getElementById("start_date");
+  if (startDateInput) {
+    startDateInput.value = today;
+  }
+  
+  const consumeDateInput = document.getElementById("consume_date");
+  if (consumeDateInput) {
+    consumeDateInput.value = today;
+  }
+  
+
+  addMedicineField();
 }
 
+// NEW FUNCTION: Main Dashboard Navigation (Burger Menu)
+function showDashboard(dashboardId) {
+  // Select all dashboards
+  const dashboards = document.querySelectorAll(".main-dashboard");
+
+  // Remove active class from all
+  dashboards.forEach(d => d.classList.remove("active"));
+
+  // Activate the selected one
+  const target = document.getElementById(dashboardId);
+  if (target) {
+    target.classList.add("active");
+  } else {
+    console.error(`Dashboard with ID '${dashboardId}' not found.`);
+  }
+
+  // Close burger menu if open (mobile UX fix)
+  const burgerCheckbox = document.getElementById("burger-menu");
+  if (burgerCheckbox) burgerCheckbox.checked = false;
+}
+
+window.showDashboard = showDashboard; // Expose globally
+
 // Tab Navigation
-function showTab(tabName) {
-  // Hide all tabs
-  const tabs = document.querySelectorAll(".tab-content");
-  tabs.forEach((tab) => {
-    tab.classList.remove("active");
-  });
+function showTab(tabName, clickedElement = event.target) {
+  // Hide all tabs within the active dashboard
+  const activeDashboard = document.querySelector(".main-dashboard.active");
+  if (activeDashboard) {
+      const tabs = activeDashboard.querySelectorAll(".tab-content");
+      tabs.forEach((tab) => {
+        tab.classList.remove("active");
+      });
 
-  // Remove active class from all buttons
-  const buttons = document.querySelectorAll(".tab-button");
-  buttons.forEach((button) => {
-    button.classList.remove("active");
-  });
+      // Remove active class from all buttons in the current tab set
+      const buttons = activeDashboard.querySelectorAll(".tab-button");
+      buttons.forEach((button) => {
+        button.classList.remove("active");
+      });
 
-  // Show selected tab
-  document.getElementById(tabName).classList.add("active");
+      // Show selected tab
+      document.getElementById(tabName).classList.add("active");
 
-  // Activate button
-  event.target.classList.add("active");
+      // Activate button
+      clickedElement.classList.add("active");
+  }
+
 
   // Load data for the tab
   if (tabName === "patients") {
@@ -90,9 +131,8 @@ function showTab(tabName) {
     loadPrescriptions();
   } else if (tabName === "tracking") {
     loadTracking();
-  } else if (tabName === "dashboard") {
-    updateStats();
   }
+  // Dashboard stats are now loaded via showDashboard('managementDashboard')
 }
 
 // Patient Management
@@ -168,39 +208,170 @@ async function loadPatients() {
 }
 
 // Prescription Management
-async function addPrescription() {
-  const prescriptionData = {
-    patient_id: document.getElementById("presc_patient_id").value,
-    medicine_name: document.getElementById("medicine_name").value,
-    dosage: document.getElementById("dosage").value,
-    frequency: document.getElementById("frequency").value,
-    start_date: document.getElementById("start_date").value,
-    end_date: document.getElementById("end_date").value,
-    time_slot: document.getElementById("time_slot").value,
-  };
+function addMedicineField() {
+    const container = document.getElementById("medicineFieldsContainer");
+    const template = document.getElementById("medicineFieldTemplate");
+    
+    // Clone the content of the template
+    const clone = template.content.cloneNode(true);
+    const newGroup = clone.querySelector('.medicine-group');
+    
+    // Set default start date to today
+    const today = new Date().toISOString().split("T")[0];
+    const startDateInput = newGroup.querySelector('input[name="start_date"]');
+    if (startDateInput) {
+        startDateInput.value = today;
+    }
 
-  try {
-    const response = await fetch("/api/prescriptions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(prescriptionData),
+    // Append the new group
+    container.appendChild(newGroup);
+}
+window.addMedicineField = addMedicineField;
+
+function removeMedicineField(button) {
+    // Traverse up to the parent '.medicine-group' and remove it
+    button.closest('.medicine-group').remove();
+}
+window.removeMedicineField = removeMedicineField;
+
+async function addPrescription() {
+    // Get the common Patient ID
+    const patientId = document.getElementById("presc_patient_id").value;
+    const medicineGroups = document.querySelectorAll("#medicineFieldsContainer .medicine-group");
+
+    if (!patientId) {
+        showMessage("error", "Please enter a Patient ID.");
+        return;
+    }
+
+    if (medicineGroups.length === 0) {
+        showMessage("error", "Please add at least one medicine prescription.");
+        return;
+    }
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Loop through each dynamic medicine group
+    for (const group of medicineGroups) {
+        // Extract data from the current medicine group using its 'name' attributes
+        const prescriptionData = {
+            patient_id: patientId,
+            medicine_name: group.querySelector('[name="medicine_name"]').value,
+            dosage: group.querySelector('[name="dosage"]').value,
+            frequency: group.querySelector('[name="frequency"]').value,
+            start_date: group.querySelector('[name="start_date"]').value,
+            end_date: group.querySelector('[name="end_date"]').value,
+            time_slot: group.querySelector('[name="time_slot"]').value,
+        };
+
+        // Skip if mandatory fields are empty
+        if (!prescriptionData.medicine_name || !prescriptionData.dosage || !prescriptionData.frequency || !prescriptionData.start_date) {
+            showMessage("error", `Skipping an incomplete medicine entry. Fill out required fields.`);
+            failureCount++;
+            continue;
+        }
+
+        // Submit the individual entry to the API
+        try {
+            const response = await fetch("/api/prescriptions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(prescriptionData),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                successCount++;
+            } else {
+                failureCount++;
+                console.error("API Error during submission:", result.error);
+            }
+        } catch (error) {
+            failureCount++;
+            console.error("Error adding prescription entry:", error.message);
+        }
+    }
+
+    // Show final status and reset form
+    if (successCount > 0) {
+        showMessage("success", `${successCount} prescription(s) added successfully! (${failureCount} failed)`);
+    } else {
+        showMessage("error", `Failed to add any prescriptions. ${failureCount} attempt(s) failed.`);
+    }
+
+    // Reset form and dynamic fields
+    document.getElementById("prescriptionForm").reset();
+    document.getElementById("medicineFieldsContainer").innerHTML = ''; // Clear all dynamic fields
+    addMedicineField(); // Add one fresh field
+    setTimeout(() => loadPrescriptions(), 2000);
+}
+
+// Utility Functions 
+
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = "block";
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = "none";
+}
+window.closeModal = closeModal;
+
+// Prescription Management
+function showPrescriptionPreview() {
+    const patientId = document.getElementById("presc_patient_id").value;
+    const medicineGroups = document.querySelectorAll("#medicineFieldsContainer .medicine-group");
+    const previewContent = document.getElementById("prescriptionPreviewContent");
+
+    if (!patientId || medicineGroups.length === 0) {
+        showMessage("error", "Please ensure a Patient ID is entered and at least one medicine is added.");
+        return;
+    }
+
+    let previewHTML = `<h3>Patient ID: ${patientId}</h3><hr>`;
+    let validCount = 0;
+    
+    // Collect data and build the preview content
+    medicineGroups.forEach((group, index) => {
+        const data = {
+            medicine_name: group.querySelector('[name="medicine_name"]').value,
+            dosage: group.querySelector('[name="dosage"]').value,
+            frequency: group.querySelector('[name="frequency"]').value,
+            start_date: group.querySelector('[name="start_date"]').value,
+            end_date: group.querySelector('[name="end_date"]').value || "N/A",
+            time_slot: group.querySelector('[name="time_slot"]').value || "N/A",
+        };
+
+        if (data.medicine_name && data.dosage && data.frequency && data.start_date) {
+            validCount++;
+            previewHTML += `
+                <div class="preview-item">
+                    <h4>Medicine ${index + 1}: ${data.medicine_name}</h4>
+                    <p>Dosage: ${data.dosage}</p>
+                    <p>Frequency: ${data.frequency}</p>
+                    <p>Start Date: ${data.start_date} | End Date: ${data.end_date}</p>
+                    <p>Time Slot: ${data.time_slot}</p>
+                    <hr>
+                </div>
+            `;
+        }
     });
 
-    const result = await response.json();
-
-    if (result.success) {
-      showMessage("success", "Prescription added successfully!");
-      document.getElementById("prescriptionForm").reset();
-      const today = new Date().toISOString().split("T")[0];
-      document.getElementById("start_date").value = today;
-      setTimeout(() => loadPrescriptions(), 2000);
-    } else {
-      showMessage("error", "Error: " + result.error);
+    if (validCount === 0) {
+        showMessage("error", "No complete prescriptions found to submit.");
+        return;
     }
-  } catch (error) {
-    showMessage("error", "Error adding prescription: " + error.message);
-  }
+    
+    previewContent.innerHTML = previewHTML;
+    
+    // Open the modal
+    openModal('confirmPrescriptionModal');
 }
+
+window.showPrescriptionPreview = showPrescriptionPreview;
+
 
 async function loadPrescriptions() {
   const listElement = document.getElementById("prescriptionList");
@@ -428,6 +599,7 @@ async function lookupPatient() {
     showMessage("error", "Error looking up patient: " + error.message);
   }
 }
+window.lookupPatient = lookupPatient; // Expose globally
 
 // Update Statistics
 async function updateStats() {
@@ -482,9 +654,8 @@ function showMessage(type, message) {
   }, 5000);
 }
 
-// Make functions globally available
+// Make remaining functions globally available
 window.showTab = showTab;
 window.loadPatients = loadPatients;
 window.loadPrescriptions = loadPrescriptions;
 window.loadTracking = loadTracking;
-window.lookupPatient = lookupPatient;

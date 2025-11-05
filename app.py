@@ -1,8 +1,20 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify # type: ignore
 import os
-import requests
+import requests # type: ignore
 from datetime import datetime
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
+import time
+from threading import Thread
+from threading import Lock
+from collections import deque
+
+# Global variable to track the last successful ThingSpeak write time
+last_ts_write_time = 0
+TS_RATE_LIMIT_SECONDS = 15  # 15 seconds limit per entry
+# Global variable to hold prescriptions waiting for ThingSpeak
+prescription_queue = deque()
+# Global lock to ensure only one thread modifies the queue at a time
+queue_lock = Lock()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -184,40 +196,27 @@ def get_prescriptions():
 
 @app.route("/api/prescriptions", methods=["POST"])
 def add_prescription():
-    """Add a new medicine prescription to ThingSpeak"""
+    """Add a new medicine prescription to the internal queue instantly."""
     try:
         data = request.json
         if data is None:
             return jsonify({"success": False, "error": "Invalid JSON data"}), 400
 
-        channel = THINGSPEAK_CHANNELS["medicine_prescription"]
+        # Add data to the thread-safe queue instantly
+        with queue_lock:
+            prescription_queue.append(data)
 
-        url = f"{THINGSPEAK_BASE_URL}/update"
-        params = {
-            "api_key": channel["write_api_key"],
-            "field1": data.get("patient_id", ""),
-            "field2": data.get("medicine_name", ""),
-            "field3": data.get("dosage", ""),
-            "field4": data.get("frequency", ""),
-            "field5": data.get("start_date", ""),
-            "field6": data.get("end_date", ""),
-            "field7": data.get("time_slot", ""),
-        }
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        entry_id = response.text
+        # Return success immediately to the frontend, removing the 15s lag
         return jsonify(
             {
                 "success": True,
-                "entry_id": entry_id,
-                "message": "Prescription added successfully",
+                "message": "Prescription queued successfully for background processing.",
             }
-        )
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        ), 202 # HTTP 202 Accepted status code
 
+    except Exception as e:
+        # Note: This only catches errors in the queuing process, not the ThingSpeak write
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # Medicine Tracking Endpoints
 @app.route("/api/medication-tracking", methods=["GET"])
@@ -390,6 +389,58 @@ def get_patient_tracking(patient_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+def process_prescription_queue():
+    """Background worker to process the prescription queue at the ThingSpeak rate limit."""
+    global last_ts_write_time
+
+    while True:
+        try:
+            # Check if an entry is waiting and the rate limit has passed
+            current_time = time.time()
+            time_since_last_write = current_time - last_ts_write_time
+            
+            if time_since_last_write >= TS_RATE_LIMIT_SECONDS:
+                with queue_lock:
+                    if prescription_queue:
+                        data = prescription_queue.popleft() # Get the oldest entry
+                    else:
+                        data = None
+                
+                if data:
+                    # Write to ThingSpeak (reusing logic from add_prescription)
+                    channel = THINGSPEAK_CHANNELS["medicine_prescription"]
+                    url = f"{THINGSPEAK_BASE_URL}/update"
+                    
+                    params = {
+                        "api_key": channel["write_api_key"],
+                        "field1": data.get("patient_id", ""),
+                        "field2": data.get("medicine_name", ""),
+                        "field3": data.get("dosage", ""),
+                        "field4": data.get("frequency", ""),
+                        "field5": data.get("start_date", ""),
+                        "field6": data.get("end_date", ""),
+                        "field7": data.get("time_slot", ""),
+                    }
+                    
+                    response = requests.get(url, params=params)
+                    response.raise_for_status() # Raises exception on bad status
+                    
+                    # Log or update status if needed
+                    print(f"Successfully posted entry {response.text} to ThingSpeak.")
+                    
+                    # Update the last successful write time
+                    last_ts_write_time = time.time() 
+
+            # Sleep for 1 second before checking the queue again
+            time.sleep(1)
+
+        except Exception as e:
+            print(f"Error in background worker: {e}")
+            time.sleep(5) # Wait longer on error before retrying
+            
+# Start the background worker thread when the app starts
+worker_thread = Thread(target=process_prescription_queue, daemon=True)
+worker_thread.start()
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
