@@ -389,6 +389,28 @@ def get_patient_tracking(patient_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/api/check_patient/<patient_id>", methods=["GET"])
+def check_patient(patient_id):
+    """Check if a patient exists by Patient ID."""
+    try:
+        channel = THINGSPEAK_CHANNELS["patient_info"]
+        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
+        params = {"api_key": channel["read_api_key"], "results": 100}
+
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+
+        data = response.json()
+
+        for feed in data.get("feeds", []):
+            if feed.get("field1") == patient_id:
+                return jsonify({"exists": True})
+
+        return jsonify({"exists": False})
+
+    except Exception as e:
+        return jsonify({"exists": False, "error": str(e)}), 500
+
 def process_prescription_queue():
     """Background worker to process the prescription queue at the ThingSpeak rate limit."""
     global last_ts_write_time

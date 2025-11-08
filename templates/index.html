@@ -19,6 +19,9 @@
 
     <div class="sidenav">
       <h2>Dashboards</h2>
+      <button class="btn btn-menu" onclick="showDashboard('dutyDashboard')">
+        📋 Duty Dashboard
+      </button>
       <button class="btn btn-menu" onclick="showDashboard('nurseDashboard')">
         🧑‍⚕️ Nurse Dashboard
       </button>
@@ -37,8 +40,36 @@
       </header>
 
       <main>
+        <div id="dutyDashboard" class="main-dashboard">
+          <h2>Duty Dashboard</h2>
+
+          <div class="tabs">
+            <button class="tab-button active" onclick="showDutyTab('rounds')">
+              Round Timeline
+            </button>
+            <button class="tab-button" onclick="showDutyTab('byPatient')">
+              Search by Patient
+            </button>
+          </div>
+
+          <div id="rounds" class="tab-content active">
+            <h3>Medicine Rounds</h3>
+            <div id="timeline-tables" class="accordion-container"></div>
+            <div id="roundViewContainer"></div>
+          </div>
+
+          <div id="byPatient" class="tab-content">
+            <h3>Search Patient Active Medications</h3>
+            <div class="form-group vertical-margin">
+              <label for="patientSearchInput">Patient ID</label>
+              <input type="text" id="patientSearchInput" placeholder="Enter Patient ID" />
+            </div>
+            <button class="btn btn-primary" onclick="loadPatientActiveMeds()">Search</button>
+            <div id="patientMedsResult" class="mt-3"></div>
+          </div>
+        </div>
         <div id="nurseDashboard" class="main-dashboard active">
-          <h2>Nurse Dashboard - Patient Care</h2>
+          <h2>Nurse Dashboard</h2>
 
           <div class="tabs">
             <button class="tab-button active" onclick="showTab('patients')">
@@ -46,9 +77,6 @@
             </button>
             <button class="tab-button" onclick="showTab('prescriptions')">
               Prescriptions
-            </button>
-            <button class="tab-button" onclick="showTab('tracking')">
-              Medication Tracking
             </button>
           </div>
 
@@ -67,8 +95,8 @@
                   <input type="text" id="name" required />
                 </div>
                 <div class="form-group">
-                  <label for="floor">Floor</label>
-                  <select id="floor">
+                  <label for="floor">Floor *</label>
+                  <select id="floor" required>
                     <option value="">Select Floor</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -81,8 +109,8 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="room">Room</label>
-                  <input type="text" id="room" />
+                  <label for="room">Room *</label>
+                  <input type="text" id="room" required/>
                 </div>
                 <div class="form-group">
                   <label for="bed">Bed</label>
@@ -139,7 +167,7 @@
 
                 <div class="form-actions full-width">
                   <button
-                    type="button"
+                    type="submit"
                     class="btn btn-primary"
                     onclick="showPrescriptionPreview()"
                   >
@@ -223,13 +251,13 @@
                     <input type="date" name="end_date" />
                   </div>
                   <div class="form-group">
-                    <label>Time Slot</label>
-                    <input
-                      type="text"
-                      name="time_slot"
-                      placeholder="e.g., 8AM, 2PM, 8PM"
-                    />
+                    <label>Time Slots *</label>
+                    <div class="time-slots-container"></div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="addTimeField(this)">
+                      + Add Time
+                    </button>
                   </div>
+
                 </div>
                 <button
                   type="button"
@@ -247,52 +275,6 @@
                 Refresh
               </button>
               <div id="prescriptionList" class="data-list"></div>
-            </div>
-          </div>
-
-          <div id="tracking" class="tab-content">
-            <h2>Medication Tracking</h2>
-
-            <div class="card">
-              <h3>Record Medication Administration</h3>
-              <form id="trackingForm" class="form-grid">
-                <div class="form-group">
-                  <label for="track_patient_id">Patient ID *</label>
-                  <input type="text" id="track_patient_id" required />
-                </div>
-                <div class="form-group">
-                  <label for="track_medicine_name">Medicine Name *</label>
-                  <input type="text" id="track_medicine_name" required />
-                </div>
-                <div class="form-group">
-                  <label for="track_dosage">Dosage *</label>
-                  <input
-                    type="text"
-                    id="track_dosage"
-                    placeholder="e.g., 500mg"
-                    required
-                  />
-                </div>
-                <div class="form-group">
-                  <label for="consume_date">Consumption Date *</label>
-                  <input type="date" id="consume_date" required />
-                </div>
-                <div class="form-group">
-                  <label for="track_time_slot">Time Slot *</label>
-                  <input type="time" id="track_time_slot" required />
-                </div>
-                <button type="submit" class="btn btn-primary">
-                  Record Administration
-                </button>
-              </form>
-            </div>
-
-            <div class="card">
-              <h3>Medication Administration Records</h3>
-              <button onclick="loadTracking()" class="btn btn-secondary">
-                Refresh
-              </button>
-              <div id="trackingList" class="data-list"></div>
             </div>
           </div>
         </div>
@@ -316,8 +298,13 @@
           </div>
           
           <div class="card">
+            <h3>Rounds Summary (8am / 1pm / 6pm)</h3>
+            <canvas id="managementChart" aria-label="Rounds chart" role="img" height="50"></canvas>
+            <p class="muted small">Green = Completed, Yellow = Pending (active prescriptions at that round)</p>
+          </div>
+          <div class="card">
             <h3>Patient Lookup</h3>
-            <div class="form-group">
+            <div class="form-group vertical-margin">
               <label for="lookup_patient_id">Enter Patient ID</label>
               <input
                 type="text"
@@ -354,6 +341,7 @@
         </footer>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>
