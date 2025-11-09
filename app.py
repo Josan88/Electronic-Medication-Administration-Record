@@ -1,75 +1,26 @@
 from flask import Flask, render_template, request, jsonify  # type: ignore
-import os
 import requests  # type: ignore
 from datetime import datetime
-from dotenv import load_dotenv  # type: ignore
 import time
 from threading import Thread
 from threading import Lock
 from collections import deque
+from config import config
 
 # Global variable to track the last successful ThingSpeak write time
 last_ts_write_time = 0
-TS_RATE_LIMIT_SECONDS = 15  # 15 seconds limit per entry
 # Global variable to hold prescriptions waiting for ThingSpeak
 prescription_queue = deque()
 # Global lock to ensure only one thread modifies the queue at a time
 queue_lock = Lock()
 
-# Load environment variables from .env file
-load_dotenv()
-
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
-if not app.config["SECRET_KEY"]:
-    raise ValueError("SECRET_KEY environment variable is not set")
+app.config["SECRET_KEY"] = config.SECRET_KEY
 
-# ThingSpeak Channel Configuration
-THINGSPEAK_CHANNELS = {
-    "patient_info": {
-        "channel_id": os.environ.get("PATIENT_CHANNEL_ID"),
-        "write_api_key": os.environ.get("PATIENT_WRITE_KEY"),
-        "read_api_key": os.environ.get("PATIENT_READ_KEY"),
-        "fields": {
-            "field1": "Patient_ID",
-            "field2": "Name",
-            "field3": "Floor",
-            "field4": "Room",
-            "field5": "Bed",
-            "field6": "Age",
-            "field7": "Gender",
-            "field8": "Notes",
-        },
-    },
-    "medicine_prescription": {
-        "channel_id": os.environ.get("PRESCRIPTION_CHANNEL_ID"),
-        "write_api_key": os.environ.get("PRESCRIPTION_WRITE_KEY"),
-        "read_api_key": os.environ.get("PRESCRIPTION_READ_KEY"),
-        "fields": {
-            "field1": "Patient_ID",
-            "field2": "Medicine_Name",
-            "field3": "Dosage",
-            "field4": "Frequency",
-            "field5": "Start_Date",
-            "field6": "End_Date",
-            "field7": "Time_Slot",
-        },
-    },
-    "medicine_track": {
-        "channel_id": os.environ.get("TRACKING_CHANNEL_ID"),
-        "write_api_key": os.environ.get("TRACKING_WRITE_KEY"),
-        "read_api_key": os.environ.get("TRACKING_READ_KEY"),
-        "fields": {
-            "field1": "Patient_ID",
-            "field2": "Medicine_Name",
-            "field3": "Dosage",
-            "field4": "Consume_Date",
-            "field5": "Time_Slot",
-        },
-    },
-}
-
-THINGSPEAK_BASE_URL = "https://api.thingspeak.com"
+# Load configuration from config module
+THINGSPEAK_CHANNELS = config.THINGSPEAK_CHANNELS
+THINGSPEAK_BASE_URL = config.THINGSPEAK_BASE_URL
+TS_RATE_LIMIT_SECONDS = config.THINGSPEAK_RATE_LIMIT_SECONDS
 
 
 @app.route("/")
@@ -94,7 +45,7 @@ def get_patients():
     try:
         channel = THINGSPEAK_CHANNELS["patient_info"]
         url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": 100}
+        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
 
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -167,7 +118,7 @@ def get_prescriptions():
     try:
         channel = THINGSPEAK_CHANNELS["medicine_prescription"]
         url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": 100}
+        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
 
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -229,7 +180,7 @@ def get_medication_tracking():
     try:
         channel = THINGSPEAK_CHANNELS["medicine_track"]
         url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": 100}
+        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
 
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -296,7 +247,7 @@ def get_patient_by_id(patient_id):
     try:
         channel = THINGSPEAK_CHANNELS["patient_info"]
         url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": 100}
+        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
 
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -334,7 +285,7 @@ def get_patient_prescriptions(patient_id):
     try:
         channel = THINGSPEAK_CHANNELS["medicine_prescription"]
         url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": 100}
+        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
 
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -368,7 +319,7 @@ def get_patient_tracking(patient_id):
     try:
         channel = THINGSPEAK_CHANNELS["medicine_track"]
         url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": 100}
+        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
 
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -400,7 +351,7 @@ def check_patient(patient_id):
     try:
         channel = THINGSPEAK_CHANNELS["patient_info"]
         url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": 100}
+        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
 
         response = requests.get(url, params=params)
         response.raise_for_status()
