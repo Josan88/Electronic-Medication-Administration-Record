@@ -1,29 +1,5 @@
 # Electronic Medication Administration Record (eMAR)
 
-A Flask-based web application for managing and tracking medication administration records electronically.
-
-## Features
-
-- Patient Management
-- Medication Tracking
-- Administration Records
-- Reports & Analytics
-
-## Setup Instructions
-
-### Prerequisites
-
-- Python 3.8 or higher
-- pip (Python package installer)
-
-### Installation
-
-1. Clone the repository:
-
-````bash
-git clone <repository-url>
-# Electronic Medication Administration Record (eMAR)
-
 A comprehensive web-based Electronic Medication Administration Record system that integrates with ThingSpeak IoT platform for real-time data storage and retrieval.
 
 ## 🌟 Features
@@ -38,23 +14,37 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.8 or higher
 - Internet connection (for ThingSpeak API)
 
 ### Installation & Setup
 
-1. **Install dependencies:**
+1. **Clone the repository:**
+
+   ```powershell
+   git clone https://github.com/Josan88/Electronic-Medication-Administration-Record.git
+   cd Electronic-Medication-Administration-Record
+   ```
+
+2. **Install dependencies:**
+
    ```powershell
    pip install -r requirements.txt
-````
+   ```
 
-2. **Start the application:**
+3. **Configure environment variables:**
+
+   - Create a `.env` file in the project root
+   - Add your ThingSpeak API keys (see Environment Variables section below)
+
+4. **Start the application:**
 
    ```powershell
    python app.py
    ```
 
-3. **Open your browser:**
+5. **Open your browser:**
    Navigate to **http://localhost:5000**
 
 ### First-Time Usage
@@ -80,7 +70,8 @@ A comprehensive web-based Electronic Medication Administration Record system tha
   - Frequency: Twice daily
   - Start/End Date, Time Slot
 - Click **"Add Prescription"**
-- Wait 15 seconds (ThingSpeak rate limit), then refresh
+- Prescription is queued automatically - wait ~15 seconds for background processing
+- Click **"Refresh"** to see the new prescription
 
 #### 3. Record Medication Administration
 
@@ -97,10 +88,11 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 
 ## 💻 Technology Stack
 
-- **Backend**: Flask (Python)
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Data Storage**: ThingSpeak IoT Platform
+- **Backend**: Flask 3.0.0 (Python)
+- **Frontend**: HTML5, CSS3, JavaScript (Vanilla ES6+)
+- **Data Storage**: ThingSpeak IoT Platform (Cloud-based, no local database)
 - **API**: RESTful API design
+- **Concurrency**: Threading module for background queue processing
 
 ## ThingSpeak Integration
 
@@ -170,7 +162,8 @@ The system uses three ThingSpeak channels:
 ### Prescriptions
 
 - **GET** `/api/prescriptions` - Get all prescriptions
-- **POST** `/api/prescriptions` - Add new prescription
+- **POST** `/api/prescriptions` - Add new prescription (returns HTTP 202, queued for background processing)
+- **GET** `/api/check_patient/<patient_id>` - Check if patient exists
 
 ### Medication Tracking
 
@@ -210,10 +203,15 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/patients" -Method Post -Body $
 ### Method 3: Automated Test Script
 
 ```powershell
+# Run comprehensive test suite (takes ~50 seconds due to rate limits)
 python test_api.py
+
+# To test from another device on the network:
+# Edit BASE_URL in test_api.py line 12 first
+# Change from "http://localhost:5000" to "http://YOUR_IP:5000"
 ```
 
-**Note**: Test script takes several minutes due to ThingSpeak rate limits (15 seconds between requests)
+**Note**: Test script includes automatic 15-second delays between write operations to comply with ThingSpeak rate limits
 
 ## 📋 API Request Examples
 
@@ -265,15 +263,34 @@ POST /api/medication-tracking
 
 ### ThingSpeak Rate Limits
 
-- **Free accounts**: 1 update every 15 seconds per channel
-- Wait 15 seconds between adding records
+- **Free tier**: 1 update every 15 seconds **per channel**
+- **Prescriptions**: Use background queue system - no waiting required (HTTP 202 response)
+- **Patients & Tracking**: Direct write to ThingSpeak - 15-second wait enforced per channel
 - Data appears after 2-3 second sync delay
 
 ### Data Persistence
 
-- All data is stored on ThingSpeak cloud
+- All data is stored on ThingSpeak cloud (no local database)
 - Data persists even after closing the application
+- **Important**: Prescription queue is in-memory - queued items are lost on app restart
 - Refresh the page to see latest data
+
+### Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+```
+SECRET_KEY=your-flask-secret-key
+PATIENT_CHANNEL_ID=3124887
+PATIENT_WRITE_KEY=your-patient-write-key
+PATIENT_READ_KEY=your-patient-read-key
+PRESCRIPTION_CHANNEL_ID=3124898
+PRESCRIPTION_WRITE_KEY=your-prescription-write-key
+PRESCRIPTION_READ_KEY=your-prescription-read-key
+TRACKING_CHANNEL_ID=3131200
+TRACKING_WRITE_KEY=your-tracking-write-key
+TRACKING_READ_KEY=your-tracking-read-key
+```
 
 ### Browser Compatibility
 
@@ -284,16 +301,20 @@ POST /api/medication-tracking
 
 ```
 Electronic-Medication-Administration-Record/
-├── app.py                      # Flask application with API endpoints
-├── requirements.txt            # Python dependencies
+├── app.py                      # Flask backend with REST API & background worker
+├── requirements.txt            # Python dependencies (Flask, requests, python-dotenv)
+├── test_api.py                 # Comprehensive API test suite
 ├── README.md                   # Project documentation
+├── .env                        # Environment variables (ThingSpeak API keys)
+├── .github/
+│   └── copilot-instructions.md # AI coding agent guidelines
 ├── static/
 │   ├── css/
 │   │   └── style.css          # Application styles
 │   └── js/
-│       └── main.js            # Frontend JavaScript
+│       └── main.js            # Frontend JavaScript (AJAX, dashboard switching)
 └── templates/
-    └── index.html             # Main HTML template
+    └── index.html             # Single-page application (3 dashboards)
 ```
 
 ## Features in Detail
@@ -311,6 +332,8 @@ Electronic-Medication-Administration-Record/
 - Track dosage and frequency
 - Define treatment duration
 - Specify administration time slots
+- **Background queue processing**: Prescriptions are queued automatically and written to ThingSpeak in the background
+- Returns immediately without blocking (HTTP 202 Accepted)
 
 ### Medication Tracking
 
@@ -321,9 +344,11 @@ Electronic-Medication-Administration-Record/
 
 ### Dashboard Analytics
 
+- **Duty Dashboard**: Round timeline view + patient medication search
+- **Nurse Dashboard**: Patient management + prescription entry (active by default)
+- **Management Dashboard**: Statistics and charts
 - Quick patient lookup
 - Comprehensive patient view
-- Statistics overview
 - Real-time data updates
 
 ## 🔧 Troubleshooting
@@ -359,8 +384,10 @@ app.run(debug=True, host="0.0.0.0", port=5001)
 ### API Errors
 
 1. Verify ThingSpeak is accessible: https://thingspeak.com
-2. Check API keys in `app.py` are correct
-3. Wait 15 seconds between requests (rate limit)
+2. Check API keys in `.env` file are correct
+3. Wait 15 seconds between patient/tracking requests (rate limit per channel)
+4. Check terminal for background worker messages: `"Successfully posted entry"`
+5. Look for `response.raise_for_status()` exceptions in logs
 
 ## 🔐 Security Considerations
 
@@ -370,13 +397,25 @@ For production use:
 
 - ✅ Enable user authentication
 - ✅ Use HTTPS
-- ✅ Secure API keys with environment variables
+- ✅ Secure API keys with environment variables (already using `.env` file)
 - ✅ Configure ThingSpeak channel privacy
-- ✅ Use a production WSGI server (not Flask development server)
+- ✅ Use a production WSGI server (e.g., Gunicorn, not Flask development server)
 - ✅ Implement role-based access control
+- ✅ Add `.env` to `.gitignore` to prevent exposing secrets
+- ✅ Validate patient IDs before adding prescriptions/tracking
+
+## Known Limitations & Considerations
+
+1. **Data Loss on Restart**: Prescription queue (in-memory) clears on app restart
+2. **Rate Limiting UX**: Patient/tracking endpoints block for 15 seconds due to direct ThingSpeak writes
+3. **Data Pagination**: Only last 100 records accessible per channel without implementing date-range queries
+4. **No Transactions**: ThingSpeak writes are independent - no rollback if related data fails (e.g., prescription without patient)
+5. **Single Writer**: Background worker serializes prescription writes - high volume could cause queue buildup
 
 ## Future Enhancements
 
+- Persistent queue storage (database or file-based)
+- Implement ThingSpeak date-range pagination for >100 records
 - User authentication and authorization
 - Role-based access control (doctors, nurses, administrators)
 - Barcode scanning for patient and medication identification
@@ -408,97 +447,43 @@ Visit ThingSpeak channels directly:
 2. Navigate to each channel
 3. Use "Clear Channel" option to remove all data
 
-## License
+## Architecture Overview
 
-This project is open-source and available under the MIT License.
+### Three-Channel ThingSpeak Architecture
+
+The app uses **three separate ThingSpeak channels**, each with 8-field data constraints:
+
+1. **Patient Info Channel** (ID: 3124887): Stores patient demographics
+2. **Prescription Channel** (ID: 3124898): Stores medication prescriptions with queueing system
+3. **Tracking Channel** (ID: 3131200): Records actual medication administration
+
+### Data Flow
+
+**Client → Flask API → ThingSpeak REST API → Cloud Storage**
+
+- GET requests: Fetch from ThingSpeak, transform generic field1-field8 to readable keys
+- POST requests: Accept JSON, map to ThingSpeak field parameters
+- Prescription writes: Queued via background thread (daemon) to avoid blocking UI
+- Patient/Tracking writes: Direct to ThingSpeak (enforces 15-second wait)
 
 ## Acknowledgments
 
 - Built with Flask web framework
 - Data storage powered by ThingSpeak IoT platform
 - UI inspired by modern healthcare applications
+- See `.github/copilot-instructions.md` for detailed development guide
 
 ---
 
 **Version:** 1.0.0  
-**Last Updated:** October 30, 2025
-
-````
-
-2. Create a virtual environment:
-
-```bash
-python -m venv .venv
-````
-
-3. Activate the virtual environment:
-
-- Windows:
-  ```bash
-  .venv\Scripts\activate
-  ```
-- macOS/Linux:
-  ```bash
-  source .venv/bin/activate
-  ```
-
-4. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-5. Set up environment variables:
-
-- Copy `.env` and update the values as needed
-- Change the `SECRET_KEY` in production
-
-### Running the Application
-
-```bash
-python app.py
-```
-
-The application will be available at `http://localhost:5000`
-
-## Project Structure
-
-```
-Electronic-Medication-Administration-Record/
-├── app.py              # Main Flask application
-├── requirements.txt    # Python dependencies
-├── .env               # Environment variables (not in git)
-├── .gitignore         # Git ignore file
-├── README.md          # Project documentation
-├── templates/         # HTML templates
-│   └── index.html
-└── static/           # Static files (CSS, JS, images)
-    ├── css/
-    │   └── style.css
-    └── js/
-        └── main.js
-```
-
-## API Endpoints
-
-- `GET /` - Main application page
-- `GET /api/health` - Health check endpoint
-
-## Development
-
-To run in development mode with auto-reload:
-
-```bash
-python app.py
-```
-
-## License
-
-MIT License
+**Last Updated:** November 9, 2025
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-#   4 0 0 1 1  
- #   4 0 0 1 1  
- 
+
+For AI-assisted development, see `.github/copilot-instructions.md` for project-specific patterns and conventions.
+
+## License
+
+MIT License
