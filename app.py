@@ -1,11 +1,10 @@
 from flask import Flask, render_template, request, jsonify  # type: ignore
-import requests  # type: ignore
-from datetime import datetime
 import time
 from threading import Thread
 from threading import Lock
 from collections import deque
 from config import config
+from services.thingspeak_service import thingspeak_service, ThingSpeakError
 
 # Global variable to track the last successful ThingSpeak write time
 last_ts_write_time = 0
@@ -17,9 +16,7 @@ queue_lock = Lock()
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
 
-# Load configuration from config module
-THINGSPEAK_CHANNELS = config.THINGSPEAK_CHANNELS
-THINGSPEAK_BASE_URL = config.THINGSPEAK_BASE_URL
+# ThingSpeak rate limit (used by background worker)
 TS_RATE_LIMIT_SECONDS = config.THINGSPEAK_RATE_LIMIT_SECONDS
 
 
@@ -43,33 +40,9 @@ def health():
 def get_patients():
     """Get all patient information from ThingSpeak"""
     try:
-        channel = THINGSPEAK_CHANNELS["patient_info"]
-        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        data = response.json()
-        patients = []
-
-        for feed in data.get("feeds", []):
-            patient = {
-                "entry_id": feed.get("entry_id"),
-                "created_at": feed.get("created_at"),
-                "patient_id": feed.get("field1"),
-                "name": feed.get("field2"),
-                "floor": feed.get("field3"),
-                "room": feed.get("field4"),
-                "bed": feed.get("field5"),
-                "age": feed.get("field6"),
-                "gender": feed.get("field7"),
-                "notes": feed.get("field8"),
-            }
-            patients.append(patient)
-
+        patients = thingspeak_service.read_channel("patient_info")
         return jsonify({"success": True, "data": patients})
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -81,25 +54,7 @@ def add_patient():
         if data is None:
             return jsonify({"success": False, "error": "Invalid JSON data"}), 400
 
-        channel = THINGSPEAK_CHANNELS["patient_info"]
-
-        url = f"{THINGSPEAK_BASE_URL}/update"
-        params = {
-            "api_key": channel["write_api_key"],
-            "field1": data.get("patient_id", ""),
-            "field2": data.get("name", ""),
-            "field3": data.get("floor", ""),
-            "field4": data.get("room", ""),
-            "field5": data.get("bed", ""),
-            "field6": data.get("age", ""),
-            "field7": data.get("gender", ""),
-            "field8": data.get("notes", ""),
-        }
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        entry_id = response.text
+        entry_id = thingspeak_service.write_to_channel("patient_info", data)
         return jsonify(
             {
                 "success": True,
@@ -107,7 +62,7 @@ def add_patient():
                 "message": "Patient added successfully",
             }
         )
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -116,32 +71,9 @@ def add_patient():
 def get_prescriptions():
     """Get all medicine prescriptions from ThingSpeak"""
     try:
-        channel = THINGSPEAK_CHANNELS["medicine_prescription"]
-        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        data = response.json()
-        prescriptions = []
-
-        for feed in data.get("feeds", []):
-            prescription = {
-                "entry_id": feed.get("entry_id"),
-                "created_at": feed.get("created_at"),
-                "patient_id": feed.get("field1"),
-                "medicine_name": feed.get("field2"),
-                "dosage": feed.get("field3"),
-                "frequency": feed.get("field4"),
-                "start_date": feed.get("field5"),
-                "end_date": feed.get("field6"),
-                "time_slot": feed.get("field7"),
-            }
-            prescriptions.append(prescription)
-
+        prescriptions = thingspeak_service.read_channel("medicine_prescription")
         return jsonify({"success": True, "data": prescriptions})
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -178,30 +110,9 @@ def add_prescription():
 def get_medication_tracking():
     """Get all medication tracking records from ThingSpeak"""
     try:
-        channel = THINGSPEAK_CHANNELS["medicine_track"]
-        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        data = response.json()
-        tracking = []
-
-        for feed in data.get("feeds", []):
-            record = {
-                "entry_id": feed.get("entry_id"),
-                "created_at": feed.get("created_at"),
-                "patient_id": feed.get("field1"),
-                "medicine_name": feed.get("field2"),
-                "dosage": feed.get("field3"),
-                "consume_date": feed.get("field4"),
-                "time_slot": feed.get("field5"),
-            }
-            tracking.append(record)
-
+        tracking = thingspeak_service.read_channel("medicine_track")
         return jsonify({"success": True, "data": tracking})
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -213,22 +124,7 @@ def add_medication_tracking():
         if data is None:
             return jsonify({"success": False, "error": "Invalid JSON data"}), 400
 
-        channel = THINGSPEAK_CHANNELS["medicine_track"]
-
-        url = f"{THINGSPEAK_BASE_URL}/update"
-        params = {
-            "api_key": channel["write_api_key"],
-            "field1": data.get("patient_id", ""),
-            "field2": data.get("medicine_name", ""),
-            "field3": data.get("dosage", ""),
-            "field4": data.get("consume_date", ""),
-            "field5": data.get("time_slot", ""),
-        }
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        entry_id = response.text
+        entry_id = thingspeak_service.write_to_channel("medicine_track", data)
         return jsonify(
             {
                 "success": True,
@@ -236,7 +132,7 @@ def add_medication_tracking():
                 "message": "Medication tracking record added successfully",
             }
         )
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -245,37 +141,12 @@ def add_medication_tracking():
 def get_patient_by_id(patient_id):
     """Get patient information by Patient ID"""
     try:
-        channel = THINGSPEAK_CHANNELS["patient_info"]
-        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        data = response.json()
-        patient = None
-
-        for feed in data.get("feeds", []):
-            if feed.get("field1") == patient_id:
-                patient = {
-                    "entry_id": feed.get("entry_id"),
-                    "created_at": feed.get("created_at"),
-                    "patient_id": feed.get("field1"),
-                    "name": feed.get("field2"),
-                    "floor": feed.get("field3"),
-                    "room": feed.get("field4"),
-                    "bed": feed.get("field5"),
-                    "age": feed.get("field6"),
-                    "gender": feed.get("field7"),
-                    "notes": feed.get("field8"),
-                }
-                break
-
+        patient = thingspeak_service.get_patient(patient_id)
         if patient:
             return jsonify({"success": True, "data": patient})
         else:
             return jsonify({"success": False, "message": "Patient not found"}), 404
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -283,33 +154,9 @@ def get_patient_by_id(patient_id):
 def get_patient_prescriptions(patient_id):
     """Get all prescriptions for a specific patient"""
     try:
-        channel = THINGSPEAK_CHANNELS["medicine_prescription"]
-        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        data = response.json()
-        prescriptions = []
-
-        for feed in data.get("feeds", []):
-            if feed.get("field1") == patient_id:
-                prescription = {
-                    "entry_id": feed.get("entry_id"),
-                    "created_at": feed.get("created_at"),
-                    "patient_id": feed.get("field1"),
-                    "medicine_name": feed.get("field2"),
-                    "dosage": feed.get("field3"),
-                    "frequency": feed.get("field4"),
-                    "start_date": feed.get("field5"),
-                    "end_date": feed.get("field6"),
-                    "time_slot": feed.get("field7"),
-                }
-                prescriptions.append(prescription)
-
+        prescriptions = thingspeak_service.get_patient_prescriptions(patient_id)
         return jsonify({"success": True, "data": prescriptions})
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -317,31 +164,9 @@ def get_patient_prescriptions(patient_id):
 def get_patient_tracking(patient_id):
     """Get all medication tracking records for a specific patient"""
     try:
-        channel = THINGSPEAK_CHANNELS["medicine_track"]
-        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        data = response.json()
-        tracking = []
-
-        for feed in data.get("feeds", []):
-            if feed.get("field1") == patient_id:
-                record = {
-                    "entry_id": feed.get("entry_id"),
-                    "created_at": feed.get("created_at"),
-                    "patient_id": feed.get("field1"),
-                    "medicine_name": feed.get("field2"),
-                    "dosage": feed.get("field3"),
-                    "consume_date": feed.get("field4"),
-                    "time_slot": feed.get("field5"),
-                }
-                tracking.append(record)
-
+        tracking = thingspeak_service.get_patient_tracking(patient_id)
         return jsonify({"success": True, "data": tracking})
-    except Exception as e:
+    except ThingSpeakError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -349,21 +174,8 @@ def get_patient_tracking(patient_id):
 def check_patient(patient_id):
     """Check if a patient exists by Patient ID."""
     try:
-        channel = THINGSPEAK_CHANNELS["patient_info"]
-        url = f"{THINGSPEAK_BASE_URL}/channels/{channel['channel_id']}/feeds.json"
-        params = {"api_key": channel["read_api_key"], "results": config.THINGSPEAK_RESULTS_LIMIT}
-
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-
-        data = response.json()
-
-        for feed in data.get("feeds", []):
-            if feed.get("field1") == patient_id:
-                return jsonify({"exists": True})
-
-        return jsonify({"exists": False})
-
+        exists = thingspeak_service.patient_exists(patient_id)
+        return jsonify({"exists": exists})
     except Exception as e:
         return jsonify({"exists": False, "error": str(e)}), 500
 
@@ -386,27 +198,10 @@ def process_prescription_queue():
                         data = None
 
                 if data:
-                    # Write to ThingSpeak (reusing logic from add_prescription)
-                    channel = THINGSPEAK_CHANNELS["medicine_prescription"]
-                    url = f"{THINGSPEAK_BASE_URL}/update"
-
-                    params = {
-                        "api_key": channel["write_api_key"],
-                        "field1": data.get("patient_id", ""),
-                        "field2": data.get("medicine_name", ""),
-                        "field3": data.get("dosage", ""),
-                        "field4": data.get("frequency", ""),
-                        "field5": data.get("start_date", ""),
-                        "field6": data.get("end_date", ""),
-                        "field7": data.get("time_slot", ""),
-                    }
-
-                    response = requests.get(url, params=params)
-                    response.raise_for_status()  # Raises exception on bad status
-
-                    # Log or update status if needed
-                    print(f"Successfully posted entry {response.text} to ThingSpeak.")
-
+                    # Write to ThingSpeak using service
+                    entry_id = thingspeak_service.write_to_channel("medicine_prescription", data)
+                    print(f"Successfully posted entry {entry_id} to ThingSpeak.")
+                    
                     # Update the last successful write time
                     last_ts_write_time = time.time()
 
