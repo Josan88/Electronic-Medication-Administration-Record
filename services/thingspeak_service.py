@@ -8,6 +8,10 @@ centralizing all read/write operations and field mapping logic.
 import requests
 from typing import Dict, List, Optional, Any
 from config import config
+import logging
+
+# Get logger instance
+logger = logging.getLogger("eMAR")
 
 
 class ThingSpeakError(Exception):
@@ -70,16 +74,20 @@ class ThingSpeakService:
                 "results": self.results_limit
             }
 
+            logger.debug(f"Reading from ThingSpeak channel: {channel_name}")
             response = requests.get(url, params=params)
             response.raise_for_status()
 
             data = response.json()
             feeds = data.get("feeds", [])
+            
+            logger.info(f"Successfully read {len(feeds)} records from {channel_name}")
 
             # Map each feed to readable format
             return [self._map_feed_to_dict(feed, channel_name) for feed in feeds]
 
         except requests.RequestException as e:
+            logger.error(f"Failed to read from {channel_name}: {str(e)}")
             raise ThingSpeakError(f"Failed to read from {channel_name}: {str(e)}")
 
     def write_to_channel(self, channel_name: str, data: Dict[str, str]) -> str:
@@ -108,14 +116,17 @@ class ThingSpeakService:
                 if key in data:
                     params[field_key] = data.get(key, "")
 
+            logger.debug(f"Writing to ThingSpeak channel: {channel_name}")
             url = f"{self.base_url}/update"
             response = requests.get(url, params=params)
             response.raise_for_status()
 
             entry_id = response.text.strip()
+            logger.info(f"Successfully wrote entry {entry_id} to {channel_name}")
             return entry_id
 
         except requests.RequestException as e:
+            logger.error(f"Failed to write to {channel_name}: {str(e)}")
             raise ThingSpeakError(f"Failed to write to {channel_name}: {str(e)}")
 
     def find_by_field(

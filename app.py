@@ -5,6 +5,7 @@ from threading import Lock
 from collections import deque
 from config import config
 from services.thingspeak_service import thingspeak_service, ThingSpeakError
+from utils.logging_config import logger
 
 # Global variable to track the last successful ThingSpeak write time
 last_ts_write_time = 0
@@ -183,6 +184,8 @@ def check_patient(patient_id):
 def process_prescription_queue():
     """Background worker to process the prescription queue at the ThingSpeak rate limit."""
     global last_ts_write_time
+    
+    logger.info("Prescription queue worker started")
 
     while True:
         try:
@@ -200,7 +203,7 @@ def process_prescription_queue():
                 if data:
                     # Write to ThingSpeak using service
                     entry_id = thingspeak_service.write_to_channel("medicine_prescription", data)
-                    print(f"Successfully posted entry {entry_id} to ThingSpeak.")
+                    logger.info(f"Successfully posted prescription entry {entry_id} for patient {data.get('patient_id', 'unknown')}")
                     
                     # Update the last successful write time
                     last_ts_write_time = time.time()
@@ -209,13 +212,15 @@ def process_prescription_queue():
             time.sleep(1)
 
         except Exception as e:
-            print(f"Error in background worker: {e}")
+            logger.error(f"Error in prescription queue worker: {e}", exc_info=True)
             time.sleep(5)  # Wait longer on error before retrying
 
 
 # Start the background worker thread when the app starts
 worker_thread = Thread(target=process_prescription_queue, daemon=True)
 worker_thread.start()
+logger.info("Electronic Medication Administration Record (eMAR) application initialized")
 
 if __name__ == "__main__":
+    logger.info("Starting Flask development server on http://0.0.0.0:5000")
     app.run(debug=True, host="0.0.0.0", port=5000)
