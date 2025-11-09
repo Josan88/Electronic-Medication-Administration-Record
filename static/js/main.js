@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Load initial data
   // The showDashboard function will trigger initial tab loading
   // Ensure the Nurse Dashboard is active by default
-  showDashboard('dutyDashboard'); 
+  showDashboard("dutyDashboard");
   loadPatients();
   loadPrescriptions();
   loadTracking();
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
 const FIXED_TIME_SLOTS = [
   { value: "08:00", label: "8:00 AM" },
   { value: "13:00", label: "1:00 PM" },
-  { value: "18:00", label: "6:00 PM" }
+  { value: "18:00", label: "6:00 PM" },
 ];
 
 let managementChart = null;
@@ -62,26 +62,26 @@ function initializeEventListeners() {
       e.preventDefault();
     });
   }
-  
+
   // Confirm button and submission logic
   document
-      .getElementById("confirmSubmissionBtn")
-      .addEventListener("click", async () => {
-          // Close the modal and then run the submission logic
-          closeModal('confirmPrescriptionModal'); 
-          await addPrescription();
-      });
+    .getElementById("confirmSubmissionBtn")
+    .addEventListener("click", async () => {
+      // Close the modal and then run the submission logic
+      closeModal("confirmPrescriptionModal");
+      await addPrescription();
+    });
 
   const consumeDateInput = document.getElementById("consume_date");
   if (consumeDateInput) {
-      consumeDateInput.value = getLocalDateString();
+    consumeDateInput.value = getLocalDateString();
   }
 }
 
 // Main Dashboard Navigation (Burger Menu)
 function showDashboard(dashboardId) {
   const dashboards = document.querySelectorAll(".main-dashboard");
-  dashboards.forEach(d => d.classList.remove("active"));
+  dashboards.forEach((d) => d.classList.remove("active"));
 
   const target = document.getElementById(dashboardId);
   if (target) {
@@ -107,24 +107,23 @@ function showTab(tabName, clickedElement = event.target) {
   // Hide all tabs within the active dashboard
   const activeDashboard = document.querySelector(".main-dashboard.active");
   if (activeDashboard) {
-      const tabs = activeDashboard.querySelectorAll(".tab-content");
-      tabs.forEach((tab) => {
-        tab.classList.remove("active");
-      });
+    const tabs = activeDashboard.querySelectorAll(".tab-content");
+    tabs.forEach((tab) => {
+      tab.classList.remove("active");
+    });
 
-      // Remove active class from all buttons in the current tab set
-      const buttons = activeDashboard.querySelectorAll(".tab-button");
-      buttons.forEach((button) => {
-        button.classList.remove("active");
-      });
+    // Remove active class from all buttons in the current tab set
+    const buttons = activeDashboard.querySelectorAll(".tab-button");
+    buttons.forEach((button) => {
+      button.classList.remove("active");
+    });
 
-      // Show selected tab
-      document.getElementById(tabName).classList.add("active");
+    // Show selected tab
+    document.getElementById(tabName).classList.add("active");
 
-      // Activate button
-      clickedElement.classList.add("active");
+    // Activate button
+    clickedElement.classList.add("active");
   }
-
 
   // Load data for the tab
   if (tabName === "patients") {
@@ -134,7 +133,6 @@ function showTab(tabName, clickedElement = event.target) {
   } else if (tabName === "tracking") {
     loadTracking();
   }
-
 }
 
 // Patient Management
@@ -201,7 +199,6 @@ async function loadPatients() {
         `;
         listElement.appendChild(item);
       });
-
     } else {
       listElement.innerHTML =
         '<div class="empty-state">No patients found</div>';
@@ -214,259 +211,291 @@ async function loadPatients() {
   }
 }
 
-
 function getLocalDateString() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0"); // months are 0-indexed
-    const day = String(today.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0"); // months are 0-indexed
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 // Prescription Management
 function addMedicineField() {
-    const container = document.getElementById("medicineFieldsContainer");
-    const template = document.getElementById("medicineFieldTemplate");
-    
-    // Clone the content of the template
-    const clone = template.content.cloneNode(true);
-    const newGroup = clone.querySelector('.medicine-group');
-    
-    // Set default start date to today
-    const startDateInput = newGroup.querySelector('input[name="start_date"]');
-    if (startDateInput) {
-        startDateInput.value = getLocalDateString();
-    }
+  const container = document.getElementById("medicineFieldsContainer");
+  const template = document.getElementById("medicineFieldTemplate");
 
-    // Append the new group
-    container.appendChild(newGroup);
+  // Clone the content of the template
+  const clone = template.content.cloneNode(true);
+  const newGroup = clone.querySelector(".medicine-group");
+
+  // Set default start date to today
+  const startDateInput = newGroup.querySelector('input[name="start_date"]');
+  if (startDateInput) {
+    startDateInput.value = getLocalDateString();
+  }
+
+  // Append the new group
+  container.appendChild(newGroup);
 }
 window.addMedicineField = addMedicineField;
 
 function removeMedicineField(button) {
-    // Traverse up to the parent '.medicine-group' and remove it
-    button.closest('.medicine-group').remove();
+  // Traverse up to the parent '.medicine-group' and remove it
+  button.closest(".medicine-group").remove();
 }
 window.removeMedicineField = removeMedicineField;
 
 function addTimeField(button) {
-    const container = button.previousElementSibling; // the div.time-slots-container
-    const medicineGroup = button.closest('.medicine-group');
-    
-    // Get the frequency value
-    const frequencyInput = medicineGroup.querySelector('[name="frequency"]');
-    const maxSlots = parseInt(frequencyInput.value) || 0;
+  const container = button.previousElementSibling; // the div.time-slots-container
+  const medicineGroup = button.closest(".medicine-group");
 
-    // Count current time slots
-    const currentSlots = container.querySelectorAll('select[name="time_slots[]"]').length;
+  // Get the frequency value
+  const frequencyInput = medicineGroup.querySelector('[name="frequency"]');
+  const maxSlots = parseInt(frequencyInput.value) || 0;
 
-    if (currentSlots >= maxSlots) {
-        showMessage("error", `You can only add ${maxSlots} time slot(s) as per the frequency.`);
-        return;
-    }
+  // Count current time slots
+  const currentSlots = container.querySelectorAll(
+    'select[name="time_slots[]"]'
+  ).length;
 
-    // Create new select wrapper div
-    const wrapper = document.createElement("div");
-    wrapper.className = "time-slot-wrapper";
+  if (currentSlots >= maxSlots) {
+    showMessage(
+      "error",
+      `You can only add ${maxSlots} time slot(s) as per the frequency.`
+    );
+    return;
+  }
 
-    // Create select element
-    const selectField = document.createElement("select");
-    selectField.name = "time_slots[]";
-    selectField.required = true;
-    selectField.className = "form-control time-slot-select";
-    selectField.style.marginRight = "10px";
-    selectField.style.marginBottom = "5px";
+  // Create new select wrapper div
+  const wrapper = document.createElement("div");
+  wrapper.className = "time-slot-wrapper";
 
-    // Add time slot options
-    const options = [
-        { value: "08:00", label: "8:00 AM" },
-        { value: "13:00", label: "1:00 PM" },
-        { value: "18:00", label: "6:00 PM" }
-    ];
+  // Create select element
+  const selectField = document.createElement("select");
+  selectField.name = "time_slots[]";
+  selectField.required = true;
+  selectField.className = "form-control time-slot-select";
+  selectField.style.marginRight = "10px";
+  selectField.style.marginBottom = "5px";
 
-    options.forEach(opt => {
-        const option = document.createElement("option");
-        option.value = opt.value;
-        option.textContent = opt.label;
-        selectField.appendChild(option);
-    });
+  // Add time slot options
+  const options = [
+    { value: "08:00", label: "8:00 AM" },
+    { value: "13:00", label: "1:00 PM" },
+    { value: "18:00", label: "6:00 PM" },
+  ];
 
-    // Add remove button
-    const removeButton = document.createElement("button");
-    removeButton.type = "button";
-    removeButton.className = "btn btn-danger btn-sm remove-time";
-    removeButton.innerHTML = "✕";
-    removeButton.onclick = function() {
-        this.parentElement.remove();
-    };
+  options.forEach((opt) => {
+    const option = document.createElement("option");
+    option.value = opt.value;
+    option.textContent = opt.label;
+    selectField.appendChild(option);
+  });
 
-    // Assemble and append
-    wrapper.appendChild(selectField);
-    wrapper.appendChild(removeButton);
-    container.appendChild(wrapper);
+  // Add remove button
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "btn btn-danger btn-sm remove-time";
+  removeButton.innerHTML = "✕";
+  removeButton.onclick = function () {
+    this.parentElement.remove();
+  };
+
+  // Assemble and append
+  wrapper.appendChild(selectField);
+  wrapper.appendChild(removeButton);
+  container.appendChild(wrapper);
 }
 window.addTimeField = addTimeField;
 
-
 async function addPrescription() {
-    // Get the common Patient ID
-    const patientId = document.getElementById("presc_patient_id").value;
-    const medicineGroups = document.querySelectorAll("#medicineFieldsContainer .medicine-group");
+  // Get the common Patient ID
+  const patientId = document.getElementById("presc_patient_id").value;
+  const medicineGroups = document.querySelectorAll(
+    "#medicineFieldsContainer .medicine-group"
+  );
 
-    if (!patientId) {
-        showMessage("error", "Please enter a Patient ID.");
-        return;
+  if (!patientId) {
+    showMessage("error", "Please enter a Patient ID.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/patient/${patientId}`);
+    const data = await res.json();
+
+    if (!data.success || !data.data) {
+      showMessage(
+        "error",
+        `Patient ID '${patientId}' does not exist. Please check again.`
+      );
+      return; // Stop here!
+    }
+  } catch (err) {
+    showMessage("error", "Error checking patient ID. Try again.");
+    return;
+  }
+
+  if (medicineGroups.length === 0) {
+    showMessage("error", "Please add at least one medicine prescription.");
+    return;
+  }
+
+  let successCount = 0;
+  let failureCount = 0;
+
+  // Loop through each dynamic medicine group
+  for (const group of medicineGroups) {
+    // Extract data from the current medicine group using its 'name' attributes
+    const prescriptionData = {
+      patient_id: patientId,
+      medicine_name: group.querySelector('[name="medicine_name"]').value,
+      dosage: group.querySelector('[name="dosage"]').value,
+      frequency: group.querySelector('[name="frequency"]').value,
+      start_date: group.querySelector('[name="start_date"]').value,
+      end_date: group.querySelector('[name="end_date"]').value,
+      time_slot: Array.from(
+        group.querySelectorAll('select[name="time_slots[]"]')
+      )
+        .map((input) => input.value)
+        .join(", "),
+    };
+
+    // Skip if mandatory fields are empty
+    if (
+      !prescriptionData.medicine_name ||
+      !prescriptionData.dosage ||
+      !prescriptionData.frequency ||
+      !prescriptionData.start_date
+    ) {
+      showMessage(
+        "error",
+        `Skipping an incomplete medicine entry. Fill out required fields.`
+      );
+      failureCount++;
+      continue;
     }
 
+    // Submit the individual entry to the API
     try {
-        const res = await fetch(`/api/patient/${patientId}`);
-        const data = await res.json();
+      const response = await fetch("/api/prescriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prescriptionData),
+      });
 
-        if (!data.success || !data.data) {
-            showMessage("error", `Patient ID '${patientId}' does not exist. Please check again.`);
-            return; // Stop here!
-        }
-    } catch (err) {
-        showMessage("error", "Error checking patient ID. Try again.");
-        return;
+      const result = await response.json();
+
+      if (result.success) {
+        successCount++;
+      } else {
+        failureCount++;
+        console.error("API Error during submission:", result.error);
+      }
+    } catch (error) {
+      failureCount++;
+      console.error("Error adding prescription entry:", error.message);
     }
+  }
 
-    if (medicineGroups.length === 0) {
-        showMessage("error", "Please add at least one medicine prescription.");
-        return;
-    }
+  // Show final status and reset form
+  if (successCount > 0) {
+    showMessage(
+      "success",
+      `${successCount} prescription(s) added successfully! (${failureCount} failed)`
+    );
+  } else {
+    showMessage(
+      "error",
+      `Failed to add any prescriptions. ${failureCount} attempt(s) failed.`
+    );
+  }
 
-    let successCount = 0;
-    let failureCount = 0;
-
-    // Loop through each dynamic medicine group
-    for (const group of medicineGroups) {
-        // Extract data from the current medicine group using its 'name' attributes
-        const prescriptionData = {
-            patient_id: patientId,
-            medicine_name: group.querySelector('[name="medicine_name"]').value,
-            dosage: group.querySelector('[name="dosage"]').value,
-            frequency: group.querySelector('[name="frequency"]').value,
-            start_date: group.querySelector('[name="start_date"]').value,
-            end_date: group.querySelector('[name="end_date"]').value,
-            time_slot: Array.from(group.querySelectorAll('select[name="time_slots[]"]'))
-              .map(input => input.value)
-              .join(", "),
-
-
-        };
-
-        // Skip if mandatory fields are empty
-        if (!prescriptionData.medicine_name || !prescriptionData.dosage || !prescriptionData.frequency || !prescriptionData.start_date) {
-            showMessage("error", `Skipping an incomplete medicine entry. Fill out required fields.`);
-            failureCount++;
-            continue;
-        }
-
-        // Submit the individual entry to the API
-        try {
-            const response = await fetch("/api/prescriptions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(prescriptionData),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                successCount++;
-            } else {
-                failureCount++;
-                console.error("API Error during submission:", result.error);
-            }
-        } catch (error) {
-            failureCount++;
-            console.error("Error adding prescription entry:", error.message);
-        }
-    }
-
-    // Show final status and reset form
-    if (successCount > 0) {
-        showMessage("success", `${successCount} prescription(s) added successfully! (${failureCount} failed)`);
-    } else {
-        showMessage("error", `Failed to add any prescriptions. ${failureCount} attempt(s) failed.`);
-    }
-
-    // Reset form and dynamic fields
-    document.getElementById("prescriptionForm").reset();
-    document.getElementById("medicineFieldsContainer").innerHTML = ''; // Clear all dynamic fields
-    addMedicineField(); // Add one fresh field
-    setTimeout(() => loadPrescriptions(), 2000);
+  // Reset form and dynamic fields
+  document.getElementById("prescriptionForm").reset();
+  document.getElementById("medicineFieldsContainer").innerHTML = ""; // Clear all dynamic fields
+  addMedicineField(); // Add one fresh field
+  setTimeout(() => loadPrescriptions(), 2000);
 }
 
-// Utility Functions 
+// Utility Functions
 
 function openModal(modalId) {
-    document.getElementById(modalId).style.display = "block";
+  document.getElementById(modalId).style.display = "block";
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = "none";
+  document.getElementById(modalId).style.display = "none";
 }
 window.closeModal = closeModal;
 
 // Prescription Management
 function showPrescriptionPreview() {
-    const patientId = document.getElementById("presc_patient_id").value;
-    const medicineGroups = document.querySelectorAll("#medicineFieldsContainer .medicine-group");
-    const previewContent = document.getElementById("prescriptionPreviewContent");
+  const patientId = document.getElementById("presc_patient_id").value;
+  const medicineGroups = document.querySelectorAll(
+    "#medicineFieldsContainer .medicine-group"
+  );
+  const previewContent = document.getElementById("prescriptionPreviewContent");
 
-    if (!patientId || medicineGroups.length === 0) {
-        showMessage("error", "Please ensure a Patient ID is entered and at least one medicine is added.");
-        return;
-    }
+  if (!patientId || medicineGroups.length === 0) {
+    showMessage(
+      "error",
+      "Please ensure a Patient ID is entered and at least one medicine is added."
+    );
+    return;
+  }
 
-    let previewHTML = `<h3>Patient ID: ${patientId}</h3><hr>`;
-    let validCount = 0;
-    
-    // Collect data and build the preview content
-    medicineGroups.forEach((group, index) => {
-        const data = {
-            medicine_name: group.querySelector('[name="medicine_name"]').value,
-            dosage: group.querySelector('[name="dosage"]').value,
-            frequency: group.querySelector('[name="frequency"]').value,
-            start_date: group.querySelector('[name="start_date"]').value,
-            end_date: group.querySelector('[name="end_date"]').value || "N/A",
-            time_slot: Array.from(group.querySelectorAll('select[name="time_slots[]"]'))
-              .map(input => input.value)
-              .join(", ") || "N/A",
+  let previewHTML = `<h3>Patient ID: ${patientId}</h3><hr>`;
+  let validCount = 0;
 
+  // Collect data and build the preview content
+  medicineGroups.forEach((group, index) => {
+    const data = {
+      medicine_name: group.querySelector('[name="medicine_name"]').value,
+      dosage: group.querySelector('[name="dosage"]').value,
+      frequency: group.querySelector('[name="frequency"]').value,
+      start_date: group.querySelector('[name="start_date"]').value,
+      end_date: group.querySelector('[name="end_date"]').value || "N/A",
+      time_slot:
+        Array.from(group.querySelectorAll('select[name="time_slots[]"]'))
+          .map((input) => input.value)
+          .join(", ") || "N/A",
+    };
 
-        };
-
-        if (data.medicine_name && data.dosage && data.frequency && data.start_date) {
-            validCount++;
-            previewHTML += `
+    if (
+      data.medicine_name &&
+      data.dosage &&
+      data.frequency &&
+      data.start_date
+    ) {
+      validCount++;
+      previewHTML += `
                 <div class="preview-item">
                     <h4>Medicine ${index + 1}: ${data.medicine_name}</h4>
                     <p>Dosage: ${data.dosage}</p>
                     <p>Frequency: ${data.frequency}</p>
-                    <p>Start Date: ${data.start_date} | End Date: ${data.end_date}</p>
+                    <p>Start Date: ${data.start_date} | End Date: ${
+        data.end_date
+      }</p>
                     <p>Time Slot: ${data.time_slot}</p>
                     <hr>
                 </div>
             `;
-        }
-    });
-
-    if (validCount === 0) {
-        showMessage("error", "No complete prescriptions found to submit.");
-        return;
     }
-    
-    previewContent.innerHTML = previewHTML;
-    
-    // Open the modal
-    openModal('confirmPrescriptionModal');
+  });
+
+  if (validCount === 0) {
+    showMessage("error", "No complete prescriptions found to submit.");
+    return;
+  }
+
+  previewContent.innerHTML = previewHTML;
+
+  // Open the modal
+  openModal("confirmPrescriptionModal");
 }
 
 window.showPrescriptionPreview = showPrescriptionPreview;
-
 
 async function loadPrescriptions() {
   const listElement = document.getElementById("prescriptionList");
@@ -505,7 +534,6 @@ async function loadPrescriptions() {
         `;
         listElement.appendChild(item);
       });
-
     } else {
       listElement.innerHTML =
         '<div class="empty-state">No prescriptions found</div>';
@@ -518,7 +546,6 @@ async function loadPrescriptions() {
   }
 }
 
-
 async function loadPatientActiveMeds() {
   const patientId = document.getElementById("patientSearchInput").value.trim();
   const resultContainer = document.getElementById("patientMedsResult");
@@ -529,7 +556,9 @@ async function loadPatientActiveMeds() {
   }
 
   try {
-    const res = await fetch(`/api/patient/${encodeURIComponent(patientId)}/prescriptions`);
+    const res = await fetch(
+      `/api/patient/${encodeURIComponent(patientId)}/prescriptions`
+    );
     if (!res.ok) throw new Error("No prescriptions endpoint / data available");
 
     const data = await res.json();
@@ -548,8 +577,12 @@ async function loadPatientActiveMeds() {
         .map(
           (med) => `
         <div class="data-item">
-          <strong>${med.medicine_name || "N/A"}</strong> - ${med.dosage || "N/A"} - ${med.frequency || "N/A"}<br>
-          <small>From: ${med.start_date || "N/A"} To: ${med.end_date || "Ongoing"}</small>
+          <strong>${med.medicine_name || "N/A"}</strong> - ${
+            med.dosage || "N/A"
+          } - ${med.frequency || "N/A"}<br>
+          <small>From: ${med.start_date || "N/A"} To: ${
+            med.end_date || "Ongoing"
+          }</small>
         </div>`
         )
         .join("");
@@ -561,7 +594,6 @@ async function loadPatientActiveMeds() {
     console.error("loadPatientActiveMeds error:", err);
   }
 }
-
 
 async function loadTracking() {
   const listElement = document.getElementById("patientTracking");
@@ -767,8 +799,8 @@ function showDutyTab(tabName) {
   const tabContents = document.querySelectorAll("#dutyDashboard .tab-content");
   const tabButtons = document.querySelectorAll("#dutyDashboard .tab-button");
 
-  tabContents.forEach(content => content.classList.remove("active"));
-  tabButtons.forEach(button => button.classList.remove("active"));
+  tabContents.forEach((content) => content.classList.remove("active"));
+  tabButtons.forEach((button) => button.classList.remove("active"));
 
   // Show the selected tab content
   document.getElementById(tabName).classList.add("active");
@@ -791,7 +823,7 @@ async function showDutyDashboard() {
     const [patientsRes, prescRes, trackRes] = await Promise.all([
       fetch("/api/patients"),
       fetch("/api/prescriptions"),
-      fetch("/api/medication-tracking")
+      fetch("/api/medication-tracking"),
     ]);
 
     if (!patientsRes.ok || !prescRes.ok || !trackRes.ok) {
@@ -807,44 +839,41 @@ async function showDutyDashboard() {
     const tracking = trackResult.data || [];
 
     // Create patients lookup map
-    const patientsMap = new Map(
-      patients.map(p => [p.patient_id, p])
-    );
+    const patientsMap = new Map(patients.map((p) => [p.patient_id, p]));
 
     // Group by time slot with patient details
     const grouped = {};
-    prescriptions.forEach(p => {
+    prescriptions.forEach((p) => {
       const patient = patientsMap.get(p.patient_id) || {};
-      const slots = (p.time_slot || "Unknown").split(',').map(s => s.trim());
-      
-      slots.forEach(slot => {
+      const slots = (p.time_slot || "Unknown").split(",").map((s) => s.trim());
+
+      slots.forEach((slot) => {
         if (!grouped[slot]) grouped[slot] = [];
         grouped[slot].push({
           patient_id: p.patient_id,
-          floor: patient.floor || 'N/A',
-          room: patient.room || 'N/A',
-          bed: patient.bed || 'N/A',
-          served: isServed(p, tracking)
+          floor: patient.floor || "N/A",
+          room: patient.room || "N/A",
+          bed: patient.bed || "N/A",
+          served: isServed(p, tracking),
         });
       });
     });
 
     renderTimelineTable(grouped);
-
   } catch (err) {
     container.innerHTML = `<p class="error">Failed to load Duty Dashboard: ${err.message}</p>`;
     console.error("Duty Dashboard Error:", err);
   }
 }
 
-
 function isServed(prescription, tracking) {
   const today = new Date().toISOString().split("T")[0];
-  return tracking.some(t =>
-    t.patient_id === prescription.patient_id &&
-    t.medicine_name === prescription.medicine_name &&
-    t.time_slot === prescription.time_slot &&
-    t.consume_date === today
+  return tracking.some(
+    (t) =>
+      t.patient_id === prescription.patient_id &&
+      t.medicine_name === prescription.medicine_name &&
+      t.time_slot === prescription.time_slot &&
+      t.consume_date === today
   );
 }
 
@@ -861,27 +890,27 @@ function renderTimelineTable(grouped) {
 
   // Define time ranges for auto-expansion
   const shouldExpand = {
-    "08:00": currentHour >= 4 && currentHour < 13,   // 4:00 AM - 12:59 PM
-    "13:00": currentHour >= 13 && currentHour < 18,  // 1:00 PM - 5:59 PM
-    "18:00": currentHour >= 18 || currentHour < 4    // 6:00 PM - 3:59 AM
+    "08:00": currentHour >= 4 && currentHour < 13, // 4:00 AM - 12:59 PM
+    "13:00": currentHour >= 13 && currentHour < 18, // 1:00 PM - 5:59 PM
+    "18:00": currentHour >= 18 || currentHour < 4, // 6:00 PM - 3:59 AM
   };
 
-  FIXED_TIME_SLOTS.forEach(({value: slot, label}) => {
-    const medsToday = (grouped[slot] || []).filter(p => !p.served);
+  FIXED_TIME_SLOTS.forEach(({ value: slot, label }) => {
+    const medsToday = (grouped[slot] || []).filter((p) => !p.served);
     const accordionItem = document.createElement("div");
     accordionItem.className = "accordion-item";
 
     const header = document.createElement("div");
     header.className = "accordion-header";
     header.innerHTML = `⏰ ${label} (${medsToday.length} pending)`;
-    
+
     if (medsToday.length > 0) {
       header.classList.add("has-pending");
     }
 
     const body = document.createElement("div");
     body.className = "accordion-body";
-    
+
     // Auto-expand if it's the current time slot
     if (shouldExpand[slot]) {
       body.classList.add("active");
@@ -889,11 +918,12 @@ function renderTimelineTable(grouped) {
     }
 
     if (medsToday.length === 0) {
-      body.innerHTML = '<p class="text-center">No pending medications for this time slot</p>';
+      body.innerHTML =
+        '<p class="text-center">No pending medications for this time slot</p>';
     } else {
       const table = document.createElement("table");
       table.className = "table table-sm table-bordered";
-      
+
       const thead = document.createElement("thead");
       thead.innerHTML = `
         <tr>
@@ -909,17 +939,17 @@ function renderTimelineTable(grouped) {
       // Sort medsToday array - pending first, served last
       const sortedMeds = medsToday.sort((a, b) => {
         if (a.served === b.served) return 0;
-        return a.served ? 1 : -1;  // Push served items to the bottom
+        return a.served ? 1 : -1; // Push served items to the bottom
       });
 
-      sortedMeds.forEach(p => {
+      sortedMeds.forEach((p) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${p.patient_id}</td>
           <td>${p.floor}</td>
           <td>${p.room}</td>
           <td>${p.bed}</td>
-          <td class="${p.served ? 'text-success' : 'text-warning'}">
+          <td class="${p.served ? "text-success" : "text-warning"}">
             ${p.served ? "✔ Served" : "⏳ Pending"}
           </td>
         `;
@@ -937,14 +967,15 @@ function renderTimelineTable(grouped) {
         body.classList.toggle("active");
       }
     };
-    
+
     accordionItem.appendChild(header);
     accordionItem.appendChild(body);
     container.appendChild(accordionItem);
   });
 
   if (!container.children.length) {
-    container.innerHTML = '<p class="text-center">No medications scheduled for today</p>';
+    container.innerHTML =
+      '<p class="text-center">No medications scheduled for today</p>';
   }
 }
 
@@ -954,7 +985,7 @@ function initManagementChart() {
 
   if (managementChart) managementChart.destroy();
 
-  const labels = FIXED_TIME_SLOTS.map(s => s.label);
+  const labels = FIXED_TIME_SLOTS.map((s) => s.label);
 
   managementChart = new Chart(ctx, {
     type: "bar",
@@ -965,28 +996,28 @@ function initManagementChart() {
           label: "Completed",
           backgroundColor: "#28a745",
           data: [0, 0, 0],
-          stack: "Stack 0"
+          stack: "Stack 0",
         },
         {
           label: "Pending",
           backgroundColor: "#ffc107",
           data: [0, 0, 0],
-          stack: "Stack 0"
-        }
-      ]
+          stack: "Stack 0",
+        },
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
         x: { stacked: true },
-        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
       },
       plugins: {
         legend: { position: "top" },
-        tooltip: { mode: "index", intersect: false }
-      }
-    }
+        tooltip: { mode: "index", intersect: false },
+      },
+    },
   });
 
   updateManagementChart();
@@ -1003,7 +1034,7 @@ async function updateManagementChart() {
   try {
     const [prescRes, trackRes] = await Promise.all([
       fetch("/api/prescriptions"),
-      fetch("/api/medication-tracking")
+      fetch("/api/medication-tracking"),
     ]);
     if (!prescRes.ok || !trackRes.ok) return;
 
@@ -1024,16 +1055,40 @@ async function updateManagementChart() {
       if (!tok && tok !== 0) return "";
       let s = String(tok).trim().toLowerCase();
       // common exact forms
-      if (s === "08:00" || s === "8:00" || s === "8:00 am" || s === "8am" || s === "8 am" || s === "8") return "08:00";
-      if (s === "13:00" || s === "1:00" || s === "1:00 pm" || s === "1pm" || s === "1 pm" || s === "13") return "13:00";
-      if (s === "18:00" || s === "6:00" || s === "6:00 pm" || s === "6pm" || s === "6 pm" || s === "18") return "18:00";
+      if (
+        s === "08:00" ||
+        s === "8:00" ||
+        s === "8:00 am" ||
+        s === "8am" ||
+        s === "8 am" ||
+        s === "8"
+      )
+        return "08:00";
+      if (
+        s === "13:00" ||
+        s === "1:00" ||
+        s === "1:00 pm" ||
+        s === "1pm" ||
+        s === "1 pm" ||
+        s === "13"
+      )
+        return "13:00";
+      if (
+        s === "18:00" ||
+        s === "6:00" ||
+        s === "6:00 pm" ||
+        s === "6pm" ||
+        s === "6 pm" ||
+        s === "18"
+      )
+        return "18:00";
       // try to match numbers
       if (s.match(/^8\b/)) return "08:00";
       if (s.match(/^13\b/) || s.match(/^1\b/)) return "13:00";
       if (s.match(/^18\b/) || s.match(/^6\b/)) return "18:00";
       // fallback: return upper-case token if already exact
       const up = tok.toString().trim().toUpperCase();
-      if (["08:00","13:00","18:00"].includes(up)) return up;
+      if (["08:00", "13:00", "18:00"].includes(up)) return up;
       return "";
     }
 
@@ -1044,7 +1099,7 @@ async function updateManagementChart() {
     }
 
     // Count prescriptions per normalized slot
-    prescriptions.forEach(p => {
+    prescriptions.forEach((p) => {
       const start = dateOnly(p.start_date);
       const end = dateOnly(p.end_date);
       // active today?
@@ -1055,26 +1110,31 @@ async function updateManagementChart() {
       let slots = [];
       if (Array.isArray(p.time_slot)) slots = p.time_slot;
       else if (typeof p.time_slot === "string" && p.time_slot.trim() !== "") {
-        slots = p.time_slot.split(",").map(s => s.trim()).filter(Boolean);
+        slots = p.time_slot
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
 
       // if no slots defined, skip (or optionally count them under a default bucket)
       if (slots.length === 0) return;
 
-      slots.forEach(raw => {
+      slots.forEach((raw) => {
         const norm = normalizeSlotToken(raw);
-        const idx = FIXED_TIME_SLOTS.findIndex(s => s.value === norm);
+        const idx = FIXED_TIME_SLOTS.findIndex((s) => s.value === norm);
         if (idx === -1) return;
         totals[idx] += 1;
 
         // check if served: normalize tracking entries similarly
-        const servedHere = tracking.some(t => {
+        const servedHere = tracking.some((t) => {
           const tDate = dateOnly(t.consume_date);
           const tSlotNorm = normalizeSlotToken(t.time_slot);
-          return t.patient_id === p.patient_id &&
-                 (t.medicine_name === p.medicine_name) &&
-                 tDate === today &&
-                 tSlotNorm === norm;
+          return (
+            t.patient_id === p.patient_id &&
+            t.medicine_name === p.medicine_name &&
+            tDate === today &&
+            tSlotNorm === norm
+          );
         });
         if (servedHere) completed[idx] += 1;
       });
@@ -1082,7 +1142,12 @@ async function updateManagementChart() {
 
     const pending = totals.map((t, i) => Math.max(0, t - completed[i]));
 
-    console.debug("Management chart counts:", { today, totals, completed, pending });
+    console.debug("Management chart counts:", {
+      today,
+      totals,
+      completed,
+      pending,
+    });
     // update chart datasets
     managementChart.data.datasets[0].data = completed;
     managementChart.data.datasets[1].data = pending;
@@ -1100,7 +1165,7 @@ function scheduleRoundRefresh() {
 
   // compute next occurrence of 08:00, 13:00, 18:00
   const now = new Date();
-  const targets = [8, 13, 18].map(hour => {
+  const targets = [8, 13, 18].map((hour) => {
     const t = new Date(now);
     t.setHours(hour, 0, 0, 0);
     if (t <= now) t.setDate(t.getDate() + 1); // next day if passed
@@ -1109,7 +1174,9 @@ function scheduleRoundRefresh() {
 
   // find nearest target
   let next = targets[0];
-  targets.forEach(t => { if (t < next) next = t; });
+  targets.forEach((t) => {
+    if (t < next) next = t;
+  });
 
   const ms = next - now;
   managementRoundTimeout = setTimeout(() => {
@@ -1123,7 +1190,8 @@ function scheduleRoundRefresh() {
 // ensure this runs when Dashboard is displayed
 const originalShowDashboard = window.showDashboard;
 window.showDashboard = function (dashboardId) {
-  if (typeof originalShowDashboard === "function") originalShowDashboard(dashboardId);
+  if (typeof originalShowDashboard === "function")
+    originalShowDashboard(dashboardId);
   if (dashboardId === "managementDashboard") {
     // small delay to ensure DOM canvas exists
     setTimeout(() => initManagementChart(), 100);

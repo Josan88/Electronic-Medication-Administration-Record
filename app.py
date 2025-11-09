@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, jsonify # type: ignore
+from flask import Flask, render_template, request, jsonify  # type: ignore
 import os
-import requests # type: ignore
+import requests  # type: ignore
 from datetime import datetime
-from dotenv import load_dotenv # type: ignore
+from dotenv import load_dotenv  # type: ignore
 import time
 from threading import Thread
 from threading import Lock
@@ -207,16 +207,20 @@ def add_prescription():
             prescription_queue.append(data)
 
         # Return success immediately to the frontend, removing the 15s lag
-        return jsonify(
-            {
-                "success": True,
-                "message": "Prescription queued successfully for background processing.",
-            }
-        ), 202 # HTTP 202 Accepted status code
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "Prescription queued successfully for background processing.",
+                }
+            ),
+            202,
+        )  # HTTP 202 Accepted status code
 
     except Exception as e:
         # Note: This only catches errors in the queuing process, not the ThingSpeak write
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 # Medicine Tracking Endpoints
 @app.route("/api/medication-tracking", methods=["GET"])
@@ -389,6 +393,7 @@ def get_patient_tracking(patient_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
 @app.route("/api/check_patient/<patient_id>", methods=["GET"])
 def check_patient(patient_id):
     """Check if a patient exists by Patient ID."""
@@ -411,6 +416,7 @@ def check_patient(patient_id):
     except Exception as e:
         return jsonify({"exists": False, "error": str(e)}), 500
 
+
 def process_prescription_queue():
     """Background worker to process the prescription queue at the ThingSpeak rate limit."""
     global last_ts_write_time
@@ -420,19 +426,19 @@ def process_prescription_queue():
             # Check if an entry is waiting and the rate limit has passed
             current_time = time.time()
             time_since_last_write = current_time - last_ts_write_time
-            
+
             if time_since_last_write >= TS_RATE_LIMIT_SECONDS:
                 with queue_lock:
                     if prescription_queue:
-                        data = prescription_queue.popleft() # Get the oldest entry
+                        data = prescription_queue.popleft()  # Get the oldest entry
                     else:
                         data = None
-                
+
                 if data:
                     # Write to ThingSpeak (reusing logic from add_prescription)
                     channel = THINGSPEAK_CHANNELS["medicine_prescription"]
                     url = f"{THINGSPEAK_BASE_URL}/update"
-                    
+
                     params = {
                         "api_key": channel["write_api_key"],
                         "field1": data.get("patient_id", ""),
@@ -443,23 +449,24 @@ def process_prescription_queue():
                         "field6": data.get("end_date", ""),
                         "field7": data.get("time_slot", ""),
                     }
-                    
+
                     response = requests.get(url, params=params)
-                    response.raise_for_status() # Raises exception on bad status
-                    
+                    response.raise_for_status()  # Raises exception on bad status
+
                     # Log or update status if needed
                     print(f"Successfully posted entry {response.text} to ThingSpeak.")
-                    
+
                     # Update the last successful write time
-                    last_ts_write_time = time.time() 
+                    last_ts_write_time = time.time()
 
             # Sleep for 1 second before checking the queue again
             time.sleep(1)
 
         except Exception as e:
             print(f"Error in background worker: {e}")
-            time.sleep(5) # Wait longer on error before retrying
-            
+            time.sleep(5)  # Wait longer on error before retrying
+
+
 # Start the background worker thread when the app starts
 worker_thread = Thread(target=process_prescription_queue, daemon=True)
 worker_thread.start()

@@ -400,68 +400,67 @@ footer {
 /* --- NEW SECTION: Form Actions Layout --- */
 
 .form-actions {
-    display: flex; 
-    justify-content: space-between; 
-    gap: 1rem;
-    align-items: stretch; /* FIX: Makes buttons the same height */
-    padding-top: 1rem;
-    grid-column: 1 / -1; /* Ensures the action bar spans the grid */
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: stretch; /* FIX: Makes buttons the same height */
+  padding-top: 1rem;
+  grid-column: 1 / -1; /* Ensures the action bar spans the grid */
 }
 
 .form-actions .btn {
-    width: auto; 
-    grid-column: auto; 
+  width: auto;
+  grid-column: auto;
 }
 
 .form-actions .btn-primary {
-    flex-grow: 1; 
-    max-width: 65%; /* Dominant width for primary button */
+  flex-grow: 1;
+  max-width: 65%; /* Dominant width for primary button */
 }
 
 .form-actions .btn-secondary {
-    flex-grow: 0;
-    box-sizing: border-box;
-    height: 100%;
-    white-space: nowrap; 
+  flex-grow: 0;
+  box-sizing: border-box;
+  height: 100%;
+  white-space: nowrap;
 }
-
 
 /* --- NEW BLOCK: Dynamic Medicine Group Fixes --- */
 
 /* Ensures the dynamic field container spans the grid */
 #medicineFieldsContainer {
-    grid-column: 1 / -1; 
+  grid-column: 1 / -1;
 }
 
 /* Base style for the medicine group */
 .medicine-group {
-    display: flex;
-    flex-direction: column; 
-    padding: 0; 
-    margin-bottom: 1rem;
-    border-left: none; 
-    box-shadow: none; 
-    background: transparent;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin-bottom: 1rem;
+  border-left: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 .medicine-group h4 {
-    color: #4a4a4a;
-    padding-bottom: 0.5rem;
+  color: #4a4a4a;
+  padding-bottom: 0.5rem;
 }
 
 /* Styles the internal form grid to look like a separate input block */
 .medicine-group .form-grid {
-    width: 100%;
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
+  width: 100%;
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
 }
 
 /* Positions the 'Remove Medicine' button to the right */
 .medicine-group .btn-remove {
-    margin-top: 0.5rem;
-    align-self: flex-end; /* Pushes the button to the right side */
+  margin-top: 0.5rem;
+  align-self: flex-end; /* Pushes the button to the right side */
 }
 
 .modal {
@@ -473,7 +472,7 @@ footer {
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0,0,0,0.4);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .modal-content {
@@ -486,126 +485,125 @@ footer {
 }
 
 .modal {
-    display: none; /* MUST be set to none initially */
-    position: fixed; 
+  display: none; /* MUST be set to none initially */
+  position: fixed;
 }
 
 /* --- BURGER MENU & SIDE NAV STYLES --- */
 
 /* Hide the checkbox input */
 .burger-menu {
-    display: none;
+  display: none;
 }
 
 /* Style for the icon */
 .burger-icon {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1001; /* Above everything */
-    cursor: pointer;
-    padding: 10px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 4px;
-    transition: left 0.3s;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001; /* Above everything */
+  cursor: pointer;
+  padding: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: left 0.3s;
 }
 
-
 .burger-icon .bar {
-    width: 25px;
-    height: 3px;
-    background-color: white;
-    margin: 4px 0;
-    transition: 0.4s;
+  width: 25px;
+  height: 3px;
+  background-color: white;
+  margin: 4px 0;
+  transition: 0.4s;
 }
 
 /* Style for the Side Navigation (The "Burger") */
 .sidenav {
-    height: 100%;
-    width: 0; /* Initially hidden */
-    position: fixed;
-    z-index: 1000;
-    top: 0;
-    left: 0;
-    background-color: #343a40; /* Dark background */
-    overflow-x: hidden;
-    transition: 0.3s;
-    padding-top: 60px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  height: 100%;
+  width: 0; /* Initially hidden */
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  background-color: #343a40; /* Dark background */
+  overflow-x: hidden;
+  transition: 0.3s;
+  padding-top: 60px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .sidenav h2 {
-    color: white;
-    margin-bottom: 20px;
+  color: white;
+  margin-bottom: 20px;
 }
 
 .sidenav .btn-menu {
-    padding: 10px 20px;
-    text-align: left;
-    width: 80%;
-    margin: 5px 0;
-    background-color: #495057;
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 4px;
+  padding: 10px 20px;
+  text-align: left;
+  width: 80%;
+  margin: 5px 0;
+  background-color: #495057;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 4px;
 }
 
 .sidenav .btn-menu:hover,
 .sidenav .btn-menu.active {
-    background-color: #0056b3;
+  background-color: #0056b3;
 }
 
 .sidenav .api-status {
-    position: absolute;
-    bottom: 20px;
-    color: #ccc;
+  position: absolute;
+  bottom: 20px;
+  color: #ccc;
 }
 
 /* Open the side nav when checkbox is checked */
 .burger-menu:checked ~ .sidenav {
-    width: 250px;
-    padding-left: 10px;
-    padding-right: 10px;
+  width: 250px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 /* Push the container content to the right when menu is open */
 .burger-menu:checked ~ .container {
-    margin-left: 250px;
+  margin-left: 250px;
 }
 
 /* Animate the burger icon when open (e.g., make an 'X') */
 .burger-menu:checked ~ .burger-icon {
-    left: 260px; /* Moves the icon with the content */
+  left: 260px; /* Moves the icon with the content */
 }
 
 /* --- MAIN DASHBOARD LAYOUT --- */
 .container {
-    transition: margin-left 0.3s;
-    padding-left: 70px; /* Space for the initial closed burger icon */
+  transition: margin-left 0.3s;
+  padding-left: 70px; /* Space for the initial closed burger icon */
 }
 
 /* The two main dashboard sections */
 .main-dashboard {
-    display: none;
-    animation: fadeIn 0.5s;
+  display: none;
+  animation: fadeIn 0.5s;
 }
 
 .main-dashboard.active {
-    display: block;
+  display: block;
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* for duty accordion*/
@@ -640,7 +638,7 @@ footer {
 
 .accordion-body th,
 .accordion-body td {
-  padding: 12px 24px;  /* Increase padding */
+  padding: 12px 24px; /* Increase padding */
   text-align: left;
   border: 1px solid #dee2e6;
 }
