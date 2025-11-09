@@ -6,6 +6,7 @@ from collections import deque
 from config import config
 from services.thingspeak_service import thingspeak_service, ThingSpeakError
 from utils.logging_config import logger
+from utils.errors import error_response, success_response, ValidationError, NotFoundError
 
 # Global variable to track the last successful ThingSpeak write time
 last_ts_write_time = 0
@@ -42,9 +43,9 @@ def get_patients():
     """Get all patient information from ThingSpeak"""
     try:
         patients = thingspeak_service.read_channel("patient_info")
-        return jsonify({"success": True, "data": patients})
+        return success_response(data=patients)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route("/api/patients", methods=["POST"])
@@ -53,18 +54,17 @@ def add_patient():
     try:
         data = request.json
         if data is None:
-            return jsonify({"success": False, "error": "Invalid JSON data"}), 400
+            raise ValidationError("Invalid JSON data")
 
         entry_id = thingspeak_service.write_to_channel("patient_info", data)
-        return jsonify(
-            {
-                "success": True,
-                "entry_id": entry_id,
-                "message": "Patient added successfully",
-            }
+        return success_response(
+            data={"entry_id": entry_id},
+            message="Patient added successfully"
         )
+    except ValidationError as e:
+        return error_response(str(e), 400)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # Medicine Prescription Endpoints
@@ -73,9 +73,9 @@ def get_prescriptions():
     """Get all medicine prescriptions from ThingSpeak"""
     try:
         prescriptions = thingspeak_service.read_channel("medicine_prescription")
-        return jsonify({"success": True, "data": prescriptions})
+        return success_response(data=prescriptions)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route("/api/prescriptions", methods=["POST"])
@@ -84,26 +84,25 @@ def add_prescription():
     try:
         data = request.json
         if data is None:
-            return jsonify({"success": False, "error": "Invalid JSON data"}), 400
+            raise ValidationError("Invalid JSON data")
 
         # Add data to the thread-safe queue instantly
         with queue_lock:
             prescription_queue.append(data)
 
         # Return success immediately to the frontend, removing the 15s lag
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "message": "Prescription queued successfully for background processing.",
-                }
-            ),
-            202,
-        )  # HTTP 202 Accepted status code
+        return jsonify(
+            {
+                "success": True,
+                "message": "Prescription queued successfully for background processing.",
+            }
+        ), 202  # HTTP 202 Accepted status code
 
+    except ValidationError as e:
+        return error_response(str(e), 400)
     except Exception as e:
         # Note: This only catches errors in the queuing process, not the ThingSpeak write
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # Medicine Tracking Endpoints
@@ -112,9 +111,9 @@ def get_medication_tracking():
     """Get all medication tracking records from ThingSpeak"""
     try:
         tracking = thingspeak_service.read_channel("medicine_track")
-        return jsonify({"success": True, "data": tracking})
+        return success_response(data=tracking)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route("/api/medication-tracking", methods=["POST"])
@@ -123,18 +122,17 @@ def add_medication_tracking():
     try:
         data = request.json
         if data is None:
-            return jsonify({"success": False, "error": "Invalid JSON data"}), 400
+            raise ValidationError("Invalid JSON data")
 
         entry_id = thingspeak_service.write_to_channel("medicine_track", data)
-        return jsonify(
-            {
-                "success": True,
-                "entry_id": entry_id,
-                "message": "Medication tracking record added successfully",
-            }
+        return success_response(
+            data={"entry_id": entry_id},
+            message="Medication tracking record added successfully"
         )
+    except ValidationError as e:
+        return error_response(str(e), 400)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 # Query by Patient ID
@@ -144,11 +142,13 @@ def get_patient_by_id(patient_id):
     try:
         patient = thingspeak_service.get_patient(patient_id)
         if patient:
-            return jsonify({"success": True, "data": patient})
+            return success_response(data=patient)
         else:
-            return jsonify({"success": False, "message": "Patient not found"}), 404
+            raise NotFoundError("Patient not found")
+    except NotFoundError as e:
+        return error_response(str(e), 404)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route("/api/patient/<patient_id>/prescriptions", methods=["GET"])
@@ -156,9 +156,9 @@ def get_patient_prescriptions(patient_id):
     """Get all prescriptions for a specific patient"""
     try:
         prescriptions = thingspeak_service.get_patient_prescriptions(patient_id)
-        return jsonify({"success": True, "data": prescriptions})
+        return success_response(data=prescriptions)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route("/api/patient/<patient_id>/tracking", methods=["GET"])
@@ -166,9 +166,9 @@ def get_patient_tracking(patient_id):
     """Get all medication tracking records for a specific patient"""
     try:
         tracking = thingspeak_service.get_patient_tracking(patient_id)
-        return jsonify({"success": True, "data": tracking})
+        return success_response(data=tracking)
     except ThingSpeakError as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(str(e), 500)
 
 
 @app.route("/api/check_patient/<patient_id>", methods=["GET"])
