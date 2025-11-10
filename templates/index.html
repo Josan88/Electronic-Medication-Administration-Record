@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Electronic Medication Administration Record</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <input type="checkbox" id="burger-menu" class="burger-menu" />
+    <label for="burger-menu" class="burger-icon">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </label>
+
+    <div class="sidenav">
+      <h2>Dashboards</h2>
+      <button class="btn btn-menu" onclick="showDashboard('dutyDashboard')">
+        📋 Duty Dashboard
+      </button>
+      <button class="btn btn-menu" onclick="showDashboard('nurseDashboard')">
+        🧑‍⚕️ Nurse Dashboard
+      </button>
+      <button
+        class="btn btn-menu"
+        onclick="showDashboard('managementDashboard')"
+      >
+        📊 Management Dashboard
+      </button>
+
+      <p class="api-status">
+        API Status: <span id="apiStatus">Checking...</span>
+      </p>
+    </div>
+    <div class="container">
+      <header>
+        <h1>Electronic Medication Administration Record (eMAR)</h1>
+        <p class="subtitle">Powered by ThingSpeak IoT Platform</p>
+      </header>
+
+      <main>
+        <div id="dutyDashboard" class="main-dashboard">
+          <h2>Duty Dashboard</h2>
+
+          <div class="tabs">
+            <button class="tab-button active" onclick="showDutyTab('rounds')">
+              Round Timeline
+            </button>
+            <button class="tab-button" onclick="showDutyTab('byPatient')">
+              Search by Patient
+            </button>
+          </div>
+
+          <div id="rounds" class="tab-content active">
+            <h3>Medicine Rounds</h3>
+            <div id="timeline-tables" class="accordion-container"></div>
+            <div id="roundViewContainer"></div>
+          </div>
+
+          <div id="byPatient" class="tab-content">
+            <h3>Search Patient Active Medications</h3>
+            <div class="form-group vertical-margin">
+              <label for="patientSearchInput">Patient ID</label>
+              <input
+                type="text"
+                id="patientSearchInput"
+                placeholder="Enter Patient ID"
+              />
+            </div>
+            <button class="btn btn-primary" onclick="loadPatientActiveMeds()">
+              Search
+            </button>
+            <div id="patientMedsResult" class="mt-3"></div>
+          </div>
+        </div>
+        <div id="nurseDashboard" class="main-dashboard active">
+          <h2>Nurse Dashboard</h2>
+
+          <div class="tabs">
+            <button class="tab-button active" onclick="showTab('patients')">
+              Patient Management
+            </button>
+            <button class="tab-button" onclick="showTab('prescriptions')">
+              Prescriptions
+            </button>
+          </div>
+
+          <div id="patients" class="tab-content active">
+            <h2>Patient Management</h2>
+
+            <div class="card">
+              <h3>Add New Patient</h3>
+              <form id="patientForm" class="form-grid">
+                <div class="form-group">
+                  <label for="patient_id">Patient ID *</label>
+                  <input type="text" id="patient_id" required />
+                </div>
+                <div class="form-group">
+                  <label for="name">Name *</label>
+                  <input type="text" id="name" required />
+                </div>
+                <div class="form-group">
+                  <label for="floor">Floor *</label>
+                  <select id="floor" required>
+                    <option value="">Select Floor</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="room">Room *</label>
+                  <input type="text" id="room" required />
+                </div>
+                <div class="form-group">
+                  <label for="bed">Bed</label>
+                  <select id="bed">
+                    <option value="">Select Bed</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="age">Age</label>
+                  <input type="number" id="age" />
+                </div>
+                <div class="form-group">
+                  <label for="gender">Gender</label>
+                  <select id="gender">
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label for="notes">Notes</label>
+                  <textarea id="notes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  Add Patient
+                </button>
+              </form>
+            </div>
+
+            <div class="card">
+              <h3>Patient List</h3>
+              <button onclick="loadPatients()" class="btn btn-secondary">
+                Refresh
+              </button>
+              <div id="patientList" class="data-list"></div>
+            </div>
+          </div>
+
+          <div id="prescriptions" class="tab-content">
+            <h2>Medicine Prescriptions</h2>
+
+            <div class="card">
+              <h3>Add New Prescriptions</h3>
+              <form id="prescriptionForm" class="form-grid">
+                <div class="form-group">
+                  <label for="presc_patient_id">Patient ID *</label>
+                  <input type="text" id="presc_patient_id" required />
+                </div>
+
+                <div id="medicineFieldsContainer" class="full-width"></div>
+
+                <div class="form-actions full-width">
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    onclick="showPrescriptionPreview()"
+                  >
+                    Submit All Prescriptions
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onclick="addMedicineField()"
+                  >
+                    + Add Another Medicine
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div id="confirmPrescriptionModal" class="modal">
+              <div class="modal-content">
+                <span
+                  class="close-button"
+                  onclick="closeModal('confirmPrescriptionModal')"
+                  >&times;</span
+                >
+                <h2>Review Prescriptions</h2>
+                <p>
+                  Please verify the following prescriptions before submitting!
+                </p>
+
+                <div id="prescriptionPreviewContent" class="preview-area"></div>
+
+                <div class="modal-actions">
+                  <button
+                    class="btn btn-secondary"
+                    onclick="closeModal('confirmPrescriptionModal')"
+                  >
+                    Cancel
+                  </button>
+                  <button class="btn btn-primary" id="confirmSubmissionBtn">
+                    Confirm & Submit All
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <template id="medicineFieldTemplate">
+              <div class="medicine-group card">
+                <h4>New Medicine Details</h4>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Medicine Name *</label>
+                    <input type="text" name="medicine_name" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Dosage *</label>
+                    <input
+                      type="text"
+                      name="dosage"
+                      placeholder="e.g., 500mg"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Frequency *</label>
+                    <input
+                      type="text"
+                      name="frequency"
+                      placeholder="e.g., 3 times daily"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Start Date *</label>
+                    <input type="date" name="start_date" required />
+                  </div>
+                  <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" />
+                  </div>
+                  <div class="form-group">
+                    <label>Time Slots *</label>
+                    <div class="time-slots-container"></div>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      onclick="addTimeField(this)"
+                    >
+                      + Add Time
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-danger btn-remove"
+                  onclick="removeMedicineField(this)"
+                >
+                  Remove Medicine
+                </button>
+              </div>
+            </template>
+
+            <div class="card">
+              <h3>Prescription List</h3>
+              <button onclick="loadPrescriptions()" class="btn btn-secondary">
+                Refresh
+              </button>
+              <div id="prescriptionList" class="data-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="managementDashboard" class="main-dashboard">
+          <h2>Management Dashboard - Overview & Lookup</h2>
+
+          <div class="stats-grid card">
+            <div class="stat-card">
+              <h3>Total Patients</h3>
+              <p class="stat-number" id="totalPatients">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Active Prescriptions</h3>
+              <p class="stat-number" id="totalPrescriptions">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Medications Administered Today</h3>
+              <p class="stat-number" id="todayAdministrations">0</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Rounds Summary (8am / 1pm / 6pm)</h3>
+            <canvas
+              id="managementChart"
+              aria-label="Rounds chart"
+              role="img"
+              height="50"
+            ></canvas>
+            <p class="muted small">
+              Green = Completed, Yellow = Pending (active prescriptions at that
+              round)
+            </p>
+          </div>
+          <div class="card">
+            <h3>Patient Lookup</h3>
+            <div class="form-group vertical-margin">
+              <label for="lookup_patient_id">Enter Patient ID</label>
+              <input
+                type="text"
+                id="lookup_patient_id"
+                placeholder="Patient ID"
+              />
+              <button onclick="lookupPatient()" class="btn btn-primary">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="patientDashboard" style="display: none">
+            <div class="card">
+              <h3>Patient Information</h3>
+              <div id="patientInfo"></div>
+            </div>
+
+            <div class="card">
+              <h3>Patient Prescriptions</h3>
+              <div id="patientPrescriptions"></div>
+            </div>
+
+            <div class="card">
+              <h3>Medication History</h3>
+              <div id="patientTracking"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <p>&copy; 2025 Electronic Medication Administration Record System</p>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>
