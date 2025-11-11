@@ -21,9 +21,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Time slots options constant
 const FIXED_TIME_SLOTS = [
-  { value: "08:00", label: "8:00 AM" },
+  { value: "09:00", label: "9:00 AM" },
   { value: "13:00", label: "1:00 PM" },
-  { value: "18:00", label: "6:00 PM" },
+  { value: "17:00", label: "5:00 PM" },
+  { value: "21:00", label: "9:00 PM" },
 ];
 
 let managementChart = null;
@@ -280,9 +281,10 @@ function addTimeField(button) {
 
   // Add time slot options
   const options = [
-    { value: "08:00", label: "8:00 AM" },
+    { value: "09:00", label: "8:00 AM" },
     { value: "13:00", label: "1:00 PM" },
-    { value: "18:00", label: "6:00 PM" },
+    { value: "17:00", label: "6:00 PM" },
+    { value: "21:00", label: "9:00 PM" },
   ];
 
   options.forEach((opt) => {
@@ -890,9 +892,10 @@ function renderTimelineTable(grouped) {
 
   // Define time ranges for auto-expansion
   const shouldExpand = {
-    "08:00": currentHour >= 4 && currentHour < 13, // 4:00 AM - 12:59 PM
-    "13:00": currentHour >= 13 && currentHour < 18, // 1:00 PM - 5:59 PM
-    "18:00": currentHour >= 18 || currentHour < 4, // 6:00 PM - 3:59 AM
+    "09:00": currentHour >= 4 && currentHour < 13, // 4:00 AM - 12:59 PM
+    "13:00": currentHour >= 13 && currentHour < 17, // 1:00 PM - 4:59 PM
+    "17:00": currentHour >= 17 && currentHour < 21, // 5:00 PM - 8:59 PM
+    "21:00": currentHour >= 21 || currentHour < 4, // 9:00 PM - 3:59 AM
   };
 
   FIXED_TIME_SLOTS.forEach(({ value: slot, label }) => {
@@ -1050,92 +1053,46 @@ async function updateManagementChart() {
     const totals = FIXED_TIME_SLOTS.map(() => 0);
     const completed = FIXED_TIME_SLOTS.map(() => 0);
 
-    // helper: normalize various slot formats to canonical values
-    function normalizeSlotToken(tok) {
-      if (!tok && tok !== 0) return "";
-      let s = String(tok).trim().toLowerCase();
-      // common exact forms
-      if (
-        s === "08:00" ||
-        s === "8:00" ||
-        s === "8:00 am" ||
-        s === "8am" ||
-        s === "8 am" ||
-        s === "8"
-      )
-        return "08:00";
-      if (
-        s === "13:00" ||
-        s === "1:00" ||
-        s === "1:00 pm" ||
-        s === "1pm" ||
-        s === "1 pm" ||
-        s === "13"
-      )
-        return "13:00";
-      if (
-        s === "18:00" ||
-        s === "6:00" ||
-        s === "6:00 pm" ||
-        s === "6pm" ||
-        s === "6 pm" ||
-        s === "18"
-      )
-        return "18:00";
-      // try to match numbers
-      if (s.match(/^8\b/)) return "08:00";
-      if (s.match(/^13\b/) || s.match(/^1\b/)) return "13:00";
-      if (s.match(/^18\b/) || s.match(/^6\b/)) return "18:00";
-      // fallback: return upper-case token if already exact
-      const up = tok.toString().trim().toUpperCase();
-      if (["08:00", "13:00", "18:00"].includes(up)) return up;
-      return "";
-    }
-
-    // helper: extract YYYY-MM-DD from date-like string
     function dateOnly(d) {
-      if (!d) return null;
-      return String(d).split("T")[0];
+      return d ? String(d).split("T")[0] : null;
     }
 
-    // Count prescriptions per normalized slot
     prescriptions.forEach((p) => {
       const start = dateOnly(p.start_date);
       const end = dateOnly(p.end_date);
-      // active today?
+
+      // Only count if prescription is active today
       if (start && start > today) return;
       if (end && end < today) return;
 
-      // support array or comma-separated string for time_slot
+      // Convert time_slot to array if stored as CSV
       let slots = [];
-      if (Array.isArray(p.time_slot)) slots = p.time_slot;
-      else if (typeof p.time_slot === "string" && p.time_slot.trim() !== "") {
-        slots = p.time_slot
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
+      if (Array.isArray(p.time_slot)) {
+        slots = p.time_slot;
+      } else if (typeof p.time_slot === "string" && p.time_slot.trim() !== "") {
+        slots = p.time_slot.split(",").map((s) => s.trim()).filter(Boolean);
       }
 
-      // if no slots defined, skip (or optionally count them under a default bucket)
       if (slots.length === 0) return;
 
-      slots.forEach((raw) => {
-        const norm = normalizeSlotToken(raw);
+      slots.forEach((rawSlot) => {
+        const norm = String(rawSlot).trim();
         const idx = FIXED_TIME_SLOTS.findIndex((s) => s.value === norm);
         if (idx === -1) return;
         totals[idx] += 1;
 
-        // check if served: normalize tracking entries similarly
+        // Check if medication was served
         const servedHere = tracking.some((t) => {
           const tDate = dateOnly(t.consume_date);
-          const tSlotNorm = normalizeSlotToken(t.time_slot);
+          const tSlot = String(t.time_slot).trim();
           return (
             t.patient_id === p.patient_id &&
             t.medicine_name === p.medicine_name &&
             tDate === today &&
-            tSlotNorm === norm
+            tSlot === norm
           );
         });
+
         if (servedHere) completed[idx] += 1;
       });
     });
@@ -1148,7 +1105,7 @@ async function updateManagementChart() {
       completed,
       pending,
     });
-    // update chart datasets
+
     managementChart.data.datasets[0].data = completed;
     managementChart.data.datasets[1].data = pending;
     managementChart.update();
@@ -1163,16 +1120,16 @@ function scheduleRoundRefresh() {
     managementRoundTimeout = null;
   }
 
-  // compute next occurrence of 08:00, 13:00, 18:00
+  // compute next occurrence of 09:00, 13:00, 17:00, 21:00
   const now = new Date();
-  const targets = [8, 13, 18].map((hour) => {
+  const targets = [9, 13, 17, 21].map((hour) => {
     const t = new Date(now);
     t.setHours(hour, 0, 0, 0);
-    if (t <= now) t.setDate(t.getDate() + 1); // next day if passed
+    if (t <= now) t.setDate(t.getDate() + 1); // move to next day if time already passed
     return t;
   });
 
-  // find nearest target
+  // find soonest scheduled time
   let next = targets[0];
   targets.forEach((t) => {
     if (t < next) next = t;
@@ -1181,9 +1138,8 @@ function scheduleRoundRefresh() {
   const ms = next - now;
   managementRoundTimeout = setTimeout(() => {
     updateManagementChart().catch(() => {});
-    // reschedule next round refresh
-    scheduleRoundRefresh();
-  }, ms + 250); // slight offset to let server state settle
+    scheduleRoundRefresh(); // schedule the next round
+  }, ms + 250); // slight delay to ensure data consistency
 }
 
 // call initManagementChart when management dashboard shown
