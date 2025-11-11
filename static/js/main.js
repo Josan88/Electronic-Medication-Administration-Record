@@ -281,9 +281,9 @@ function addTimeField(button) {
 
   // Add time slot options
   const options = [
-    { value: "09:00", label: "8:00 AM" },
+    { value: "09:00", label: "9:00 AM" },
     { value: "13:00", label: "1:00 PM" },
-    { value: "17:00", label: "6:00 PM" },
+    { value: "17:00", label: "5:00 PM" },
     { value: "21:00", label: "9:00 PM" },
   ];
 
