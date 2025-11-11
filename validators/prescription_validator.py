@@ -114,12 +114,17 @@ def validate_dosage(dosage: str) -> str:
     dosage = sanitize_string(dosage, max_length=50)
     
     # Dosage should contain numbers, units (mg, ml, etc.), and basic punctuation
-    if not re.match(r'^[0-9\.\s]+[A-Za-z]+(/[A-Za-z]+)?$|^[0-9\.\s]+$', dosage):
-        # Allow formats like "500mg", "1.5ml", "2 tablets", "10mg/ml", etc.
-        if not re.match(r'^[\d\.\s]+[A-Za-z\s/]+$', dosage):
-            raise ValidationError(
-                "Dosage must be in a valid format (e.g., 500mg, 1.5ml, 2 tablets)"
-            )
+    # Use a simple character class check to avoid ReDoS
+    if not re.match(r'^[0-9.\sA-Za-z/]+$', dosage):
+        raise ValidationError(
+            "Dosage must be in a valid format (e.g., 500mg, 1.5ml, 2 tablets)"
+        )
+    
+    # Additional check: must have at least one digit
+    if not any(c.isdigit() for c in dosage):
+        raise ValidationError(
+            "Dosage must contain at least one number"
+        )
     
     return dosage
 
