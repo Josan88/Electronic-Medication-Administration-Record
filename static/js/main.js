@@ -1,5 +1,19 @@
 // Electronic Medication Administration Record - Main JavaScript
 
+// Time slots options constant
+const FIXED_TIME_SLOTS = [
+  { value: "09:00", label: "9:00 AM" },
+  { value: "13:00", label: "1:00 PM" },
+  { value: "17:00", label: "5:00 PM" },
+  { value: "21:00", label: "9:00 PM" },
+];
+
+// Global variables for charts and timers
+let managementChart = null;
+let managementChartTimer = null;
+let managementRoundTimeout = null;
+
+// Initial Setup
 document.addEventListener("DOMContentLoaded", function () {
   console.log("eMAR System Loaded");
 
@@ -10,26 +24,12 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeEventListeners();
 
   // Load initial data
-  // The showDashboard function will trigger initial tab loading
-  // Ensure the Nurse Dashboard is active by default
   showDashboard("dutyDashboard");
   loadPatients();
   loadPrescriptions();
   loadTracking();
   updateStats();
 });
-
-// Time slots options constant
-const FIXED_TIME_SLOTS = [
-  { value: "09:00", label: "9:00 AM" },
-  { value: "13:00", label: "1:00 PM" },
-  { value: "17:00", label: "5:00 PM" },
-  { value: "21:00", label: "9:00 PM" },
-];
-
-let managementChart = null;
-let managementChartTimer = null;
-let managementRoundTimeout = null;
 
 // API Health Check
 async function checkAPIHealth() {
@@ -100,8 +100,6 @@ function showDashboard(dashboardId) {
     setTimeout(() => initManagementChart(), 200);
   }
 }
-
-window.showDashboard = showDashboard; // Expose globally
 
 // Tab Navigation
 function showTab(tabName, clickedElement = event.target) {
@@ -238,13 +236,11 @@ function addMedicineField() {
   // Append the new group
   container.appendChild(newGroup);
 }
-window.addMedicineField = addMedicineField;
 
 function removeMedicineField(button) {
   // Traverse up to the parent '.medicine-group' and remove it
   button.closest(".medicine-group").remove();
 }
-window.removeMedicineField = removeMedicineField;
 
 function addTimeField(button) {
   const container = button.previousElementSibling; // the div.time-slots-container
@@ -279,15 +275,7 @@ function addTimeField(button) {
   selectField.style.marginRight = "10px";
   selectField.style.marginBottom = "5px";
 
-  // Add time slot options
-  const options = [
-    { value: "09:00", label: "9:00 AM" },
-    { value: "13:00", label: "1:00 PM" },
-    { value: "17:00", label: "5:00 PM" },
-    { value: "21:00", label: "9:00 PM" },
-  ];
-
-  options.forEach((opt) => {
+  FIXED_TIME_SLOTS.forEach((opt) => {
     const option = document.createElement("option");
     option.value = opt.value;
     option.textContent = opt.label;
@@ -308,7 +296,6 @@ function addTimeField(button) {
   wrapper.appendChild(removeButton);
   container.appendChild(wrapper);
 }
-window.addTimeField = addTimeField;
 
 async function addPrescription() {
   // Get the common Patient ID
@@ -429,7 +416,6 @@ function openModal(modalId) {
 function closeModal(modalId) {
   document.getElementById(modalId).style.display = "none";
 }
-window.closeModal = closeModal;
 
 // Prescription Management
 function showPrescriptionPreview() {
@@ -496,8 +482,6 @@ function showPrescriptionPreview() {
   // Open the modal
   openModal("confirmPrescriptionModal");
 }
-
-window.showPrescriptionPreview = showPrescriptionPreview;
 
 async function loadPrescriptions() {
   const listElement = document.getElementById("prescriptionList");
@@ -742,7 +726,6 @@ async function lookupPatient() {
     showMessage("error", "Error looking up patient: " + error.message);
   }
 }
-window.lookupPatient = lookupPatient; // Expose globally
 
 // Update Statistics
 async function updateStats() {
@@ -810,7 +793,6 @@ function showDutyTab(tabName) {
   // Highlight the selected tab button
   event.target.classList.add("active");
 }
-window.showDutyTab = showDutyTab;
 
 async function showDutyDashboard() {
   const container = document.querySelector("#timeline-tables");
@@ -1029,8 +1011,6 @@ function initManagementChart() {
   scheduleRoundRefresh();
 }
 
-window.initManagementChart = initManagementChart;
-
 async function updateManagementChart() {
   if (!managementChart) return;
 
@@ -1143,7 +1123,6 @@ function scheduleRoundRefresh() {
 }
 
 // call initManagementChart when management dashboard shown
-// ensure this runs when Dashboard is displayed
 const originalShowDashboard = window.showDashboard;
 window.showDashboard = function (dashboardId) {
   if (typeof originalShowDashboard === "function")
@@ -1163,7 +1142,18 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Make remaining functions globally available
+// Dashboards
+window.showDashboard = showDashboard;
+window.showDutyTab = showDutyTab;
 window.showTab = showTab;
 window.loadPatients = loadPatients;
 window.loadPrescriptions = loadPrescriptions;
 window.loadTracking = loadTracking;
+window.initManagementChart = initManagementChart;
+window.lookupPatient = lookupPatient;
+
+// Prescription 
+window.addMedicineField = addMedicineField;
+window.removeMedicineField = removeMedicineField;
+window.addTimeField = addTimeField;
+window.showPrescriptionPreview = showPrescriptionPreview;
