@@ -7,6 +7,7 @@ from config import config
 from services.thingspeak_service import thingspeak_service, ThingSpeakError
 from utils.logging_config import logger
 from utils.errors import error_response, success_response, ValidationError, NotFoundError
+from validators import validate_patient_data, validate_prescription_data, validate_tracking_data
 
 # Global variable to track the last successful ThingSpeak write time
 last_ts_write_time = 0
@@ -56,7 +57,10 @@ def add_patient():
         if data is None:
             raise ValidationError("Invalid JSON data")
 
-        entry_id = thingspeak_service.write_to_channel("patient_info", data)
+        # Validate and sanitize input data
+        validated_data = validate_patient_data(data)
+
+        entry_id = thingspeak_service.write_to_channel("patient_info", validated_data)
         return success_response(
             data={"entry_id": entry_id},
             message="Patient added successfully"
@@ -86,9 +90,12 @@ def add_prescription():
         if data is None:
             raise ValidationError("Invalid JSON data")
 
+        # Validate and sanitize input data (check patient existence)
+        validated_data = validate_prescription_data(data, check_patient=True)
+
         # Add data to the thread-safe queue instantly
         with queue_lock:
-            prescription_queue.append(data)
+            prescription_queue.append(validated_data)
 
         # Return success immediately to the frontend, removing the 15s lag
         return jsonify(
@@ -124,7 +131,10 @@ def add_medication_tracking():
         if data is None:
             raise ValidationError("Invalid JSON data")
 
-        entry_id = thingspeak_service.write_to_channel("medicine_track", data)
+        # Validate and sanitize input data (check patient existence)
+        validated_data = validate_tracking_data(data, check_patient=True)
+
+        entry_id = thingspeak_service.write_to_channel("medicine_track", validated_data)
         return success_response(
             data={"entry_id": entry_id},
             message="Medication tracking record added successfully"
