@@ -24,7 +24,8 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeEventListeners();
 
   // Load initial data
-  showDashboard("dutyDashboard");
+  const savedDashboard = localStorage.getItem("activeDashboard") || "dutyDashboard"; // Default to dutyDashboard
+  showDashboard(savedDashboard);
   loadPatients();
   loadPrescriptions();
   loadTracking();
@@ -90,6 +91,8 @@ function showDashboard(dashboardId) {
   const target = document.getElementById(dashboardId);
   if (target) {
     target.classList.add("active");
+    // Save the active dashboard ID to localStorage
+    localStorage.setItem("activeDashboard", dashboardId);
   }
 
   const burgerCheckbox = document.getElementById("burger-menu");
