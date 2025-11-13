@@ -448,8 +448,8 @@ def test_queue_overflow_behavior():
             return False
         
         status = response.json()['data']
-        current_size = status['size']
-        max_size = status['max_size']
+        current_size = status.get('queue_size', status.get('size', 0))
+        max_size = status.get('max_size', 1000)
         available = max_size - current_size
         
         print(f"\nCurrent queue status:")

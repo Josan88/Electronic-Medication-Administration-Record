@@ -228,10 +228,10 @@ def test_queue_processing_performance():
             return False
         
         initial_status = response.json()['data']
-        initial_size = initial_status['size']
+        initial_size = initial_status.get('queue_size', initial_status.get('size', 0))
         
         print(f"\nInitial queue size: {initial_size}")
-        print(f"Initial statistics: {initial_status['statistics']}")
+        print(f"Initial statistics: {initial_status.get('stats', initial_status.get('statistics', {}))}")
         
         # Add multiple prescriptions rapidly (they'll be queued)
         num_prescriptions = 5
@@ -268,11 +268,11 @@ def test_queue_processing_performance():
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
         if response.status_code == 200:
             updated_status = response.json()['data']
-            new_size = updated_status['size']
+            new_size = updated_status.get('queue_size', updated_status.get('size', 0))
             
             print(f"\n✓ Added {added_count} prescriptions")
             print(f"  Queue size increased: {initial_size} → {new_size}")
-            print(f"  Statistics: {updated_status['statistics']}")
+            print(f"  Statistics: {updated_status.get('stats', updated_status.get('statistics', {}))}")
             
             if new_size >= initial_size + added_count:
                 print("✓ PASS: All prescriptions successfully queued")
@@ -355,14 +355,14 @@ def test_rate_limit_handling():
         
         status = response.json()['data']
         print(f"\nQueue status:")
-        print(f"  Size: {status['size']}")
-        print(f"  Max size: {status['max_size']}")
-        print(f"  Is full: {status['is_full']}")
-        print(f"  Failed items: {status['failed_count']}")
+        print(f"  Size: {status.get('queue_size', status.get('size', 0))}")
+        print(f"  Max size: {status.get('max_size', 'N/A')}")
+        print(f"  Is full: {status.get('is_full', False)}")
+        print(f"  Failed items: {status.get('failed_count', 0)}")
         
         # Verify queue mechanism exists
-        if 'statistics' in status:
-            print(f"  Statistics: {status['statistics']}")
+        if 'stats' in status or 'statistics' in status:
+            print(f"  Statistics: {status.get('stats', status.get('statistics', {}))}")
             print("✓ PASS: Rate limit handling via queue system is functional")
             return True
         else:

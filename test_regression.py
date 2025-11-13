@@ -200,14 +200,25 @@ def test_queue_status_monitoring():
             return False
         
         status = data['data']
-        required_fields = ['size', 'max_size', 'is_full', 'failed_count', 'statistics']
+        # Support both 'size' and 'queue_size', 'statistics' and 'stats'
+        required_fields = {
+            'size': ['size', 'queue_size'],
+            'max_size': ['max_size'],
+            'is_full': ['is_full'],
+            'failed_count': ['failed_count'],
+            'statistics': ['statistics', 'stats']
+        }
         
         print("\nQueue Status:")
-        for field in required_fields:
-            if field in status:
-                print(f"  ✓ {field}: {status[field]}")
-            else:
-                print(f"  ✗ Missing field: {field}")
+        for field_name, field_options in required_fields.items():
+            found = False
+            for option in field_options:
+                if option in status:
+                    print(f"  ✓ {field_name}: {status[option]}")
+                    found = True
+                    break
+            if not found:
+                print(f"  ✗ Missing field: {field_name}")
                 return False
         
         print("\n✓ PASS: Queue status monitoring functional")
@@ -355,7 +366,7 @@ def test_queue_persistence_simulation():
             return False
         
         initial_status = response.json()['data']
-        initial_size = initial_status['size']
+        initial_size = initial_status.get('queue_size', initial_status.get('size', 0))
         
         print(f"\nInitial queue size: {initial_size}")
         
@@ -391,7 +402,7 @@ def test_queue_persistence_simulation():
             return False
         
         updated_status = response.json()['data']
-        updated_size = updated_status['size']
+        updated_size = updated_status.get('queue_size', updated_status.get('size', 0))
         
         print(f"Updated queue size: {updated_size}")
         

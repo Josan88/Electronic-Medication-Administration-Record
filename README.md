@@ -175,13 +175,70 @@ The system uses three ThingSpeak channels:
 - **GET** `/api/queue/status` - Get current queue status (size, failed items, statistics)
 - **POST** `/api/queue/clear-failed` - Clear all failed items from the queue
 
-## 🧪 Testing the API
+## 🧪 Testing
 
-### Method 1: Web Interface (Recommended)
+### Comprehensive Test Suite
+
+The eMAR application includes a comprehensive testing infrastructure with multiple test suites:
+
+#### Running All Tests
+
+```bash
+# Run all test suites (unit, integration, performance, edge cases, regression)
+python run_all_tests.py
+```
+
+This will execute all test suites and generate a comprehensive report showing:
+- Unit tests (validation, queue management, blueprints)
+- Integration tests (API validation, queue integration)
+- Performance and load tests
+- Edge case scenarios
+- Automated regression tests
+
+#### Running Individual Test Suites
+
+```bash
+# Unit tests (don't require server)
+python test_validation.py           # Input validation tests (18 tests)
+python test_queue_management.py     # Queue management tests (8 tests)
+python test_blueprints.py           # Blueprint architecture tests (3 tests)
+
+# Integration tests (require server running)
+python test_api_validation.py       # API validation tests (10 tests)
+python test_queue_integration.py    # Queue integration tests (5 tests)
+
+# Performance tests (require server running)
+python test_performance.py          # Load and performance tests (6 tests)
+
+# Edge case tests (require server running)
+python test_edge_cases.py           # Boundary conditions and edge cases (9 tests)
+
+# Regression tests (require server running)
+python test_regression.py           # Critical workflows and regression scenarios (9 tests)
+```
+
+**Note**: Tests that require the server will automatically check if it's running. Start the server first:
+```bash
+python app.py
+```
+
+### Test Coverage
+
+The test suite validates:
+- **Validation**: Input sanitization, XSS prevention, data constraints
+- **Queue Management**: Persistence, retry logic, overflow handling
+- **API Endpoints**: All routes, error handling, response formats
+- **Performance**: Response times, concurrent requests, memory patterns
+- **Edge Cases**: Boundary values, null/empty data, concurrent operations
+- **Regression**: Critical workflows, error recovery, data consistency
+
+### Quick Testing Methods
+
+#### Method 1: Web Interface (Recommended)
 
 Simply use the web interface at http://localhost:5000
 
-### Method 2: PowerShell Commands
+#### Method 2: PowerShell Commands
 
 ```powershell
 # Health Check
@@ -204,19 +261,6 @@ $patientData = @{
 
 Invoke-RestMethod -Uri "http://localhost:5000/api/patients" -Method Post -Body $patientData -ContentType "application/json"
 ```
-
-### Method 3: Automated Test Script
-
-```powershell
-# Run comprehensive test suite (takes ~50 seconds due to rate limits)
-python test_api.py
-
-# To test from another device on the network:
-# Edit BASE_URL in test_api.py line 12 first
-# Change from "http://localhost:5000" to "http://YOUR_IP:5000"
-```
-
-**Note**: Test script includes automatic 15-second delays between write operations to comply with ThingSpeak rate limits
 
 ## 📋 API Request Examples
 
@@ -340,12 +384,16 @@ Electronic-Medication-Administration-Record/
 │       └── main.js            # Frontend JavaScript (AJAX, dashboard switching)
 ├── templates/
 │   └── index.html             # Single-page application (3 dashboards)
-└── tests/
-    ├── test_blueprints.py     # Blueprint architecture tests
-    ├── test_validation.py     # Validation unit tests
-    ├── test_api_validation.py # API validation integration tests
-    ├── test_queue_management.py # Queue operations unit tests
-    └── test_queue_integration.py # Queue API integration tests
+├── tests/
+│   ├── run_all_tests.py       # Comprehensive test runner
+│   ├── test_blueprints.py     # Blueprint architecture tests (3 tests)
+│   ├── test_validation.py     # Validation unit tests (18 tests)
+│   ├── test_api_validation.py # API validation integration tests (10 tests)
+│   ├── test_queue_management.py # Queue operations unit tests (8 tests)
+│   ├── test_queue_integration.py # Queue API integration tests (5 tests)
+│   ├── test_performance.py    # Performance and load tests (6 tests)
+│   ├── test_edge_cases.py     # Edge case and boundary tests (9 tests)
+│   └── test_regression.py     # Automated regression tests (9 tests)
 ```
 
 ## Features in Detail
