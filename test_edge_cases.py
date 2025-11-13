@@ -60,20 +60,20 @@ def test_extreme_string_lengths():
             if len(value) == 0 or len(value) > 100:
                 # Should be rejected
                 if response.status_code in [400, 422]:
-                    print(f"  ✓ PASS: Correctly rejected (status {response.status_code})")
+                    print(f"  [PASS] PASS: Correctly rejected (status {response.status_code})")
                     passed += 1
                 else:
-                    print(f"  ✗ FAIL: Should have been rejected (status {response.status_code})")
+                    print(f"  [FAIL] FAIL: Should have been rejected (status {response.status_code})")
             else:
                 # Should be accepted or have controlled behavior
                 if response.status_code in [200, 201, 400, 422, 507]:
-                    print(f"  ✓ PASS: Handled appropriately (status {response.status_code})")
+                    print(f"  [PASS] PASS: Handled appropriately (status {response.status_code})")
                     passed += 1
                 else:
-                    print(f"  ✗ FAIL: Unexpected status {response.status_code}")
+                    print(f"  [FAIL] FAIL: Unexpected status {response.status_code}")
                     
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
     
     print(f"\n{passed}/{total} tests passed")
     return passed == total
@@ -122,19 +122,19 @@ def test_boundary_age_values():
             
             if should_accept:
                 if response.status_code in [200, 201, 507]:
-                    print(f"  ✓ PASS: Accepted (status {response.status_code})")
+                    print(f"  [PASS] PASS: Accepted (status {response.status_code})")
                     passed += 1
                 else:
-                    print(f"  ✗ FAIL: Should have been accepted (status {response.status_code})")
+                    print(f"  [FAIL] FAIL: Should have been accepted (status {response.status_code})")
             else:
                 if response.status_code in [400, 422]:
-                    print(f"  ✓ PASS: Correctly rejected (status {response.status_code})")
+                    print(f"  [PASS] PASS: Correctly rejected (status {response.status_code})")
                     passed += 1
                 else:
-                    print(f"  ✗ FAIL: Should have been rejected (status {response.status_code})")
+                    print(f"  [FAIL] FAIL: Should have been rejected (status {response.status_code})")
                     
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
     
     print(f"\n{passed}/{total} tests passed")
     return passed == total
@@ -167,13 +167,13 @@ def test_missing_optional_fields():
         )
         
         if response.status_code in [200, 201, 507]:
-            print(f"  ✓ PASS: Accepted minimal patient (status {response.status_code})")
+            print(f"  [PASS] PASS: Accepted minimal patient (status {response.status_code})")
             test1_passed = True
         else:
-            print(f"  ✗ FAIL: Should accept minimal patient (status {response.status_code})")
+            print(f"  [FAIL] FAIL: Should accept minimal patient (status {response.status_code})")
             test1_passed = False
     except Exception as e:
-        print(f"  ✗ FAIL: Error - {e}")
+        print(f"  [FAIL] FAIL: Error - {e}")
         test1_passed = False
     
     # Test prescription with all fields
@@ -196,13 +196,13 @@ def test_missing_optional_fields():
         )
         
         if response.status_code in [200, 201, 202, 507]:
-            print(f"  ✓ PASS: Accepted prescription (status {response.status_code})")
+            print(f"  [PASS] PASS: Accepted prescription (status {response.status_code})")
             test2_passed = True
         else:
-            print(f"  ✗ FAIL: Should accept prescription (status {response.status_code})")
+            print(f"  [FAIL] FAIL: Should accept prescription (status {response.status_code})")
             test2_passed = False
     except Exception as e:
-        print(f"  ✗ FAIL: Error - {e}")
+        print(f"  [FAIL] FAIL: Error - {e}")
         test2_passed = False
     
     return test1_passed and test2_passed
@@ -236,13 +236,13 @@ def test_null_and_empty_values():
             
             # All should be rejected
             if response.status_code in [400, 422]:
-                print(f"  ✓ PASS: Correctly rejected (status {response.status_code})")
+                print(f"  [PASS] PASS: Correctly rejected (status {response.status_code})")
                 passed += 1
             else:
-                print(f"  ✗ FAIL: Should have been rejected (status {response.status_code})")
+                print(f"  [FAIL] FAIL: Should have been rejected (status {response.status_code})")
                 
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
     
     print(f"\n{passed}/{total} tests passed")
     return passed == total
@@ -289,13 +289,13 @@ def test_invalid_date_formats():
             
             # Should be rejected
             if response.status_code in [400, 422]:
-                print(f"  ✓ PASS: Correctly rejected (status {response.status_code})")
+                print(f"  [PASS] PASS: Correctly rejected (status {response.status_code})")
                 passed += 1
             else:
-                print(f"  ✗ FAIL: Should have been rejected (status {response.status_code})")
+                print(f"  [FAIL] FAIL: Should have been rejected (status {response.status_code})")
                 
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
     
     print(f"\n{passed}/{total} tests passed")
     return passed == total
@@ -344,19 +344,19 @@ def test_date_range_edge_cases():
             
             if should_accept:
                 if response.status_code in [200, 201, 202, 507]:
-                    print(f"  ✓ PASS: Accepted (status {response.status_code})")
+                    print(f"  [PASS] PASS: Accepted (status {response.status_code})")
                     passed += 1
                 else:
-                    print(f"  ✗ FAIL: Should have been accepted (status {response.status_code})")
+                    print(f"  [FAIL] FAIL: Should have been accepted (status {response.status_code})")
             else:
                 if response.status_code in [400, 422]:
-                    print(f"  ✓ PASS: Correctly rejected (status {response.status_code})")
+                    print(f"  [PASS] PASS: Correctly rejected (status {response.status_code})")
                     passed += 1
                 else:
-                    print(f"  ✗ FAIL: Should have been rejected (status {response.status_code})")
+                    print(f"  [FAIL] FAIL: Should have been rejected (status {response.status_code})")
                     
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
     
     print(f"\n{passed}/{total} tests passed")
     return passed == total
@@ -418,19 +418,19 @@ def test_concurrent_writes_same_patient():
     
     successful = sum(1 for r in results if r['success'])
     
-    print(f"\n✓ Completed {len(results)} concurrent operations")
+    print(f"\n[PASS] Completed {len(results)} concurrent operations")
     print(f"  Successful: {successful}/{len(results)}")
     
     for result in results:
-        status = "✓" if result['success'] else "✗"
+        status = "[PASS]" if result['success'] else "[FAIL]"
         print(f"  {status} Thread {result['thread_id']}: Status {result['status']}")
     
     # Success if at least some operations succeeded (rate limiting may affect some)
     if successful >= num_threads * 0.5:  # At least 50% success
-        print(f"✓ PASS: Concurrent operations handled appropriately")
+        print(f"[PASS] PASS: Concurrent operations handled appropriately")
         return True
     else:
-        print(f"✗ FAIL: Too many concurrent operations failed")
+        print(f"[FAIL] FAIL: Too many concurrent operations failed")
         return False
 
 
@@ -444,7 +444,7 @@ def test_queue_overflow_behavior():
         # Get current queue status
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
         if response.status_code != 200:
-            print("✗ FAIL: Cannot get queue status")
+            print("[FAIL] FAIL: Cannot get queue status")
             return False
         
         status = response.json()['data']
@@ -457,7 +457,7 @@ def test_queue_overflow_behavior():
         print(f"  Available capacity: {available}")
         
         if available < 5:
-            print("⚠ WARNING: Queue is near capacity, skipping overflow test")
+            print("[WARN] WARNING: Queue is near capacity, skipping overflow test")
             return True
         
         # Try to add multiple prescriptions rapidly
@@ -491,14 +491,14 @@ def test_queue_overflow_behavior():
         print(f"\nResults: {accepted} accepted, {rejected} rejected")
         
         if accepted > 0 or rejected > 0:
-            print("✓ PASS: Queue overflow handled gracefully")
+            print("[PASS] PASS: Queue overflow handled gracefully")
             return True
         else:
-            print("✗ FAIL: Unexpected queue behavior")
+            print("[FAIL] FAIL: Unexpected queue behavior")
             return False
             
     except Exception as e:
-        print(f"✗ FAIL: Test error: {e}")
+        print(f"[FAIL] FAIL: Test error: {e}")
         return False
 
 
@@ -542,13 +542,13 @@ def test_special_characters_in_fields():
             
             # Should be handled appropriately (either accepted or rejected with clear message)
             if response.status_code in [200, 201, 400, 422, 507]:
-                print(f"  ✓ PASS: Handled appropriately (status {response.status_code})")
+                print(f"  [PASS] PASS: Handled appropriately (status {response.status_code})")
                 passed += 1
             else:
-                print(f"  ✗ FAIL: Unexpected status {response.status_code}")
+                print(f"  [FAIL] FAIL: Unexpected status {response.status_code}")
                 
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
     
     print(f"\n{passed}/{total} tests passed")
     return passed == total
@@ -566,16 +566,16 @@ def main():
     try:
         response = requests.get(f"{BASE_URL}/api/health", timeout=5)
         if response.status_code != 200:
-            print(f"\n✗ ERROR: Server is not responding correctly (status: {response.status_code})")
+            print(f"\n[FAIL] ERROR: Server is not responding correctly (status: {response.status_code})")
             print("Please start the server with: python app.py")
             return 1
     except Exception as e:
-        print(f"\n✗ ERROR: Cannot connect to server at {BASE_URL}")
+        print(f"\n[FAIL] ERROR: Cannot connect to server at {BASE_URL}")
         print(f"Error: {e}")
         print("Please start the server with: python app.py")
         return 1
     
-    print(f"✓ Server is running at {BASE_URL}")
+    print(f"[PASS] Server is running at {BASE_URL}")
     
     # Run all tests
     tests = [
@@ -596,7 +596,7 @@ def main():
             passed = test_func()
             results[test_name] = passed
         except Exception as e:
-            print(f"\n✗ Test '{test_name}' crashed: {e}")
+            print(f"\n[FAIL] Test '{test_name}' crashed: {e}")
             results[test_name] = False
     
     # Summary
@@ -608,17 +608,17 @@ def main():
     total_count = len(results)
     
     for test_name, passed in results.items():
-        status = "✓ PASS" if passed else "✗ FAIL"
+        status = "[PASS] PASS" if passed else "[FAIL] FAIL"
         print(f"{status}: {test_name}")
     
     print(f"\nTotal tests passed: {passed_count}/{total_count}")
     print(f"Success rate: {(passed_count/total_count)*100:.1f}%")
     
     if passed_count == total_count:
-        print("\n✓ ALL EDGE CASE TESTS PASSED!")
+        print("\n[PASS] ALL EDGE CASE TESTS PASSED!")
         return 0
     else:
-        print(f"\n✗ {total_count - passed_count} EDGE CASE TEST(S) FAILED")
+        print(f"\n[FAIL] {total_count - passed_count} EDGE CASE TEST(S) FAILED")
         return 1
 
 

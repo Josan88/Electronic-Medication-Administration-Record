@@ -50,10 +50,10 @@ def test_health_endpoint_performance():
             response_times.append((end - start) * 1000)  # Convert to ms
             
             if response.status_code != 200:
-                print(f"✗ Request {i+1} failed with status {response.status_code}")
+                print(f"[FAIL] Request {i+1} failed with status {response.status_code}")
                 return False
         except Exception as e:
-            print(f"✗ Request {i+1} failed: {e}")
+            print(f"[FAIL] Request {i+1} failed: {e}")
             return False
     
     # Calculate statistics
@@ -63,7 +63,7 @@ def test_health_endpoint_performance():
     max_time = max(response_times)
     std_dev = statistics.stdev(response_times) if len(response_times) > 1 else 0
     
-    print(f"\n✓ Completed {num_requests} requests")
+    print(f"\n[PASS] Completed {num_requests} requests")
     print(f"  Average response time: {avg_time:.2f} ms")
     print(f"  Median response time: {median_time:.2f} ms")
     print(f"  Min response time: {min_time:.2f} ms")
@@ -72,10 +72,10 @@ def test_health_endpoint_performance():
     
     # Performance criteria: average should be under 100ms for health endpoint
     if avg_time < 100:
-        print(f"✓ PASS: Average response time is acceptable ({avg_time:.2f} ms < 100 ms)")
+        print(f"[PASS] PASS: Average response time is acceptable ({avg_time:.2f} ms < 100 ms)")
         return True
     else:
-        print(f"✗ FAIL: Average response time too slow ({avg_time:.2f} ms >= 100 ms)")
+        print(f"[FAIL] FAIL: Average response time too slow ({avg_time:.2f} ms >= 100 ms)")
         return False
 
 
@@ -132,15 +132,15 @@ def test_concurrent_health_requests():
     successful_requests = len([r for r in results if r['status'] == 200])
     total_requests = num_threads * requests_per_thread
     
-    print(f"\n✓ Completed {successful_requests}/{total_requests} requests in {total_time:.2f} seconds")
+    print(f"\n[PASS] Completed {successful_requests}/{total_requests} requests in {total_time:.2f} seconds")
     print(f"  Requests per second: {total_requests/total_time:.2f}")
     
     if errors:
-        print(f"\n✗ {len(errors)} errors occurred:")
+        print(f"\n[FAIL] {len(errors)} errors occurred:")
         for error in errors[:5]:  # Show first 5 errors
             print(f"  - {error}")
     else:
-        print("✓ No errors occurred")
+        print("[PASS] No errors occurred")
     
     if results:
         response_times = [r['time_ms'] for r in results]
@@ -150,10 +150,10 @@ def test_concurrent_health_requests():
     # Success criteria: at least 95% success rate
     success_rate = (successful_requests / total_requests) * 100
     if success_rate >= 95:
-        print(f"✓ PASS: Success rate is acceptable ({success_rate:.1f}% >= 95%)")
+        print(f"[PASS] PASS: Success rate is acceptable ({success_rate:.1f}% >= 95%)")
         return True
     else:
-        print(f"✗ FAIL: Success rate too low ({success_rate:.1f}% < 95%)")
+        print(f"[FAIL] FAIL: Success rate too low ({success_rate:.1f}% < 95%)")
         return False
 
 
@@ -185,9 +185,9 @@ def test_read_endpoints_performance():
                 response_times.append((end - start) * 1000)  # Convert to ms
                 
                 if response.status_code != 200:
-                    print(f"  ✗ Request {i+1} failed with status {response.status_code}")
+                    print(f"  [FAIL] Request {i+1} failed with status {response.status_code}")
             except Exception as e:
-                print(f"  ✗ Request {i+1} failed: {e}")
+                print(f"  [FAIL] Request {i+1} failed: {e}")
         
         if response_times:
             avg_time = statistics.mean(response_times)
@@ -199,16 +199,16 @@ def test_read_endpoints_performance():
                 'success_count': len(response_times)
             }
             
-            print(f"  ✓ Average: {avg_time:.2f} ms, Max: {max_time:.2f} ms")
+            print(f"  [PASS] Average: {avg_time:.2f} ms, Max: {max_time:.2f} ms")
     
     # Performance criteria: average should be under 1000ms for read endpoints
     all_passed = True
     print(f"\nPerformance Summary:")
     for endpoint, data in results.items():
         if data['avg_time'] < 1000:
-            print(f"  ✓ {endpoint}: {data['avg_time']:.2f} ms (PASS)")
+            print(f"  [PASS] {endpoint}: {data['avg_time']:.2f} ms (PASS)")
         else:
-            print(f"  ✗ {endpoint}: {data['avg_time']:.2f} ms (SLOW)")
+            print(f"  [FAIL] {endpoint}: {data['avg_time']:.2f} ms (SLOW)")
             all_passed = False
     
     return all_passed
@@ -224,7 +224,7 @@ def test_queue_processing_performance():
     try:
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
         if response.status_code != 200:
-            print("✗ FAIL: Cannot get queue status")
+            print("[FAIL] FAIL: Cannot get queue status")
             return False
         
         initial_status = response.json()['data']
@@ -258,11 +258,11 @@ def test_queue_processing_performance():
                 
                 if response.status_code == 202:
                     added_count += 1
-                    print(f"  ✓ Prescription {i+1} queued (HTTP 202)")
+                    print(f"  [PASS] Prescription {i+1} queued (HTTP 202)")
                 else:
-                    print(f"  ✗ Prescription {i+1} failed: {response.status_code}")
+                    print(f"  [FAIL] Prescription {i+1} failed: {response.status_code}")
             except Exception as e:
-                print(f"  ✗ Prescription {i+1} error: {e}")
+                print(f"  [FAIL] Prescription {i+1} error: {e}")
         
         # Check queue status again
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
@@ -270,22 +270,22 @@ def test_queue_processing_performance():
             updated_status = response.json()['data']
             new_size = updated_status.get('queue_size', updated_status.get('size', 0))
             
-            print(f"\n✓ Added {added_count} prescriptions")
-            print(f"  Queue size increased: {initial_size} → {new_size}")
+            print(f"\n[PASS] Added {added_count} prescriptions")
+            print(f"  Queue size increased: {initial_size} -> {new_size}")
             print(f"  Statistics: {updated_status.get('stats', updated_status.get('statistics', {}))}")
             
             if new_size >= initial_size + added_count:
-                print("✓ PASS: All prescriptions successfully queued")
+                print("[PASS] PASS: All prescriptions successfully queued")
                 return True
             else:
-                print("✗ FAIL: Some prescriptions were not queued")
+                print("[FAIL] FAIL: Some prescriptions were not queued")
                 return False
         else:
-            print("✗ FAIL: Cannot get updated queue status")
+            print("[FAIL] FAIL: Cannot get updated queue status")
             return False
             
     except Exception as e:
-        print(f"✗ FAIL: Test error: {e}")
+        print(f"[FAIL] FAIL: Test error: {e}")
         return False
 
 
@@ -313,7 +313,7 @@ def test_memory_usage_pattern():
             if (i + 1) % 20 == 0:
                 print(f"  Completed {i+1}/{num_iterations} requests...")
         except Exception as e:
-            print(f"✗ Request {i+1} failed: {e}")
+            print(f"[FAIL] Request {i+1} failed: {e}")
             return False
     
     # Analyze trend: check if response times are increasing (potential memory leak)
@@ -323,17 +323,17 @@ def test_memory_usage_pattern():
     avg_first = statistics.mean(first_quarter)
     avg_last = statistics.mean(last_quarter)
     
-    print(f"\n✓ Completed {num_iterations} requests")
+    print(f"\n[PASS] Completed {num_iterations} requests")
     print(f"  First 25 requests average: {avg_first:.2f} ms")
     print(f"  Last 25 requests average: {avg_last:.2f} ms")
     
     # Check for degradation (>50% increase suggests potential issue)
     if avg_last > avg_first * 1.5:
-        print(f"⚠ WARNING: Response time increased by {((avg_last/avg_first - 1) * 100):.1f}%")
+        print(f"[WARN] WARNING: Response time increased by {((avg_last/avg_first - 1) * 100):.1f}%")
         print("  This may indicate a memory leak or resource issue")
         return False
     else:
-        print(f"✓ PASS: Response times remained consistent (variation: {((avg_last/avg_first - 1) * 100):.1f}%)")
+        print(f"[PASS] PASS: Response times remained consistent (variation: {((avg_last/avg_first - 1) * 100):.1f}%)")
         return True
 
 
@@ -350,7 +350,7 @@ def test_rate_limit_handling():
         # Get queue status
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
         if response.status_code != 200:
-            print("✗ FAIL: Cannot get queue status")
+            print("[FAIL] FAIL: Cannot get queue status")
             return False
         
         status = response.json()['data']
@@ -363,14 +363,14 @@ def test_rate_limit_handling():
         # Verify queue mechanism exists
         if 'stats' in status or 'statistics' in status:
             print(f"  Statistics: {status.get('stats', status.get('statistics', {}))}")
-            print("✓ PASS: Rate limit handling via queue system is functional")
+            print("[PASS] PASS: Rate limit handling via queue system is functional")
             return True
         else:
-            print("✗ FAIL: Queue statistics not available")
+            print("[FAIL] FAIL: Queue statistics not available")
             return False
             
     except Exception as e:
-        print(f"✗ FAIL: Test error: {e}")
+        print(f"[FAIL] FAIL: Test error: {e}")
         return False
 
 
@@ -386,16 +386,16 @@ def main():
     try:
         response = requests.get(f"{BASE_URL}/api/health", timeout=5)
         if response.status_code != 200:
-            print(f"\n✗ ERROR: Server is not responding correctly (status: {response.status_code})")
+            print(f"\n[FAIL] ERROR: Server is not responding correctly (status: {response.status_code})")
             print("Please start the server with: python app.py")
             return 1
     except Exception as e:
-        print(f"\n✗ ERROR: Cannot connect to server at {BASE_URL}")
+        print(f"\n[FAIL] ERROR: Cannot connect to server at {BASE_URL}")
         print(f"Error: {e}")
         print("Please start the server with: python app.py")
         return 1
     
-    print(f"✓ Server is running at {BASE_URL}")
+    print(f"[PASS] Server is running at {BASE_URL}")
     
     # Run all tests
     tests = [
@@ -413,7 +413,7 @@ def main():
             passed = test_func()
             results[test_name] = passed
         except Exception as e:
-            print(f"\n✗ Test '{test_name}' crashed: {e}")
+            print(f"\n[FAIL] Test '{test_name}' crashed: {e}")
             results[test_name] = False
     
     # Summary
@@ -425,17 +425,17 @@ def main():
     total_count = len(results)
     
     for test_name, passed in results.items():
-        status = "✓ PASS" if passed else "✗ FAIL"
+        status = "[PASS] PASS" if passed else "[FAIL] FAIL"
         print(f"{status}: {test_name}")
     
     print(f"\nTotal tests passed: {passed_count}/{total_count}")
     print(f"Success rate: {(passed_count/total_count)*100:.1f}%")
     
     if passed_count == total_count:
-        print("\n✓ ALL PERFORMANCE TESTS PASSED!")
+        print("\n[PASS] ALL PERFORMANCE TESTS PASSED!")
         return 0
     else:
-        print(f"\n✗ {total_count - passed_count} PERFORMANCE TEST(S) FAILED")
+        print(f"\n[FAIL] {total_count - passed_count} PERFORMANCE TEST(S) FAILED")
         return 1
 
 

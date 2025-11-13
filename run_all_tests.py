@@ -33,10 +33,10 @@ def run_test_file(test_file, description):
     Returns:
         tuple: (passed: bool, duration: float)
     """
-    print(f"\n{'─'*70}")
+    print(f"\n{'-'*70}")
     print(f"Running: {description}")
     print(f"File: {test_file}")
-    print(f"{'─'*70}")
+    print(f"{'-'*70}")
     
     start_time = time.time()
     
@@ -62,12 +62,12 @@ def run_test_file(test_file, description):
         
     except subprocess.TimeoutExpired:
         duration = time.time() - start_time
-        print(f"\n✗ TEST TIMEOUT: {test_file} exceeded 5 minute limit")
+        print(f"\n[FAIL] TEST TIMEOUT: {test_file} exceeded 5 minute limit")
         return False, duration
         
     except Exception as e:
         duration = time.time() - start_time
-        print(f"\n✗ ERROR running {test_file}: {e}")
+        print(f"\n[FAIL] ERROR running {test_file}: {e}")
         return False, duration
 
 
@@ -93,13 +93,13 @@ def main():
     server_running = check_server_running()
     
     if not server_running:
-        print("\n⚠ WARNING: Server is not running at http://localhost:5000")
+        print("\n[WARN] WARNING: Server is not running at http://localhost:5000")
         print("Some integration, performance, edge case, and regression tests will fail.")
         print("To run all tests, start the server in a separate terminal:")
         print("  python app.py")
         print("\nContinuing with available tests...")
     else:
-        print("\n✓ Server is running at http://localhost:5000")
+        print("\n[PASS] Server is running at http://localhost:5000")
     
     # Define all test suites
     test_suites = [
@@ -163,7 +163,7 @@ def main():
     for suite in test_suites:
         # Skip tests that require server if it's not running
         if suite['requires_server'] and not server_running:
-            print(f"\n⚠ SKIPPED: {suite['description']} (requires server)")
+            print(f"\n[WARN] SKIPPED: {suite['description']} (requires server)")
             skipped.append(suite)
             continue
         
@@ -199,7 +199,7 @@ def main():
         cat_passed = sum(1 for r in cat_results if r['passed'])
         
         for result in cat_results:
-            status = "✓ PASS" if result['passed'] else "✗ FAIL"
+            status = "[PASS] PASS" if result['passed'] else "[FAIL] FAIL"
             duration = f"{result['duration']:.2f}s"
             print(f"  {status} - {result['suite']['description']} ({duration})")
         
@@ -210,10 +210,10 @@ def main():
     if skipped:
         print(f"\nSkipped Tests:")
         for suite in skipped:
-            print(f"  ⊘ {suite['description']} (requires server)")
+            print(f"  [SKIP] {suite['description']} (requires server)")
     
     # Overall summary
-    print(f"\n{'─'*70}")
+    print(f"\n{'-'*70}")
     print(f"OVERALL RESULTS:")
     print(f"  Total Passed: {total_passed}/{total_tests}")
     if skipped:
@@ -224,12 +224,12 @@ def main():
     # Final verdict
     print(f"\n{'='*70}")
     if total_passed == total_tests:
-        print("✓ ALL TESTS PASSED!")
+        print("[PASS] ALL TESTS PASSED!")
         print(f"{'='*70}")
         return 0
     else:
         failed = total_tests - total_passed
-        print(f"✗ {failed} TEST SUITE(S) FAILED")
+        print(f"[FAIL] {failed} TEST SUITE(S) FAILED")
         print(f"{'='*70}")
         return 1
 
@@ -239,10 +239,10 @@ if __name__ == "__main__":
         exit_code = main()
         sys.exit(exit_code)
     except KeyboardInterrupt:
-        print("\n\n⚠ Test run interrupted by user")
+        print("\n\n[WARN] Test run interrupted by user")
         sys.exit(130)
     except Exception as e:
-        print(f"\n\n✗ FATAL ERROR: {e}")
+        print(f"\n\n[FAIL] FATAL ERROR: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

@@ -20,7 +20,7 @@ def test_blueprint_registration():
         
         # Check that Flask app is created
         assert app.app is not None, "Flask app not created"
-        print("✓ Flask app created successfully")
+        print("[PASS] Flask app created successfully")
         
         # Check blueprint registration
         blueprints = app.app.blueprints
@@ -28,9 +28,9 @@ def test_blueprint_registration():
         
         for bp_name in expected_blueprints:
             assert bp_name in blueprints, f"Blueprint '{bp_name}' not registered"
-            print(f"✓ Blueprint '{bp_name}' registered")
+            print(f"[PASS] Blueprint '{bp_name}' registered")
         
-        print(f"\n✓ All {len(expected_blueprints)} blueprints registered successfully")
+        print(f"\n[PASS] All {len(expected_blueprints)} blueprints registered successfully")
         
         # Check route registration
         routes = [rule.rule for rule in app.app.url_map.iter_rules() if rule.endpoint != 'static']
@@ -46,7 +46,7 @@ def test_blueprint_registration():
             '/api/medication-tracking',
         ]
         
-        print(f"\n✓ Found {len(routes)} routes registered")
+        print(f"\n[PASS] Found {len(routes)} routes registered")
         
         for route in expected_routes:
             # Check if route exists (with or without parameters)
@@ -56,12 +56,12 @@ def test_blueprint_registration():
             )
             assert route_found, f"Route '{route}' not found"
         
-        print("✓ All expected routes are registered")
+        print("[PASS] All expected routes are registered")
         
         return True
         
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         return False
 
 
@@ -89,14 +89,14 @@ def test_route_endpoints():
             if rule.rule in expected_mappings:
                 assert rule.endpoint in expected_mappings[rule.rule], \
                     f"Route {rule.rule} has unexpected endpoint {rule.endpoint}"
-                print(f"✓ {rule.rule:45s} -> {rule.endpoint}")
+                print(f"[PASS] {rule.rule:45s} -> {rule.endpoint}")
         
-        print(f"\n✓ All route endpoints map to correct blueprints")
+        print(f"\n[PASS] All route endpoints map to correct blueprints")
         
         return True
         
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         return False
 
 
@@ -113,12 +113,12 @@ def test_app_structure():
         # Check that blueprints are imported
         assert 'from routes import register_blueprints' in app_content, \
             "Blueprint registration import not found"
-        print("✓ Blueprint registration imported")
+        print("[PASS] Blueprint registration imported")
         
         # Check that register_blueprints is called
         assert 'register_blueprints(app' in app_content, \
             "register_blueprints() call not found"
-        print("✓ register_blueprints() called")
+        print("[PASS] register_blueprints() called")
         
         # Check that old route decorators are removed
         old_patterns = [
@@ -131,24 +131,24 @@ def test_app_structure():
             assert pattern not in app_content, \
                 f"Old route decorator found: {pattern}"
         
-        print("✓ Old route decorators removed from app.py")
+        print("[PASS] Old route decorators removed from app.py")
         
         # Check that essential app components are still present
         assert 'def process_prescription_queue()' in app_content, \
             "Background worker function missing"
-        print("✓ Background worker function present")
+        print("[PASS] Background worker function present")
         
         # Check for persistent queue import (new implementation)
         assert 'from services.queue_service import persistent_queue' in app_content, \
             "Persistent queue import missing"
-        print("✓ Persistent queue imported")
+        print("[PASS] Persistent queue imported")
         
-        print(f"\n✓ app.py properly refactored")
+        print(f"\n[PASS] app.py properly refactored")
         
         return True
         
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         return False
 
 
@@ -179,10 +179,10 @@ def main():
     print(f"Success rate: {(passed/total)*100:.1f}%")
     
     if passed == total:
-        print("\n✓ ALL BLUEPRINT TESTS PASSED!")
+        print("\n[PASS] ALL BLUEPRINT TESTS PASSED!")
         return 0
     else:
-        print(f"\n✗ {total - passed} test(s) failed")
+        print(f"\n[FAIL] {total - passed} test(s) failed")
         return 1
 
 

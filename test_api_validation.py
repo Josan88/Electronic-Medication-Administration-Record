@@ -50,7 +50,7 @@ def start_embedded_server():
     if is_server_running():
         return False
 
-    print("• Starting embedded Flask server for integration tests...")
+    print("* Starting embedded Flask server for integration tests...")
     from app import app  # Imported lazily so normal usage is unchanged
 
     _server = make_server(SERVER_HOST, SERVER_PORT, app)
@@ -66,7 +66,7 @@ def stop_embedded_server():
 
     if _server is not None and _server_started_here:
         try:
-            print("• Shutting down embedded Flask server...")
+            print("* Shutting down embedded Flask server...")
             _server.shutdown()
         finally:
             _server = None
@@ -84,12 +84,12 @@ def wait_for_server(timeout=30):
         try:
             response = requests.get(f"{BASE_URL}/api/health", timeout=2)
             if response.status_code == 200:
-                print("✓ Server is ready")
+                print("[PASS] Server is ready")
                 return True
         except requests.exceptions.RequestException:
             pass
         time.sleep(1)
-    print("✗ Server failed to start")
+    print("[FAIL] Server failed to start")
     return False
 
 
@@ -103,13 +103,13 @@ def test_health_check():
         response = requests.get(f"{BASE_URL}/api/health")
         if response.status_code == 200:
             data = response.json()
-            print(f"✓ Health check passed: {data.get('message')}")
+            print(f"[PASS] Health check passed: {data.get('message')}")
             return True
         else:
-            print(f"✗ Health check failed: {response.status_code}")
+            print(f"[FAIL] Health check failed: {response.status_code}")
             return False
     except Exception as e:
-        print(f"✗ Health check error: {e}")
+        print(f"[FAIL] Health check error: {e}")
         return False
 
 
@@ -145,14 +145,14 @@ def test_patient_api_validation():
         if response.status_code == 200:
             data = response.json()
             if data.get('success'):
-                print(f"✓ PASS: Valid patient accepted (Entry ID: {data.get('data', {}).get('entry_id')})")
+                print(f"[PASS] PASS: Valid patient accepted (Entry ID: {data.get('data', {}).get('entry_id')})")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Unexpected response: {data}")
+                print(f"[FAIL] FAIL: Unexpected response: {data}")
         else:
-            print(f"✗ FAIL: HTTP {response.status_code}: {response.text}")
+            print(f"[FAIL] FAIL: HTTP {response.status_code}: {response.text}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 2: Invalid patient data - missing name
     tests_total += 1
@@ -175,14 +175,14 @@ def test_patient_api_validation():
         if response.status_code == 400:
             data = response.json()
             if not data.get('success'):
-                print(f"✓ PASS: Invalid patient rejected: {data.get('error')}")
+                print(f"[PASS] PASS: Invalid patient rejected: {data.get('error')}")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Should have rejected invalid data")
+                print(f"[FAIL] FAIL: Should have rejected invalid data")
         else:
-            print(f"✗ FAIL: Expected 400, got {response.status_code}")
+            print(f"[FAIL] FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 3: XSS attempt in patient data
     tests_total += 1
@@ -207,14 +207,14 @@ def test_patient_api_validation():
         if response.status_code == 400:
             data = response.json()
             if not data.get('success'):
-                print(f"✓ PASS: XSS attempt rejected: {data.get('error')}")
+                print(f"[PASS] PASS: XSS attempt rejected: {data.get('error')}")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Should have rejected XSS")
+                print(f"[FAIL] FAIL: Should have rejected XSS")
         else:
-            print(f"✗ FAIL: Expected 400, got {response.status_code}")
+            print(f"[FAIL] FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 4: Invalid age
     tests_total += 1
@@ -239,14 +239,14 @@ def test_patient_api_validation():
         if response.status_code == 400:
             data = response.json()
             if not data.get('success'):
-                print(f"✓ PASS: Invalid age rejected: {data.get('error')}")
+                print(f"[PASS] PASS: Invalid age rejected: {data.get('error')}")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Should have rejected invalid age")
+                print(f"[FAIL] FAIL: Should have rejected invalid age")
         else:
-            print(f"✗ FAIL: Expected 400, got {response.status_code}")
+            print(f"[FAIL] FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     print(f"\nPatient API: {tests_passed}/{tests_total} tests passed")
     return tests_passed, tests_total
@@ -284,14 +284,14 @@ def test_prescription_api_validation():
         if response.status_code == 202 or response.status_code == 200:
             data = response.json()
             if data.get('success'):
-                print(f"✓ PASS: Valid prescription accepted (queued)")
+                print(f"[PASS] PASS: Valid prescription accepted (queued)")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Unexpected response: {data}")
+                print(f"[FAIL] FAIL: Unexpected response: {data}")
         else:
-            print(f"✗ FAIL: HTTP {response.status_code}: {response.text}")
+            print(f"[FAIL] FAIL: HTTP {response.status_code}: {response.text}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 2: Invalid date range
     tests_total += 1
@@ -315,14 +315,14 @@ def test_prescription_api_validation():
         if response.status_code == 400:
             data = response.json()
             if not data.get('success'):
-                print(f"✓ PASS: Invalid date range rejected: {data.get('error')}")
+                print(f"[PASS] PASS: Invalid date range rejected: {data.get('error')}")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Should have rejected invalid date range")
+                print(f"[FAIL] FAIL: Should have rejected invalid date range")
         else:
-            print(f"✗ FAIL: Expected 400, got {response.status_code}")
+            print(f"[FAIL] FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 3: Missing required field
     tests_total += 1
@@ -345,14 +345,14 @@ def test_prescription_api_validation():
         if response.status_code == 400:
             data = response.json()
             if not data.get('success'):
-                print(f"✓ PASS: Missing field rejected: {data.get('error')}")
+                print(f"[PASS] PASS: Missing field rejected: {data.get('error')}")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Should have rejected missing field")
+                print(f"[FAIL] FAIL: Should have rejected missing field")
         else:
-            print(f"✗ FAIL: Expected 400, got {response.status_code}")
+            print(f"[FAIL] FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     print(f"\nPrescription API: {tests_passed}/{tests_total} tests passed")
     return tests_passed, tests_total
@@ -396,14 +396,14 @@ def test_tracking_api_validation():
         if response.status_code == 400:
             data = response.json()
             if not data.get('success'):
-                print(f"✓ PASS: Invalid date format rejected: {data.get('error')}")
+                print(f"[PASS] PASS: Invalid date format rejected: {data.get('error')}")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Should have rejected invalid date")
+                print(f"[FAIL] FAIL: Should have rejected invalid date")
         else:
-            print(f"✗ FAIL: Expected 400, got {response.status_code}")
+            print(f"[FAIL] FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 3: Missing required field
     tests_total += 1
@@ -424,14 +424,14 @@ def test_tracking_api_validation():
         if response.status_code == 400:
             data = response.json()
             if not data.get('success'):
-                print(f"✓ PASS: Missing field rejected: {data.get('error')}")
+                print(f"[PASS] PASS: Missing field rejected: {data.get('error')}")
                 tests_passed += 1
             else:
-                print(f"✗ FAIL: Should have rejected missing field")
+                print(f"[FAIL] FAIL: Should have rejected missing field")
         else:
-            print(f"✗ FAIL: Expected 400, got {response.status_code}")
+            print(f"[FAIL] FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     print(f"\nTracking API: {tests_passed}/{tests_total} tests passed")
     return tests_passed, tests_total
@@ -452,7 +452,7 @@ def main():
         # Check if server is running
         print("\nChecking server status...")
         if not wait_for_server():
-            print("\n✗ ERROR: Flask server is not running!")
+            print("\n[FAIL] ERROR: Flask server is not running!")
             if not server_started:
                 print("Please start the server with: python app.py")
             else:
@@ -464,7 +464,7 @@ def main():
         
         # Run health check
         if not test_health_check():
-            print("\n✗ ERROR: Health check failed!")
+            print("\n[FAIL] ERROR: Health check failed!")
             return 1
         
         # Run API tests
@@ -488,13 +488,13 @@ def main():
         print(f"Success rate: {(total_passed/total_tests)*100:.1f}%")
         
         if total_passed == total_tests:
-            print("\n✓ ALL API TESTS PASSED!")
+            print("\n[PASS] ALL API TESTS PASSED!")
             return 0
         else:
-            print(f"\n✗ {total_tests - total_passed} TEST(S) FAILED")
+            print(f"\n[FAIL] {total_tests - total_passed} TEST(S) FAILED")
             return 1
     except KeyboardInterrupt:
-        print("\n✗ Test run interrupted.")
+        print("\n[FAIL] Test run interrupted.")
         return 1
     finally:
         if server_started:

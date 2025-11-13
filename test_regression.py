@@ -2,7 +2,7 @@
 Automated Regression Testing Suite for Electronic Medication Administration Record (eMAR).
 
 This test suite validates:
-- Critical user workflows (patient → prescription → tracking)
+- Critical user workflows (patient -> prescription -> tracking)
 - Data persistence and recovery
 - Error recovery scenarios
 - End-to-end system functionality
@@ -19,7 +19,7 @@ BASE_URL = "http://localhost:5000"
 
 
 def test_complete_patient_workflow():
-    """Test complete workflow: add patient → add prescription → track medication."""
+    """Test complete workflow: add patient -> add prescription -> track medication."""
     print("\n" + "="*60)
     print("COMPLETE PATIENT WORKFLOW TEST")
     print("="*60)
@@ -49,17 +49,17 @@ def test_complete_patient_workflow():
         )
         
         if response.status_code not in [200, 201, 507]:
-            print(f"  ✗ FAIL: Cannot add patient (status {response.status_code})")
+            print(f"  [FAIL] FAIL: Cannot add patient (status {response.status_code})")
             return False
         
-        print(f"  ✓ Patient added (status {response.status_code})")
+        print(f"  [PASS] Patient added (status {response.status_code})")
         
         # Wait for ThingSpeak rate limit if needed
         if response.status_code in [200, 201]:
             time.sleep(2)  # Small delay for data to sync
             
     except Exception as e:
-        print(f"  ✗ FAIL: Error adding patient: {e}")
+        print(f"  [FAIL] FAIL: Error adding patient: {e}")
         return False
     
     # Step 2: Verify patient exists
@@ -70,14 +70,14 @@ def test_complete_patient_workflow():
         if response.status_code == 200:
             data = response.json()
             if data.get('exists'):
-                print(f"  ✓ Patient verification successful")
+                print(f"  [PASS] Patient verification successful")
             else:
-                print(f"  ⚠ Patient not found yet (may need more time to sync)")
+                print(f"  [WARN] Patient not found yet (may need more time to sync)")
         else:
-            print(f"  ⚠ Patient check returned status {response.status_code}")
+            print(f"  [WARN] Patient check returned status {response.status_code}")
             
     except Exception as e:
-        print(f"  ✗ FAIL: Error checking patient: {e}")
+        print(f"  [FAIL] FAIL: Error checking patient: {e}")
     
     # Step 3: Add a prescription
     print(f"\nStep 3: Adding prescription for patient...")
@@ -99,13 +99,13 @@ def test_complete_patient_workflow():
         )
         
         if response.status_code not in [200, 201, 202, 507]:
-            print(f"  ✗ FAIL: Cannot add prescription (status {response.status_code})")
+            print(f"  [FAIL] FAIL: Cannot add prescription (status {response.status_code})")
             return False
         
-        print(f"  ✓ Prescription queued (status {response.status_code})")
+        print(f"  [PASS] Prescription queued (status {response.status_code})")
         
     except Exception as e:
-        print(f"  ✗ FAIL: Error adding prescription: {e}")
+        print(f"  [FAIL] FAIL: Error adding prescription: {e}")
         return False
     
     # Step 4: Record medication tracking
@@ -126,19 +126,19 @@ def test_complete_patient_workflow():
         )
         
         if response.status_code not in [200, 201, 429, 507]:
-            print(f"  ✗ FAIL: Cannot record tracking (status {response.status_code})")
+            print(f"  [FAIL] FAIL: Cannot record tracking (status {response.status_code})")
             if response.status_code == 429:
                 print("  Note: Rate limit error is expected behavior")
                 return True
             return False
         
-        print(f"  ✓ Medication tracking recorded (status {response.status_code})")
+        print(f"  [PASS] Medication tracking recorded (status {response.status_code})")
         
     except Exception as e:
-        print(f"  ✗ FAIL: Error recording tracking: {e}")
+        print(f"  [FAIL] FAIL: Error recording tracking: {e}")
         return False
     
-    print(f"\n✓ PASS: Complete workflow executed successfully")
+    print(f"\n[PASS] PASS: Complete workflow executed successfully")
     return True
 
 
@@ -166,15 +166,15 @@ def test_data_retrieval_workflow():
                 data = response.json()
                 if 'data' in data:
                     count = len(data['data'])
-                    print(f"  ✓ Retrieved {count} records")
+                    print(f"  [PASS] Retrieved {count} records")
                 else:
-                    print(f"  ✓ Endpoint responded successfully")
+                    print(f"  [PASS] Endpoint responded successfully")
             else:
-                print(f"  ✗ FAIL: Status {response.status_code}")
+                print(f"  [FAIL] FAIL: Status {response.status_code}")
                 all_passed = False
                 
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
             all_passed = False
     
     return all_passed
@@ -190,13 +190,13 @@ def test_queue_status_monitoring():
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
         
         if response.status_code != 200:
-            print(f"✗ FAIL: Status endpoint returned {response.status_code}")
+            print(f"[FAIL] FAIL: Status endpoint returned {response.status_code}")
             return False
         
         data = response.json()
         
         if 'data' not in data:
-            print("✗ FAIL: Response missing 'data' field")
+            print("[FAIL] FAIL: Response missing 'data' field")
             return False
         
         status = data['data']
@@ -214,18 +214,18 @@ def test_queue_status_monitoring():
             found = False
             for option in field_options:
                 if option in status:
-                    print(f"  ✓ {field_name}: {status[option]}")
+                    print(f"  [PASS] {field_name}: {status[option]}")
                     found = True
                     break
             if not found:
-                print(f"  ✗ Missing field: {field_name}")
+                print(f"  [FAIL] Missing field: {field_name}")
                 return False
         
-        print("\n✓ PASS: Queue status monitoring functional")
+        print("\n[PASS] PASS: Queue status monitoring functional")
         return True
         
     except Exception as e:
-        print(f"✗ FAIL: Error - {e}")
+        print(f"[FAIL] FAIL: Error - {e}")
         return False
 
 
@@ -255,14 +255,14 @@ def test_error_recovery_invalid_patient():
         
         # Should be queued (validation happens async) OR rejected if validation is sync
         if response.status_code in [200, 201, 202, 400, 404, 422, 507]:
-            print(f"✓ PASS: System handled invalid patient appropriately (status {response.status_code})")
+            print(f"[PASS] PASS: System handled invalid patient appropriately (status {response.status_code})")
             return True
         else:
-            print(f"✗ FAIL: Unexpected status {response.status_code}")
+            print(f"[FAIL] FAIL: Unexpected status {response.status_code}")
             return False
             
     except Exception as e:
-        print(f"✗ FAIL: Error - {e}")
+        print(f"[FAIL] FAIL: Error - {e}")
         return False
 
 
@@ -284,25 +284,25 @@ def test_health_check_consistency():
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'healthy':
-                    print(f"  ✓ Check {i+1}: Healthy")
+                    print(f"  [PASS] Check {i+1}: Healthy")
                 else:
-                    print(f"  ✗ Check {i+1}: Unhealthy status")
+                    print(f"  [FAIL] Check {i+1}: Unhealthy status")
                     failures += 1
             else:
-                print(f"  ✗ Check {i+1}: Status {response.status_code}")
+                print(f"  [FAIL] Check {i+1}: Status {response.status_code}")
                 failures += 1
                 
         except Exception as e:
-            print(f"  ✗ Check {i+1}: Error - {e}")
+            print(f"  [FAIL] Check {i+1}: Error - {e}")
             failures += 1
         
         time.sleep(0.1)  # Small delay between checks
     
     if failures == 0:
-        print(f"\n✓ PASS: All {num_checks} health checks passed")
+        print(f"\n[PASS] PASS: All {num_checks} health checks passed")
         return True
     else:
-        print(f"\n✗ FAIL: {failures}/{num_checks} health checks failed")
+        print(f"\n[FAIL] FAIL: {failures}/{num_checks} health checks failed")
         return False
 
 
@@ -329,7 +329,7 @@ def test_api_response_format():
             response = requests.get(f"{BASE_URL}{endpoint}", timeout=10)
             
             if response.status_code != 200:
-                print(f"  ⚠ Status {response.status_code} (may be expected)")
+                print(f"  [WARN] Status {response.status_code} (may be expected)")
                 continue
             
             data = response.json()
@@ -337,16 +337,16 @@ def test_api_response_format():
             # Check for consistent response structure
             if isinstance(data, dict):
                 if 'status' in data or 'data' in data:
-                    print(f"  ✓ Response has consistent structure")
+                    print(f"  [PASS] Response has consistent structure")
                 else:
-                    print(f"  ✗ Response missing standard fields")
+                    print(f"  [FAIL] Response missing standard fields")
                     all_passed = False
             else:
-                print(f"  ✗ Response is not a dictionary")
+                print(f"  [FAIL] Response is not a dictionary")
                 all_passed = False
                 
         except Exception as e:
-            print(f"  ✗ Error: {e}")
+            print(f"  [FAIL] Error: {e}")
             all_passed = False
     
     return all_passed
@@ -362,7 +362,7 @@ def test_queue_persistence_simulation():
     try:
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
         if response.status_code != 200:
-            print("✗ FAIL: Cannot get initial queue status")
+            print("[FAIL] FAIL: Cannot get initial queue status")
             return False
         
         initial_status = response.json()['data']
@@ -389,16 +389,16 @@ def test_queue_persistence_simulation():
         )
         
         if response.status_code not in [200, 201, 202, 507]:
-            print(f"✗ FAIL: Cannot add prescription (status {response.status_code})")
+            print(f"[FAIL] FAIL: Cannot add prescription (status {response.status_code})")
             return False
         
-        print(f"✓ Prescription added (status {response.status_code})")
+        print(f"[PASS] Prescription added (status {response.status_code})")
         
         # Check queue status again
         time.sleep(1)  # Small delay
         response = requests.get(f"{BASE_URL}/api/queue/status", timeout=5)
         if response.status_code != 200:
-            print("✗ FAIL: Cannot get updated queue status")
+            print("[FAIL] FAIL: Cannot get updated queue status")
             return False
         
         updated_status = response.json()['data']
@@ -408,17 +408,17 @@ def test_queue_persistence_simulation():
         
         if response.status_code == 202:  # Was queued
             if updated_size >= initial_size:
-                print("✓ PASS: Queue size increased as expected")
+                print("[PASS] PASS: Queue size increased as expected")
                 return True
             else:
-                print("⚠ Queue size did not increase (may have been processed quickly)")
+                print("[WARN] Queue size did not increase (may have been processed quickly)")
                 return True
         else:
-            print("✓ PASS: Queue persistence functionality verified")
+            print("[PASS] PASS: Queue persistence functionality verified")
             return True
             
     except Exception as e:
-        print(f"✗ FAIL: Error - {e}")
+        print(f"[FAIL] FAIL: Error - {e}")
         return False
 
 
@@ -472,13 +472,13 @@ def test_validation_regression():
             )
             
             if response.status_code in [400, 422]:
-                print(f"  ✓ PASS: Correctly rejected (status {response.status_code})")
+                print(f"  [PASS] PASS: Correctly rejected (status {response.status_code})")
                 passed += 1
             else:
-                print(f"  ✗ FAIL: Should have been rejected (status {response.status_code})")
+                print(f"  [FAIL] FAIL: Should have been rejected (status {response.status_code})")
                 
         except Exception as e:
-            print(f"  ✗ FAIL: Error - {e}")
+            print(f"  [FAIL] FAIL: Error - {e}")
     
     print(f"\n{passed}/{total} validation tests passed")
     return passed == total
@@ -543,22 +543,22 @@ def test_concurrent_queue_operations():
     
     successful = sum(1 for r in results if r['success'])
     
-    print(f"\n✓ Completed {len(results)} concurrent operations")
+    print(f"\n[PASS] Completed {len(results)} concurrent operations")
     print(f"  Successful: {successful}/{len(results)}")
     
     for result in results:
-        status = "✓" if result['success'] else "✗"
+        status = "[PASS]" if result['success'] else "[FAIL]"
         print(f"  {status} Operation {result['index']}: Status {result['status']}")
     
     # Success if all operations completed (with appropriate status codes)
     if successful == len(results):
-        print("✓ PASS: All concurrent operations handled correctly")
+        print("[PASS] PASS: All concurrent operations handled correctly")
         return True
     elif successful >= len(results) * 0.8:  # 80% success is acceptable
-        print("✓ PASS: Most concurrent operations handled correctly")
+        print("[PASS] PASS: Most concurrent operations handled correctly")
         return True
     else:
-        print("✗ FAIL: Too many concurrent operations failed")
+        print("[FAIL] FAIL: Too many concurrent operations failed")
         return False
 
 
@@ -574,16 +574,16 @@ def main():
     try:
         response = requests.get(f"{BASE_URL}/api/health", timeout=5)
         if response.status_code != 200:
-            print(f"\n✗ ERROR: Server is not responding correctly (status: {response.status_code})")
+            print(f"\n[FAIL] ERROR: Server is not responding correctly (status: {response.status_code})")
             print("Please start the server with: python app.py")
             return 1
     except Exception as e:
-        print(f"\n✗ ERROR: Cannot connect to server at {BASE_URL}")
+        print(f"\n[FAIL] ERROR: Cannot connect to server at {BASE_URL}")
         print(f"Error: {e}")
         print("Please start the server with: python app.py")
         return 1
     
-    print(f"✓ Server is running at {BASE_URL}")
+    print(f"[PASS] Server is running at {BASE_URL}")
     
     # Run all tests
     tests = [
@@ -604,7 +604,7 @@ def main():
             passed = test_func()
             results[test_name] = passed
         except Exception as e:
-            print(f"\n✗ Test '{test_name}' crashed: {e}")
+            print(f"\n[FAIL] Test '{test_name}' crashed: {e}")
             results[test_name] = False
     
     # Summary
@@ -616,17 +616,17 @@ def main():
     total_count = len(results)
     
     for test_name, passed in results.items():
-        status = "✓ PASS" if passed else "✗ FAIL"
+        status = "[PASS] PASS" if passed else "[FAIL] FAIL"
         print(f"{status}: {test_name}")
     
     print(f"\nTotal tests passed: {passed_count}/{total_count}")
     print(f"Success rate: {(passed_count/total_count)*100:.1f}%")
     
     if passed_count == total_count:
-        print("\n✓ ALL REGRESSION TESTS PASSED!")
+        print("\n[PASS] ALL REGRESSION TESTS PASSED!")
         return 0
     else:
-        print(f"\n✗ {total_count - passed_count} REGRESSION TEST(S) FAILED")
+        print(f"\n[FAIL] {total_count - passed_count} REGRESSION TEST(S) FAILED")
         return 1
 
 

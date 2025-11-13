@@ -40,10 +40,10 @@ def test_patient_validation():
             'notes': 'Diabetic patient'
         }
         result = validate_patient_data(valid_patient)
-        print(f"✓ PASS: Valid patient accepted - {result['patient_id']}, {result['name']}")
+        print(f"[PASS] PASS: Valid patient accepted - {result['patient_id']}, {result['name']}")
         tests_passed += 1
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 2: Missing required field (name)
     tests_total += 1
@@ -58,9 +58,9 @@ def test_patient_validation():
             'gender': 'Male'
         }
         result = validate_patient_data(invalid_patient)
-        print("✗ FAIL: Should have rejected missing name")
+        print("[FAIL] FAIL: Should have rejected missing name")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 3: Invalid patient ID (special characters)
@@ -78,9 +78,9 @@ def test_patient_validation():
             'notes': ''
         }
         result = validate_patient_data(invalid_patient)
-        print("✗ FAIL: Should have rejected invalid patient ID")
+        print("[FAIL] FAIL: Should have rejected invalid patient ID")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 4: XSS attempt in name
@@ -98,9 +98,9 @@ def test_patient_validation():
             'notes': 'Test'
         }
         result = validate_patient_data(xss_patient)
-        print("✗ FAIL: XSS attempt not properly rejected")
+        print("[FAIL] FAIL: XSS attempt not properly rejected")
     except ValidationError as e:
-        print(f"✓ PASS: XSS rejected - {e}")
+        print(f"[PASS] PASS: XSS rejected - {e}")
         tests_passed += 1
     
     # Test 5: Invalid age (out of range)
@@ -118,9 +118,9 @@ def test_patient_validation():
             'notes': ''
         }
         result = validate_patient_data(invalid_patient)
-        print("✗ FAIL: Should have rejected invalid age")
+        print("[FAIL] FAIL: Should have rejected invalid age")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 6: Invalid age (non-numeric)
@@ -138,9 +138,9 @@ def test_patient_validation():
             'notes': ''
         }
         result = validate_patient_data(invalid_patient)
-        print("✗ FAIL: Should have rejected non-numeric age")
+        print("[FAIL] FAIL: Should have rejected non-numeric age")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 7: Invalid gender
@@ -158,9 +158,9 @@ def test_patient_validation():
             'notes': ''
         }
         result = validate_patient_data(invalid_patient)
-        print("✗ FAIL: Should have rejected invalid gender")
+        print("[FAIL] FAIL: Should have rejected invalid gender")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 8: XSS in notes (should be sanitized, not rejected)
@@ -180,12 +180,12 @@ def test_patient_validation():
         result = validate_patient_data(xss_patient)
         # Check if HTML entities are escaped
         if '&lt;' in result['notes'] or '<script>' not in result['notes']:
-            print(f"✓ PASS: XSS sanitized in notes - {result['notes']}")
+            print(f"[PASS] PASS: XSS sanitized in notes - {result['notes']}")
             tests_passed += 1
         else:
-            print(f"✗ FAIL: XSS not properly sanitized - {result['notes']}")
+            print(f"[FAIL] FAIL: XSS not properly sanitized - {result['notes']}")
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     print(f"\nPatient Validation: {tests_passed}/{tests_total} tests passed")
     return tests_passed, tests_total
@@ -217,10 +217,10 @@ def test_prescription_validation():
             'time_slot': '8AM, 8PM'
         }
         result = validate_prescription_data(valid_prescription, check_patient=False)
-        print(f"✓ PASS: Valid prescription accepted - {result['medicine_name']}, {result['dosage']}")
+        print(f"[PASS] PASS: Valid prescription accepted - {result['medicine_name']}, {result['dosage']}")
         tests_passed += 1
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 2: Missing required field
     tests_total += 1
@@ -235,9 +235,9 @@ def test_prescription_validation():
             'time_slot': '8AM'
         }
         result = validate_prescription_data(invalid_prescription, check_patient=False)
-        print("✗ FAIL: Should have rejected missing medicine_name")
+        print("[FAIL] FAIL: Should have rejected missing medicine_name")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 3: Invalid date format
@@ -254,9 +254,9 @@ def test_prescription_validation():
             'time_slot': '8AM'
         }
         result = validate_prescription_data(invalid_prescription, check_patient=False)
-        print("✗ FAIL: Should have rejected invalid date format")
+        print("[FAIL] FAIL: Should have rejected invalid date format")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 4: Invalid date range (end before start)
@@ -273,9 +273,9 @@ def test_prescription_validation():
             'time_slot': '8AM'
         }
         result = validate_prescription_data(invalid_prescription, check_patient=False)
-        print("✗ FAIL: Should have rejected invalid date range")
+        print("[FAIL] FAIL: Should have rejected invalid date range")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 5: XSS in medicine name
@@ -292,9 +292,9 @@ def test_prescription_validation():
             'time_slot': '8AM'
         }
         result = validate_prescription_data(xss_prescription, check_patient=False)
-        print("✗ FAIL: XSS attempt not properly rejected")
+        print("[FAIL] FAIL: XSS attempt not properly rejected")
     except ValidationError as e:
-        print(f"✓ PASS: XSS rejected - {e}")
+        print(f"[PASS] PASS: XSS rejected - {e}")
         tests_passed += 1
     
     # Test 6: Valid alternative date format
@@ -311,10 +311,10 @@ def test_prescription_validation():
             'time_slot': '8AM'
         }
         result = validate_prescription_data(valid_prescription, check_patient=False)
-        print(f"✓ PASS: Alternative date format accepted - {result['start_date']}")
+        print(f"[PASS] PASS: Alternative date format accepted - {result['start_date']}")
         tests_passed += 1
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     print(f"\nPrescription Validation: {tests_passed}/{tests_total} tests passed")
     return tests_passed, tests_total
@@ -344,10 +344,10 @@ def test_tracking_validation():
             'time_slot': '08:00'
         }
         result = validate_tracking_data(valid_tracking, check_patient=False)
-        print(f"✓ PASS: Valid tracking accepted - {result['medicine_name']}, {result['time_slot']}")
+        print(f"[PASS] PASS: Valid tracking accepted - {result['medicine_name']}, {result['time_slot']}")
         tests_passed += 1
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
     
     # Test 2: Missing required field
     tests_total += 1
@@ -360,9 +360,9 @@ def test_tracking_validation():
             'time_slot': '08:00'
         }
         result = validate_tracking_data(invalid_tracking, check_patient=False)
-        print("✗ FAIL: Should have rejected missing dosage")
+        print("[FAIL] FAIL: Should have rejected missing dosage")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 3: Invalid date format
@@ -377,9 +377,9 @@ def test_tracking_validation():
             'time_slot': '08:00'
         }
         result = validate_tracking_data(invalid_tracking, check_patient=False)
-        print("✗ FAIL: Should have rejected invalid date format")
+        print("[FAIL] FAIL: Should have rejected invalid date format")
     except ValidationError as e:
-        print(f"✓ PASS: Correctly rejected - {e}")
+        print(f"[PASS] PASS: Correctly rejected - {e}")
         tests_passed += 1
     
     # Test 4: XSS in time slot
@@ -394,9 +394,9 @@ def test_tracking_validation():
             'time_slot': '08:00<script>alert("xss")</script>'
         }
         result = validate_tracking_data(xss_tracking, check_patient=False)
-        print("✗ FAIL: XSS attempt not properly rejected")
+        print("[FAIL] FAIL: XSS attempt not properly rejected")
     except ValidationError as e:
-        print(f"✓ PASS: XSS rejected - {e}")
+        print(f"[PASS] PASS: XSS rejected - {e}")
         tests_passed += 1
     
     print(f"\nTracking Validation: {tests_passed}/{tests_total} tests passed")
@@ -437,10 +437,10 @@ def main():
     print(f"Success rate: {(total_passed/total_tests)*100:.1f}%")
     
     if total_passed == total_tests:
-        print("\n✓ ALL TESTS PASSED!")
+        print("\n[PASS] ALL TESTS PASSED!")
         return 0
     else:
-        print(f"\n✗ {total_tests - total_passed} TEST(S) FAILED")
+        print(f"\n[FAIL] {total_tests - total_passed} TEST(S) FAILED")
         return 1
 
 

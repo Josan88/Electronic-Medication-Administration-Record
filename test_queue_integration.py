@@ -38,7 +38,7 @@ def test_queue_status_endpoint():
             assert 'is_full' in queue_status, "Status should include is_full"
             assert 'stats' in queue_status, "Status should include stats"
             
-            print(f"✓ Status endpoint returned successfully")
+            print(f"[PASS] Status endpoint returned successfully")
             print(f"  - Queue size: {queue_status['queue_size']}")
             print(f"  - Failed count: {queue_status['failed_count']}")
             print(f"  - Max size: {queue_status['max_size']}")
@@ -47,7 +47,7 @@ def test_queue_status_endpoint():
             return True
             
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -73,13 +73,13 @@ def test_queue_clear_failed_endpoint():
             assert 'data' in data, "Response should contain data"
             assert 'cleared_count' in data['data'], "Data should include cleared_count"
             
-            print(f"✓ Clear failed endpoint returned successfully")
+            print(f"[PASS] Clear failed endpoint returned successfully")
             print(f"  - Cleared count: {data['data']['cleared_count']}")
             
             return True
             
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -107,22 +107,22 @@ def test_prescription_queue_overflow():
         # Fill the queue to capacity
         test_queue.add({'patient_id': 'P001', 'medicine_name': 'Med1'})
         test_queue.add({'patient_id': 'P002', 'medicine_name': 'Med2'})
-        print("✓ Added 2 items to test queue (at capacity)")
+        print("[PASS] Added 2 items to test queue (at capacity)")
         
         # Try to add beyond capacity
         try:
             test_queue.add({'patient_id': 'P003', 'medicine_name': 'Med3'})
-            print("✗ FAIL: Should have raised ValueError for full queue")
+            print("[FAIL] FAIL: Should have raised ValueError for full queue")
             os.unlink(temp_path)
             return False
         except ValueError as e:
             assert "full" in str(e).lower(), "Error should mention queue is full"
-            print("✓ Queue correctly rejected item when full")
+            print("[PASS] Queue correctly rejected item when full")
         
         # Check that status reflects full state
         status = test_queue.get_status()
         assert status['is_full'] == True, "Status should show queue is full"
-        print("✓ Queue status correctly shows is_full=True")
+        print("[PASS] Queue status correctly shows is_full=True")
         
         # Cleanup
         os.unlink(temp_path)
@@ -130,7 +130,7 @@ def test_prescription_queue_overflow():
         return True
         
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -174,27 +174,27 @@ def test_prescription_endpoint_with_queue():
                 data = json.loads(response.data)
                 assert data['success'] == True, "Response should indicate success"
                 assert 'queued' in data['message'].lower(), "Message should mention queuing"
-                print("✓ Prescription endpoint accepts and queues prescriptions")
+                print("[PASS] Prescription endpoint accepts and queues prescriptions")
                 
                 # Verify queue size increased
                 new_size = flask_app.persistent_queue.size()
                 assert new_size == initial_size + 1, f"Queue size should increase by 1"
-                print(f"✓ Queue size increased from {initial_size} to {new_size}")
+                print(f"[PASS] Queue size increased from {initial_size} to {new_size}")
                 
             elif response.status_code == 400:
                 # Expected validation error (patient doesn't exist)
                 data = json.loads(response.data)
-                print(f"✓ Prescription validation works (patient check)")
+                print(f"[PASS] Prescription validation works (patient check)")
                 print(f"  - Validation error: {data.get('error', 'Unknown')}")
                 
             else:
-                print(f"✗ Unexpected status code: {response.status_code}")
+                print(f"[FAIL] Unexpected status code: {response.status_code}")
                 return False
             
             return True
             
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -222,7 +222,7 @@ def test_queue_persistence_across_restarts():
         queue1.add({'patient_id': 'P002', 'medicine_name': 'Med2'})
         initial_size = queue1.size()
         initial_stats = queue1.get_status()['stats']
-        print(f"✓ Created queue with {initial_size} items")
+        print(f"[PASS] Created queue with {initial_size} items")
         
         # Simulate restart by creating new queue instance from same file
         del queue1  # Delete first instance
@@ -231,16 +231,16 @@ def test_queue_persistence_across_restarts():
         restored_stats = queue2.get_status()['stats']
         
         assert restored_size == initial_size, f"Size mismatch: {restored_size} != {initial_size}"
-        print(f"✓ Queue size restored correctly: {restored_size} items")
+        print(f"[PASS] Queue size restored correctly: {restored_size} items")
         
         assert restored_stats['total_added'] == initial_stats['total_added'], "Stats not preserved"
-        print("✓ Queue statistics preserved correctly")
+        print("[PASS] Queue statistics preserved correctly")
         
         # Verify data integrity
         item = queue2.get_next()
         assert item is not None, "Queue should not be empty"
         assert item.data['patient_id'] == 'P001', "First item data mismatch"
-        print("✓ Queue data integrity verified")
+        print("[PASS] Queue data integrity verified")
         
         # Cleanup
         os.unlink(temp_path)
@@ -248,7 +248,7 @@ def test_queue_persistence_across_restarts():
         return True
         
     except Exception as e:
-        print(f"✗ FAIL: {e}")
+        print(f"[FAIL] FAIL: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -283,10 +283,10 @@ def main():
     print(f"Success rate: {(passed/total)*100:.1f}%")
     
     if passed == total:
-        print("\n✓ ALL INTEGRATION TESTS PASSED!")
+        print("\n[PASS] ALL INTEGRATION TESTS PASSED!")
         return 0
     else:
-        print(f"\n✗ {total - passed} test(s) failed")
+        print(f"\n[FAIL] {total - passed} test(s) failed")
         return 1
 
 
