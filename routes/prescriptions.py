@@ -16,13 +16,12 @@ from validators import validate_prescription_data
 prescriptions_bp = Blueprint('prescriptions', __name__, url_prefix='/api')
 
 
-def init_prescription_routes(queue, queue_lock):
+def init_prescription_routes(queue):
     """
     Initialize prescription routes with access to the global queue.
     
     Args:
-        queue: The global prescription_queue deque
-        queue_lock: The global queue_lock Lock object
+        queue: The global persistent_queue instance
     """
     
     @prescriptions_bp.route("/prescriptions", methods=["GET"])
@@ -45,9 +44,12 @@ def init_prescription_routes(queue, queue_lock):
             # Validate and sanitize input data (check patient existence)
             validated_data = validate_prescription_data(data, check_patient=True)
 
-            # Add data to the thread-safe queue instantly
-            with queue_lock:
-                queue.append(validated_data)
+            # Add data to the persistent queue
+            try:
+                queue.add(validated_data)
+            except ValueError as e:
+                # Queue is full
+                return error_response(str(e), 507)  # HTTP 507 Insufficient Storage
 
             # Return success immediately to the frontend, removing the 15s lag
             return jsonify(
