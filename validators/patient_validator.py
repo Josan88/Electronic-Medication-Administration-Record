@@ -80,7 +80,7 @@ def validate_name(name: str) -> str:
     if not name:
         raise ValidationError("Patient name is required")
     
-    name = sanitize_string(name, max_length=100)
+    name = sanitize_string(name, max_length=255)
     
     # Name should contain letters and spaces, with optional punctuation
     if not re.match(r'^[A-Za-z\s\.\'-]+$', name):
@@ -88,8 +88,8 @@ def validate_name(name: str) -> str:
             "Patient name must contain only letters, spaces, and basic punctuation (. ' -)"
         )
     
-    if len(name) < 2:
-        raise ValidationError("Patient name must be at least 2 characters long")
+    if len(name) < 1:
+        raise ValidationError("Patient name must be at least 1 character long")
     
     return name
 
@@ -185,14 +185,15 @@ def validate_age(age: str) -> str:
     if not age:
         raise ValidationError("Age is required")
     
-    age = sanitize_string(age, max_length=3)
+    age = sanitize_string(age, max_length=5)
     
-    # Age should be numeric
-    if not age.isdigit():
+    # Age should be numeric (allow decimal for precision)
+    try:
+        age_float = float(age)
+    except ValueError:
         raise ValidationError("Age must be a number")
     
-    age_int = int(age)
-    if age_int < 0 or age_int > 150:
+    if age_float < 0 or age_float > 150:
         raise ValidationError("Age must be between 0 and 150")
     
     return age

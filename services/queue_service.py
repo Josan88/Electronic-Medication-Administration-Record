@@ -94,6 +94,11 @@ class PersistentQueue:
         """Load queue data from disk."""
         if os.path.exists(self.storage_path):
             try:
+                # Check if file is empty
+                if os.path.getsize(self.storage_path) == 0:
+                    logger.warning(f"Queue storage file is empty: {self.storage_path}")
+                    return
+                
                 with open(self.storage_path, 'r') as f:
                     data = json.load(f)
                     self.queue = deque([QueueItem.from_dict(item) for item in data.get('queue', [])])
@@ -103,7 +108,7 @@ class PersistentQueue:
                 if self.failed_items:
                     logger.warning(f"Loaded {len(self.failed_items)} failed items from storage")
             except Exception as e:
-                logger.error(f"Error loading queue from disk: {e}", exc_info=True)
+                logger.error(f"Error loading queue from disk: {e}")
                 # Initialize with empty queue on error
                 self.queue = deque()
                 self.failed_items = []
@@ -111,6 +116,9 @@ class PersistentQueue:
     def _save_to_disk(self):
         """Save queue data to disk."""
         try:
+            # Ensure parent directory exists
+            os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
+            
             data = {
                 'queue': [item.to_dict() for item in self.queue],
                 'failed_items': [item.to_dict() for item in self.failed_items],
@@ -123,7 +131,7 @@ class PersistentQueue:
                 json.dump(data, f, indent=2)
             os.replace(temp_path, self.storage_path)
         except Exception as e:
-            logger.error(f"Error saving queue to disk: {e}", exc_info=True)
+            logger.error(f"Error saving queue to disk: {e}")
     
     def add(self, data):
         """
