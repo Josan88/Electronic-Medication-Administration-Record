@@ -12,10 +12,69 @@ import requests
 import json
 import time
 import sys
+import atexit
+import threading
 from datetime import datetime
+from typing import Optional
+
+from werkzeug.serving import make_server
 
 
-BASE_URL = "http://localhost:5000"
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 5000
+BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
+
+_server = None
+_server_thread: Optional[threading.Thread] = None
+_server_started_here = False
+
+
+def is_server_running():
+    """Return True if the API server is already responding."""
+    try:
+        response = requests.get(f"{BASE_URL}/api/health", timeout=2)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+
+def start_embedded_server():
+    """
+    Start the Flask app inside this process using Werkzeug's development server.
+
+    Returns:
+        bool: True if the server was started by this helper, False if it was already running.
+    """
+    global _server, _server_thread, _server_started_here
+
+    if is_server_running():
+        return False
+
+    print("• Starting embedded Flask server for integration tests...")
+    from app import app  # Imported lazily so normal usage is unchanged
+
+    _server = make_server(SERVER_HOST, SERVER_PORT, app)
+    _server_thread = threading.Thread(target=_server.serve_forever, daemon=True)
+    _server_thread.start()
+    _server_started_here = True
+    return True
+
+
+def stop_embedded_server():
+    """Shutdown the embedded server if this test suite started it."""
+    global _server, _server_thread, _server_started_here
+
+    if _server is not None and _server_started_here:
+        try:
+            print("• Shutting down embedded Flask server...")
+            _server.shutdown()
+        finally:
+            _server = None
+            _server_thread = None
+            _server_started_here = False
+
+
+atexit.register(stop_embedded_server)
 
 
 def wait_for_server(timeout=30):
@@ -387,47 +446,59 @@ def main():
     print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Base URL: {BASE_URL}")
     
-    # Check if server is running
-    print("\nChecking server status...")
-    if not wait_for_server():
-        print("\n✗ ERROR: Flask server is not running!")
-        print("Please start the server with: python app.py")
+    server_started = start_embedded_server()
+    
+    try:
+        # Check if server is running
+        print("\nChecking server status...")
+        if not wait_for_server():
+            print("\n✗ ERROR: Flask server is not running!")
+            if not server_started:
+                print("Please start the server with: python app.py")
+            else:
+                print("Embedded test server failed to respond; review the Flask logs above.")
+            return 1
+        
+        total_passed = 0
+        total_tests = 0
+        
+        # Run health check
+        if not test_health_check():
+            print("\n✗ ERROR: Health check failed!")
+            return 1
+        
+        # Run API tests
+        passed, total = test_patient_api_validation()
+        total_passed += passed
+        total_tests += total
+        
+        passed, total = test_prescription_api_validation()
+        total_passed += passed
+        total_tests += total
+        
+        passed, total = test_tracking_api_validation()
+        total_passed += passed
+        total_tests += total
+        
+        # Summary
+        print("\n" + "="*60)
+        print("API VALIDATION TEST SUMMARY")
+        print("="*60)
+        print(f"Total tests passed: {total_passed}/{total_tests}")
+        print(f"Success rate: {(total_passed/total_tests)*100:.1f}%")
+        
+        if total_passed == total_tests:
+            print("\n✓ ALL API TESTS PASSED!")
+            return 0
+        else:
+            print(f"\n✗ {total_tests - total_passed} TEST(S) FAILED")
+            return 1
+    except KeyboardInterrupt:
+        print("\n✗ Test run interrupted.")
         return 1
-    
-    total_passed = 0
-    total_tests = 0
-    
-    # Run health check
-    if not test_health_check():
-        print("\n✗ ERROR: Health check failed!")
-        return 1
-    
-    # Run API tests
-    passed, total = test_patient_api_validation()
-    total_passed += passed
-    total_tests += total
-    
-    passed, total = test_prescription_api_validation()
-    total_passed += passed
-    total_tests += total
-    
-    passed, total = test_tracking_api_validation()
-    total_passed += passed
-    total_tests += total
-    
-    # Summary
-    print("\n" + "="*60)
-    print("API VALIDATION TEST SUMMARY")
-    print("="*60)
-    print(f"Total tests passed: {total_passed}/{total_tests}")
-    print(f"Success rate: {(total_passed/total_tests)*100:.1f}%")
-    
-    if total_passed == total_tests:
-        print("\n✓ ALL API TESTS PASSED!")
-        return 0
-    else:
-        print(f"\n✗ {total_tests - total_passed} TEST(S) FAILED")
-        return 1
+    finally:
+        if server_started:
+            stop_embedded_server()
 
 
 if __name__ == "__main__":
