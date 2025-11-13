@@ -138,9 +138,10 @@ def test_app_structure():
             "Background worker function missing"
         print("✓ Background worker function present")
         
-        assert 'prescription_queue = deque()' in app_content, \
-            "Prescription queue initialization missing"
-        print("✓ Prescription queue initialized")
+        # Check for persistent queue import (new implementation)
+        assert 'from services.queue_service import persistent_queue' in app_content, \
+            "Persistent queue import missing"
+        print("✓ Persistent queue imported")
         
         print(f"\n✓ app.py properly refactored")
         
