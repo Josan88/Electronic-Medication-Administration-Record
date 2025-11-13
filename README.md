@@ -259,8 +259,8 @@ POST /api/medication-tracking
   "patient_id": "P001",
   "medicine_name": "Metformin",
   "dosage": "500mg",
-  "consume_date": "2025-10-30",
-  "time_slot": "08:00"
+  "consume_date": "2025-11-13 17:16:27",
+  "time_slot": "09:00, 13:00, 17:00, 21:00"
 }
 ```
 
