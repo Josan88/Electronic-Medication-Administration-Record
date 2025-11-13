@@ -170,6 +170,11 @@ The system uses three ThingSpeak channels:
 - **GET** `/api/medication-tracking` - Get all tracking records
 - **POST** `/api/medication-tracking` - Add new tracking record
 
+### Queue Management
+
+- **GET** `/api/queue/status` - Get current queue status (size, failed items, statistics)
+- **POST** `/api/queue/clear-failed` - Clear all failed items from the queue
+
 ## 🧪 Testing the API
 
 ### Method 1: Web Interface (Recommended)
@@ -272,7 +277,9 @@ POST /api/medication-tracking
 
 - All data is stored on ThingSpeak cloud (no local database)
 - Data persists even after closing the application
-- **Important**: Prescription queue is in-memory - queued items are lost on app restart
+- **Prescription queue is now persistent** - queued items are saved to `/tmp/prescription_queue.json` and survive app restarts
+- Failed prescriptions are tracked and automatically retried (max 3 attempts)
+- Queue status and statistics available via `/api/queue/status` endpoint
 - Refresh the page to see latest data
 
 ### Environment Variables
@@ -302,19 +309,43 @@ TRACKING_READ_KEY=your-tracking-read-key
 ```
 Electronic-Medication-Administration-Record/
 ├── app.py                      # Flask backend with REST API & background worker
+├── config.py                   # Configuration management
 ├── requirements.txt            # Python dependencies (Flask, requests, python-dotenv)
-├── test_api.py                 # Comprehensive API test suite
 ├── README.md                   # Project documentation
+├── IMPROVEMENTS.md             # Implementation summary and task tracking
+├── VALIDATION_IMPLEMENTATION.md # Input validation documentation
 ├── .env                        # Environment variables (ThingSpeak API keys)
 ├── .github/
 │   └── copilot-instructions.md # AI coding agent guidelines
+├── services/
+│   ├── thingspeak_service.py  # Data access layer for ThingSpeak
+│   └── queue_service.py       # Persistent queue management
+├── routes/
+│   ├── __init__.py            # Blueprint registration
+│   ├── patients.py            # Patient management routes
+│   ├── prescriptions.py       # Prescription routes
+│   ├── tracking.py            # Medication tracking routes
+│   └── queue.py               # Queue monitoring routes
+├── validators/
+│   ├── patient_validator.py   # Patient data validation
+│   ├── prescription_validator.py # Prescription validation
+│   └── tracking_validator.py  # Medication tracking validation
+├── utils/
+│   ├── errors.py              # Error handling utilities
+│   └── logging_config.py      # Logging configuration
 ├── static/
 │   ├── css/
 │   │   └── style.css          # Application styles
 │   └── js/
 │       └── main.js            # Frontend JavaScript (AJAX, dashboard switching)
-└── templates/
-    └── index.html             # Single-page application (3 dashboards)
+├── templates/
+│   └── index.html             # Single-page application (3 dashboards)
+└── tests/
+    ├── test_blueprints.py     # Blueprint architecture tests
+    ├── test_validation.py     # Validation unit tests
+    ├── test_api_validation.py # API validation integration tests
+    ├── test_queue_management.py # Queue operations unit tests
+    └── test_queue_integration.py # Queue API integration tests
 ```
 
 ## Features in Detail
@@ -332,8 +363,21 @@ Electronic-Medication-Administration-Record/
 - Track dosage and frequency
 - Define treatment duration
 - Specify administration time slots
-- **Background queue processing**: Prescriptions are queued automatically and written to ThingSpeak in the background
+- **Persistent queue processing**: Prescriptions are queued automatically and written to ThingSpeak in the background
+- Queue survives application restarts (saved to `/tmp/prescription_queue.json`)
+- Automatic retry for failed items (max 3 attempts)
+- Failed items tracked and reportable via `/api/queue/status`
 - Returns immediately without blocking (HTTP 202 Accepted)
+
+### Queue Management
+
+- **Persistent storage**: Queue data saved to disk and restored on restart
+- **Monitoring**: Real-time queue status via `/api/queue/status` endpoint
+- **Size limits**: Configurable maximum queue size (default: 1000 items)
+- **Retry logic**: Automatic retry for failed items (max 3 attempts)
+- **Failed item tracking**: View and manage items that exceed retry limit
+- **Statistics**: Track total items added, processed, failed, and retried
+- **Management**: Clear failed items via `/api/queue/clear-failed` endpoint
 
 ### Medication Tracking
 
@@ -406,15 +450,14 @@ For production use:
 
 ## Known Limitations & Considerations
 
-1. **Data Loss on Restart**: Prescription queue (in-memory) clears on app restart
-2. **Rate Limiting UX**: Patient/tracking endpoints block for 15 seconds due to direct ThingSpeak writes
-3. **Data Pagination**: Only last 100 records accessible per channel without implementing date-range queries
-4. **No Transactions**: ThingSpeak writes are independent - no rollback if related data fails (e.g., prescription without patient)
-5. **Single Writer**: Background worker serializes prescription writes - high volume could cause queue buildup
+1. **Rate Limiting UX**: Patient/tracking endpoints block for 15 seconds due to direct ThingSpeak writes
+2. **Data Pagination**: Only last 100 records accessible per channel without implementing date-range queries
+3. **No Transactions**: ThingSpeak writes are independent - no rollback if related data fails (e.g., prescription without patient)
+4. **Queue Storage**: Prescription queue stored in `/tmp/prescription_queue.json` - may be cleared by system on some platforms
+5. **Max Queue Size**: Queue limited to 1000 items by default - configure via `PersistentQueue` if needed
 
 ## Future Enhancements
 
-- Persistent queue storage (database or file-based)
 - Implement ThingSpeak date-range pagination for >100 records
 - User authentication and authorization
 - Role-based access control (doctors, nurses, administrators)
