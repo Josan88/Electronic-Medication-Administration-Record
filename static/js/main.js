@@ -29,6 +29,9 @@ document.addEventListener("DOMContentLoaded", function () {
   loadPrescriptions();
   loadTracking();
   updateStats();
+
+  renderDutyTimetable();
+  updateDutyTimetableStatus();
 });
 
 // API Health Check
@@ -533,48 +536,110 @@ async function loadPrescriptions() {
 }
 
 async function loadPatientActiveMeds() {
-  const patientId = document.getElementById("patientSearchInput").value.trim();
+  const patientIdRaw = document.getElementById("patientSearchInput")?.value || "";
+  const patientId = patientIdRaw.trim();
   const resultContainer = document.getElementById("patientMedsResult");
+
+  if (!resultContainer) return;
+  resultContainer.innerHTML = '<div class="loading"></div>';
 
   if (!patientId) {
     resultContainer.innerHTML = "<p>Please enter a patient ID</p>";
     return;
   }
 
+  const encodedId = encodeURIComponent(patientId);
+
   try {
-    const res = await fetch(
-      `/api/patient/${encodeURIComponent(patientId)}/prescriptions`
-    );
-    if (!res.ok) throw new Error("No prescriptions endpoint / data available");
+    // Fetch and show patient info first
+    let patient = null;
+    try {
+      const patientRes = await fetch(`/api/patient/${encodedId}`);
+      if (patientRes.ok) {
+        const pj = await patientRes.json();
+        patient = pj.data || pj || null;
+      }
+    } catch (e) {
+      // ignore, we'll still attempt to show meds
+    }
 
-    const data = await res.json();
-    const meds = data.success && Array.isArray(data.data) ? data.data : [];
+    const infoHtml = patient
+      ? `
+      <div class="card patient-info-card" style="margin-top: 1rem;">
+        <h4 style="margin-bottom: 1rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 0.75rem;">Patient Information</h4>
+        <div class="patient-info-grid">
+          <div class="info-row">
+            <span class="info-label">Patient ID</span>
+            <span class="info-value">${patient.patient_id || patientId}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Name</span>
+            <span class="info-value">${patient.name || "N/A"}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Floor</span>
+            <span class="info-value">${patient.floor || "N/A"}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Room</span>
+            <span class="info-value">${patient.room || "N/A"}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Bed</span>
+            <span class="info-value">${patient.bed || "N/A"}</span>
+          </div>
+        </div>
+      </div>`
+      : `<div class="card patient-info-card" style="margin-top: 2rem;"><h4>Patient: ${patientId}</h4></div>`;
 
+    // Show patient card immediately with a static loading message
+    resultContainer.innerHTML = infoHtml + '<p style="margin-top: 1rem; color: #999;">Loading medications...</p>';
+
+    // Fetch prescriptions for this patient
+    let prescRes = await fetch(`/api/patient/${encodedId}/prescriptions`);
+    let prescs = [];
+    if (prescRes.ok) {
+      const prescJson = await prescRes.json();
+      prescs = prescJson.data || prescJson || [];
+    } else {
+      // fallback to all prescriptions and filter client-side
+      const allRes = await fetch("/api/prescriptions");
+      if (allRes.ok) {
+        const allJson = await allRes.json();
+        prescs = (allJson.data || []).filter(p => String(p.patient_id) === String(patientId));
+      }
+    }
+
+    // determine active meds
     const today = new Date().toISOString().split("T")[0];
-    const activeMeds = meds.filter((m) => {
+    const activeMeds = (prescs || []).filter((m) => {
       if (!m.start_date) return false;
-      if (m.start_date > today) return false;
-      if (m.end_date && m.end_date < today) return false;
+      if (String(m.start_date).split("T")[0] > today) return false;
+      if (m.end_date && String(m.end_date).split("T")[0] < today) return false;
       return true;
     });
 
+    // render meds below the patient card
+    let medsHtml = "";
     if (activeMeds.length > 0) {
-      resultContainer.innerHTML = activeMeds
+      medsHtml = activeMeds
         .map(
           (med) => `
         <div class="data-item">
-          <strong>${med.medicine_name || "N/A"}</strong> - ${
-            med.dosage || "N/A"
-          } - ${med.frequency || "N/A"}<br>
-          <small>From: ${med.start_date || "N/A"} To: ${
-            med.end_date || "Ongoing"
-          }</small>
+          <strong>${med.medicine_name || "N/A"}</strong> - ${med.dosage || "N/A"} - ${med.frequency || "N/A"}<br>
+          <small>From: ${med.start_date || "N/A"} To: ${med.end_date || "Ongoing"}</small>
         </div>`
         )
         .join("");
     } else {
-      resultContainer.innerHTML = "<p>No active medications found</p>";
+      medsHtml = "<p>No active medications found</p>";
     }
+
+    resultContainer.innerHTML = infoHtml + medsHtml;
+
+    // scroll patient info into view
+    const infoCard = resultContainer.querySelector(".patient-info-card");
+    if (infoCard) infoCard.scrollIntoView({ behavior: "smooth", block: "center" });
   } catch (err) {
     resultContainer.innerHTML = "<p>Error loading medications</p>";
     console.error("loadPatientActiveMeds error:", err);
@@ -616,147 +681,6 @@ async function loadTracking() {
       '<div class="message error">Error loading tracking records: ' +
       error.message +
       "</div>";
-  }
-}
-
-// Patient Dashboard Lookup
-async function lookupPatient() {
-  const patientId = document.getElementById("lookup_patient_id").value;
-
-  if (!patientId) {
-    showMessage("error", "Please enter a Patient ID");
-    return;
-  }
-
-  try {
-    // Get patient info
-    const patientResponse = await fetch(`/api/patient/${patientId}`);
-    const patientResult = await patientResponse.json();
-
-    // Get prescriptions
-    const prescResponse = await fetch(
-      `/api/patient/${patientId}/prescriptions`
-    );
-    const prescResult = await prescResponse.json();
-
-    // Get tracking
-    const trackResponse = await fetch(`/api/patient/${patientId}/tracking`);
-    const trackResult = await trackResponse.json();
-
-    if (patientResult.success) {
-      document.getElementById("patientDashboard").style.display = "block";
-
-      // Display patient info
-      const patient = patientResult.data;
-      document.getElementById("patientInfo").innerHTML = `
-        <div class="info-grid">
-          <div class="info-item"><strong>Name:</strong> ${
-            patient.name || "N/A"
-          }</div>
-          <div class="info-item"><strong>Patient ID:</strong> ${
-            patient.patient_id || "N/A"
-          }</div>
-          <div class="info-item"><strong>Age:</strong> ${
-            patient.age || "N/A"
-          }</div>
-          <div class="info-item"><strong>Gender:</strong> ${
-            patient.gender || "N/A"
-          }</div>
-          <div class="info-item"><strong>Floor:</strong> ${
-            patient.floor || "N/A"
-          }</div>
-          <div class="info-item"><strong>Room:</strong> ${
-            patient.room || "N/A"
-          }</div>
-          <div class="info-item"><strong>Bed:</strong> ${
-            patient.bed || "N/A"
-          }</div>
-          <div class="info-item"><strong>Notes:</strong> ${
-            patient.notes || "None"
-          }</div>
-        </div>
-      `;
-
-      // Display prescriptions
-      if (prescResult.success && prescResult.data.length > 0) {
-        let prescHTML = "";
-        prescResult.data.forEach((presc) => {
-          prescHTML += `
-            <div class="data-item">
-              <h4>${presc.medicine_name || "N/A"}</h4>
-              <p><strong>Dosage:</strong> ${
-                presc.dosage || "N/A"
-              } | <strong>Frequency:</strong> ${presc.frequency || "N/A"}</p>
-              <p><strong>Duration:</strong> ${presc.start_date || "N/A"} to ${
-            presc.end_date || "Ongoing"
-          }</p>
-            </div>
-          `;
-        });
-        document.getElementById("patientPrescriptions").innerHTML = prescHTML;
-      } else {
-        document.getElementById("patientPrescriptions").innerHTML =
-          '<div class="empty-state">No prescriptions found</div>';
-      }
-
-      // Display tracking
-      if (trackResult.success && trackResult.data.length > 0) {
-        let trackHTML = "";
-        trackResult.data.forEach((track) => {
-          trackHTML += `
-            <div class="data-item">
-              <h4>${track.medicine_name || "N/A"}</h4>
-              <p><strong>Dosage:</strong> ${track.dosage || "N/A"}</p>
-              <p><strong>Administered:</strong> ${
-                track.consume_date || "N/A"
-              } at ${track.time_slot || "N/A"}</p>
-            </div>
-          `;
-        });
-        document.getElementById("patientTracking").innerHTML = trackHTML;
-      } else {
-        document.getElementById("patientTracking").innerHTML =
-          '<div class="empty-state">No administration records found</div>';
-      }
-    } else {
-      document.getElementById("patientDashboard").style.display = "none";
-      showMessage("error", "Patient not found");
-    }
-  } catch (error) {
-    showMessage("error", "Error looking up patient: " + error.message);
-  }
-}
-
-// Update Statistics
-async function updateStats() {
-  try {
-    // Get patients count
-    const patientsResponse = await fetch("/api/patients");
-    const patientsResult = await patientsResponse.json();
-    const patientsCount = patientsResult.success
-      ? patientsResult.data.length
-      : 0;
-    document.getElementById("totalPatients").textContent = patientsCount;
-
-    // Get prescriptions count
-    const prescResponse = await fetch("/api/prescriptions");
-    const prescResult = await prescResponse.json();
-    const prescCount = prescResult.success ? prescResult.data.length : 0;
-    document.getElementById("totalPrescriptions").textContent = prescCount;
-
-    // Get today's administrations
-    const trackResponse = await fetch("/api/medication-tracking");
-    const trackResult = await trackResponse.json();
-    const today = new Date().toISOString().split("T")[0];
-    let todayCount = 0;
-    if (trackResult.success) {
-      todayCount = trackResult.data.filter(
-        (record) => record.consume_date === today
-      ).length;
-    }
-    document.getElementById("todayAdministrations").textContent = todayCount;
-  } catch (error) {
-    console.error("Error updating stats:", error);
   }
 }
 
@@ -860,6 +784,38 @@ function isServed(prescription, tracking) {
       t.consume_date === today
   );
 }
+
+async function updateDutyTimetableStatus() {
+  try {
+    const response = await fetch("/api/medication-tracking");
+    const result = await response.json();
+
+    if (!result.success || !Array.isArray(result.data)) return;
+
+    const trackingRecords = result.data;
+
+    // Loop through timetable cells and match with tracking data
+    document.querySelectorAll(".timetable-cell").forEach(cell => {
+      const patientId = cell.getAttribute("data-patient-id");
+      const timeSlot = cell.getAttribute("data-timeslot");
+      const medName = cell.getAttribute("data-medicine");
+
+      const recordFound = trackingRecords.some(r =>
+        r.patient_id === patientId &&
+        r.time_slot === timeSlot &&
+        r.medicine_name === medName
+      );
+
+      if (recordFound) {
+        cell.classList.add("completed"); // Mark visually completed
+        cell.textContent = "Completed"; // Update label if applicable
+      }
+    });
+  } catch (err) {
+    console.error("Error updating timetable from tracking:", err);
+  }
+}
+
 
 function renderTimelineTable(grouped) {
   const container = document.querySelector("#timeline-tables");
