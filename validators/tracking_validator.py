@@ -132,13 +132,13 @@ def validate_dosage(dosage: str) -> str:
 
 def validate_consume_date(consume_date: str) -> str:
     """
-    Validate consume/administration date.
+    Validate consume/administration date and time.
     
     Args:
-        consume_date: Date to validate
+        consume_date: Date/datetime to validate
     
     Returns:
-        Validated date string
+        Validated date string (may include time)
     
     Raises:
         ValidationError: If date is invalid
@@ -146,10 +146,19 @@ def validate_consume_date(consume_date: str) -> str:
     if not consume_date:
         raise ValidationError("Consume date is required")
     
-    consume_date = sanitize_string(consume_date, max_length=10)
+    # Sanitize with longer max length to accommodate datetime format
+    consume_date = sanitize_string(consume_date, max_length=30)
     
-    # Accept common date formats: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY
-    date_formats = ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y']
+    # Accept common date and datetime formats
+    date_formats = [
+        '%Y-%m-%d %H:%M:%S',  # "2025-11-13 17:16:27"
+        '%Y-%m-%d %H:%M',     # "2025-11-13 17:16"
+        '%Y-%m-%d',           # "2025-11-13"
+        '%d/%m/%Y %H:%M:%S',  # "13/11/2025 17:16:27"
+        '%d/%m/%Y',           # "13/11/2025"
+        '%m/%d/%Y %H:%M:%S',  # "11/13/2025 17:16:27"
+        '%m/%d/%Y',           # "11/13/2025"
+    ]
     
     valid_date = False
     for date_format in date_formats:
@@ -162,7 +171,7 @@ def validate_consume_date(consume_date: str) -> str:
     
     if not valid_date:
         raise ValidationError(
-            "Consume date must be in a valid date format (YYYY-MM-DD, DD/MM/YYYY, or MM/DD/YYYY)"
+            "Consume date must be in a valid date format (YYYY-MM-DD, DD/MM/YYYY, or MM/DD/YYYY), optionally with time (HH:MM:SS or HH:MM)"
         )
     
     return consume_date
