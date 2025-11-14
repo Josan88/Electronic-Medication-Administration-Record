@@ -264,6 +264,14 @@ POST /api/medication-tracking
 }
 ```
 
+**Response includes auto-calculated status:**
+- **"complete"** - If consume_date time is within ±30 minutes of any time_slot
+- **"pending"** - If consume_date time is outside the time slot window
+
+**Example:**
+- `consume_date: "2025-11-13 17:16:27"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"complete"** ✓ (within 17:00 slot)
+- `consume_date: "2025-11-13 14:30:00"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"pending"** ⏳ (between slots)
+
 ## ⚠️ Important Notes
 
 ### ThingSpeak Rate Limits
@@ -383,8 +391,13 @@ Electronic-Medication-Administration-Record/
 
 - Real-time recording of medication administration
 - Track exact date and time of administration
+- **Automatic status calculation**: System determines if medication was given within correct time slot
+  - **Complete** (✓): Administered within ±30 minutes of scheduled time
+  - **Pending** (⏳): Administered outside the time window
+- Visual status badges in UI (green for complete, yellow for pending)
 - Monitor compliance with prescriptions
 - Generate administration history
+- Supports multiple datetime formats (YYYY-MM-DD HH:MM:SS, DD/MM/YYYY HH:MM, etc.)
 
 ### Dashboard Analytics
 
