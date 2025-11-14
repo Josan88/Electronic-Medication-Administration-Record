@@ -51,8 +51,8 @@ class ThingSpeakService:
             key = field_name.lower()
             mapped_data[key] = feed.get(field_key)
         
-        # Compute status for medicine_track records if missing (backward compatibility)
-        if channel_name == "medicine_track" and mapped_data.get("status") is None:
+        # Compute status for medicine_track records based on consume_date and time_slot
+        if channel_name == "medicine_track":
             consume_date = mapped_data.get("consume_date")
             time_slot = mapped_data.get("time_slot")
             if consume_date and time_slot:

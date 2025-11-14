@@ -1,16 +1,17 @@
 """
 Integration test for medication tracking with status calculation.
 
-This test verifies that the status field is correctly calculated
-when posting medication tracking records.
+This test verifies that the status is correctly calculated based on
+consume_date and time_slot when reading tracking records.
 """
 
 import sys
 from validators import validate_tracking_data
+from utils.status_calculator import calculate_status
 
 
 def test_tracking_status_calculation():
-    """Test that status is automatically calculated for tracking records"""
+    """Test that status is correctly calculated for tracking records"""
     print("\n" + "="*60)
     print("TRACKING STATUS CALCULATION INTEGRATION TEST")
     print("="*60)
@@ -78,8 +79,14 @@ def test_tracking_status_calculation():
     
     for test_case in test_cases:
         try:
+            # Validate the data (this doesn't compute status, just validates)
             validated_data = validate_tracking_data(test_case["data"], check_patient=False)
-            actual_status = validated_data.get("status")
+            
+            # Compute status using the same logic as thingspeak_service
+            actual_status = calculate_status(
+                validated_data["consume_date"],
+                validated_data["time_slot"]
+            )
             expected_status = test_case["expected_status"]
             
             if actual_status == expected_status:
@@ -93,6 +100,8 @@ def test_tracking_status_calculation():
                 failed += 1
         except Exception as e:
             print(f"✗ {test_case['name']}")
+            print(f"  Error: {str(e)}")
+            failed += 1
             print(f"  Error: {str(e)}")
             failed += 1
     

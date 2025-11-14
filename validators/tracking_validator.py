@@ -9,7 +9,6 @@ import html
 from datetime import datetime
 from typing import Dict, Any
 from utils.errors import ValidationError
-from utils.status_calculator import calculate_status
 
 
 def sanitize_string(value: str, max_length: int = 255) -> str:
@@ -213,7 +212,7 @@ def validate_tracking_data(data: Dict[str, Any], check_patient: bool = False) ->
         check_patient: Whether to check if patient exists (requires service call)
     
     Returns:
-        Dictionary with validated and sanitized data including computed status
+        Dictionary with validated and sanitized data
     
     Raises:
         ValidationError: If any validation fails
@@ -228,9 +227,6 @@ def validate_tracking_data(data: Dict[str, Any], check_patient: bool = False) ->
     consume_date = validate_consume_date(data.get('consume_date', ''))
     time_slot = validate_time_slot(data.get('time_slot', ''))
     
-    # Calculate status based on consume_date and time_slot
-    status = calculate_status(consume_date, time_slot)
-    
     # Check patient exists if requested
     if check_patient:
         from services.thingspeak_service import thingspeak_service
@@ -243,7 +239,6 @@ def validate_tracking_data(data: Dict[str, Any], check_patient: bool = False) ->
         'dosage': dosage,
         'consume_date': consume_date,
         'time_slot': time_slot,
-        'status': status,
     }
     
     return validated_data

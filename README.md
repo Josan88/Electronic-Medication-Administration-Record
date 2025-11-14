@@ -264,9 +264,10 @@ POST /api/medication-tracking
 }
 ```
 
-**Response includes auto-calculated status:**
+**Status is automatically calculated when reading records:**
 - **"complete"** - If consume_date time is within ±30 minutes of any time_slot
 - **"pending"** - If consume_date time is outside the time slot window
+- Status is computed dynamically based on consume_date and time_slot (not stored in ThingSpeak)
 
 **Example:**
 - `consume_date: "2025-11-13 17:16:27"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"complete"** ✓ (within 17:00 slot)
