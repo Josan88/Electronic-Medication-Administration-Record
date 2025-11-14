@@ -109,6 +109,7 @@ class Config:
                     "field3": "Dosage",
                     "field4": "Consume_Date",
                     "field5": "Time_Slot",
+                    "field6": "Status",
                 },
             },
         }
