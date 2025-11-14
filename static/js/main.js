@@ -663,10 +663,16 @@ async function loadTracking() {
       result.data.reverse().forEach((record) => {
         const item = document.createElement("div");
         item.className = "data-item";
+        
+        // Determine status badge styling
+        const status = record.status || "pending";
+        const statusClass = status === "complete" ? "status-complete" : "status-pending";
+        const statusLabel = status === "complete" ? "✓ Complete" : "⏳ Pending";
+        
         item.innerHTML = `
           <h4>${record.medicine_name || "N/A"} - Patient ID: ${
           record.patient_id || "N/A"
-        }</h4>
+        } <span class="status-badge ${statusClass}">${statusLabel}</span></h4>
           <p><strong>Dosage:</strong> ${record.dosage || "N/A"}</p>
           <p><strong>Administered:</strong> ${
             record.consume_date || "N/A"
