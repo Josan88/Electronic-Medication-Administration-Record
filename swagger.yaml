@@ -1,0 +1,787 @@
+openapi: 3.0.0
+info:
+  title: Electronic Medication Administration Record (eMAR) API
+  description: |
+    A comprehensive web-based Electronic Medication Administration Record system 
+    that integrates with ThingSpeak IoT platform for real-time data storage and retrieval.
+    
+    ## Key Features
+    - Patient Management (CRUD operations)
+    - Medicine Prescriptions (queued background processing)
+    - Medication Tracking (real-time administration recording)
+    - Queue Management (persistent prescription queue)
+    
+    ## ThingSpeak Integration
+    The system uses three ThingSpeak channels for data persistence:
+    - **Patient Information Channel** (ID: 3124887): Patient demographics
+    - **Medicine Prescription Channel** (ID: 3124898): Medication prescriptions
+    - **Medicine Tracking Channel** (ID: 3131200): Administration records
+    
+    ## Rate Limits
+    - **Free tier**: 1 update every 15 seconds per channel
+    - **Prescriptions**: Use background queue system (no waiting, HTTP 202)
+    - **Patients & Tracking**: Direct write to ThingSpeak (15-second wait enforced)
+    
+  version: 1.0.0
+  contact:
+    name: eMAR Development Team
+    url: https://github.com/Josan88/Electronic-Medication-Administration-Record
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+  - url: http://{host}:5000
+    description: Network accessible server
+    variables:
+      host:
+        default: localhost
+        description: Server hostname or IP address
+
+tags:
+  - name: Health
+    description: API health check endpoints
+  - name: Patients
+    description: Patient management operations
+  - name: Prescriptions
+    description: Medicine prescription management
+  - name: Tracking
+    description: Medication administration tracking
+  - name: Queue
+    description: Prescription queue management and monitoring
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the API is running and accessible
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  message:
+                    type: string
+                    example: Electronic Medication Administration Record API is running
+
+  /api/patients:
+    get:
+      tags:
+        - Patients
+      summary: Get all patients
+      description: Retrieve all patient records from ThingSpeak
+      operationId: getPatients
+      responses:
+        '200':
+          description: Successfully retrieved patients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                patients:
+                  value:
+                    success: true
+                    data:
+                      - patient_id: P001
+                        name: John Doe
+                        floor: "3"
+                        room: "301"
+                        bed: A
+                        age: "45"
+                        gender: Male
+                        notes: Diabetic patient
+                        created_at: "2025-11-13T10:30:00Z"
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      tags:
+        - Patients
+      summary: Add a new patient
+      description: |
+        Add a new patient to the system. Data is written directly to ThingSpeak.
+        
+        **Note:** 15-second wait enforced due to ThingSpeak rate limits.
+      operationId: addPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientInput'
+            examples:
+              patient:
+                value:
+                  patient_id: P001
+                  name: John Doe
+                  floor: "3"
+                  room: "301"
+                  bed: A
+                  age: "45"
+                  gender: Male
+                  notes: Diabetic patient
+      responses:
+        '200':
+          description: Patient added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Patient added successfully
+                    data:
+                      entry_id: 12345
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patient/{patient_id}:
+    get:
+      tags:
+        - Patients
+      summary: Get patient by ID
+      description: Retrieve a specific patient's information by their patient ID
+      operationId: getPatientById
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            example: P001
+      responses:
+        '200':
+          description: Successfully retrieved patient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                patient:
+                  value:
+                    success: true
+                    data:
+                      patient_id: P001
+                      name: John Doe
+                      floor: "3"
+                      room: "301"
+                      bed: A
+                      age: "45"
+                      gender: Male
+                      notes: Diabetic patient
+                      created_at: "2025-11-13T10:30:00Z"
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patient/{patient_id}/prescriptions:
+    get:
+      tags:
+        - Patients
+      summary: Get patient prescriptions
+      description: Retrieve all prescriptions for a specific patient
+      operationId: getPatientPrescriptions
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            example: P001
+      responses:
+        '200':
+          description: Successfully retrieved prescriptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                prescriptions:
+                  value:
+                    success: true
+                    data:
+                      - patient_id: P001
+                        medicine_name: Metformin
+                        dosage: 500mg
+                        frequency: Twice daily
+                        start_date: "2025-10-30"
+                        end_date: "2025-11-30"
+                        time_slot: "8AM, 8PM"
+                        created_at: "2025-11-13T10:35:00Z"
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patient/{patient_id}/tracking:
+    get:
+      tags:
+        - Patients
+      summary: Get patient tracking records
+      description: Retrieve all medication tracking records for a specific patient
+      operationId: getPatientTracking
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            example: P001
+      responses:
+        '200':
+          description: Successfully retrieved tracking records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                tracking:
+                  value:
+                    success: true
+                    data:
+                      - patient_id: P001
+                        medicine_name: Metformin
+                        dosage: 500mg
+                        consume_date: "2025-11-13 17:16:27"
+                        time_slot: "09:00, 13:00, 17:00, 21:00"
+                        status: complete
+                        created_at: "2025-11-13T17:20:00Z"
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/check_patient/{patient_id}:
+    get:
+      tags:
+        - Patients
+      summary: Check if patient exists
+      description: Verify if a patient with the given ID exists in the system
+      operationId: checkPatient
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            example: P001
+      responses:
+        '200':
+          description: Check completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+                    example: true
+        '500':
+          description: Error checking patient
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Internal server error
+
+  /api/prescriptions:
+    get:
+      tags:
+        - Prescriptions
+      summary: Get all prescriptions
+      description: Retrieve all medicine prescriptions from ThingSpeak
+      operationId: getPrescriptions
+      responses:
+        '200':
+          description: Successfully retrieved prescriptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                prescriptions:
+                  value:
+                    success: true
+                    data:
+                      - patient_id: P001
+                        medicine_name: Metformin
+                        dosage: 500mg
+                        frequency: Twice daily
+                        start_date: "2025-10-30"
+                        end_date: "2025-11-30"
+                        time_slot: "8AM, 8PM"
+                        created_at: "2025-11-13T10:35:00Z"
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      tags:
+        - Prescriptions
+      summary: Add a new prescription
+      description: |
+        Add a new medicine prescription to the system. Prescriptions are queued 
+        for background processing to avoid blocking the UI.
+        
+        **Returns immediately with HTTP 202 (Accepted).** The prescription will be 
+        written to ThingSpeak by the background worker within ~15 seconds.
+      operationId: addPrescription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrescriptionInput'
+            examples:
+              prescription:
+                value:
+                  patient_id: P001
+                  medicine_name: Metformin
+                  dosage: 500mg
+                  frequency: Twice daily
+                  start_date: "2025-10-30"
+                  end_date: "2025-11-30"
+                  time_slot: "8AM, 8PM"
+      responses:
+        '202':
+          description: Prescription queued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Prescription queued successfully for background processing.
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '507':
+          description: Queue is full (max 1000 items)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/medication-tracking:
+    get:
+      tags:
+        - Tracking
+      summary: Get all tracking records
+      description: Retrieve all medication tracking records from ThingSpeak
+      operationId: getMedicationTracking
+      responses:
+        '200':
+          description: Successfully retrieved tracking records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                tracking:
+                  value:
+                    success: true
+                    data:
+                      - patient_id: P001
+                        medicine_name: Metformin
+                        dosage: 500mg
+                        consume_date: "2025-11-13 17:16:27"
+                        time_slot: "09:00, 13:00, 17:00, 21:00"
+                        status: complete
+                        created_at: "2025-11-13T17:20:00Z"
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      tags:
+        - Tracking
+      summary: Record medication administration
+      description: |
+        Record a medication administration event. Data is written directly to ThingSpeak.
+        
+        **Status is automatically calculated:**
+        - **complete**: If consume_date time falls within a time slot window
+        - **pending**: If consume_date time does not fall within any slot window
+        
+        **Note:** 15-second wait enforced due to ThingSpeak rate limits.
+      operationId: addMedicationTracking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackingInput'
+            examples:
+              tracking:
+                value:
+                  patient_id: P001
+                  medicine_name: Metformin
+                  dosage: 500mg
+                  consume_date: "2025-11-13 17:16:27"
+                  time_slot: "09:00, 13:00, 17:00, 21:00"
+      responses:
+        '200':
+          description: Tracking record added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Medication tracking record added successfully
+                    data:
+                      entry_id: 12345
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: ThingSpeak error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/queue/status:
+    get:
+      tags:
+        - Queue
+      summary: Get queue status
+      description: |
+        Retrieve the current status of the prescription queue, including:
+        - Current queue size
+        - Number of failed items
+        - Total items processed
+        - Queue statistics (added, processed, failed, retried)
+      operationId: getQueueStatus
+      responses:
+        '200':
+          description: Queue status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      queue_size:
+                        type: integer
+                        example: 5
+                        description: Number of items currently in queue
+                      failed_count:
+                        type: integer
+                        example: 2
+                        description: Number of items that have failed max retries
+                      statistics:
+                        type: object
+                        properties:
+                          total_added:
+                            type: integer
+                            example: 150
+                          total_processed:
+                            type: integer
+                            example: 143
+                          total_failed:
+                            type: integer
+                            example: 2
+                          total_retried:
+                            type: integer
+                            example: 8
+                      failed_items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            data:
+                              type: object
+                              description: The prescription data
+                            attempts:
+                              type: integer
+                              example: 3
+                            last_error:
+                              type: string
+                              example: ThingSpeak returned entry_id 0
+                            added_at:
+                              type: string
+                              format: date-time
+                              example: "2025-11-13T10:35:00Z"
+
+  /api/queue/clear-failed:
+    post:
+      tags:
+        - Queue
+      summary: Clear failed items
+      description: |
+        Remove all failed items from the queue. This is useful for cleaning up 
+        items that have exceeded the maximum retry attempts.
+      operationId: clearFailedItems
+      responses:
+        '200':
+          description: Failed items cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Cleared 2 failed items
+                  count:
+                    type: integer
+                    example: 2
+
+components:
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: Response data (varies by endpoint)
+        message:
+          type: string
+          description: Optional success message
+      required:
+        - success
+        - data
+    
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+      required:
+        - success
+        - error
+    
+    PatientInput:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Unique patient identifier (alphanumeric, 2-20 chars)
+          pattern: '^[A-Za-z0-9]+$'
+          minLength: 2
+          maxLength: 20
+          example: P001
+        name:
+          type: string
+          description: Patient full name (2-100 chars)
+          minLength: 2
+          maxLength: 100
+          example: John Doe
+        floor:
+          type: string
+          description: Hospital floor (1-10 chars)
+          maxLength: 10
+          example: "3"
+        room:
+          type: string
+          description: Room number (1-10 chars)
+          maxLength: 10
+          example: "301"
+        bed:
+          type: string
+          description: Bed identifier (1-10 chars)
+          maxLength: 10
+          example: A
+        age:
+          type: string
+          description: Patient age (1-3 digits)
+          pattern: '^\d{1,3}$'
+          example: "45"
+        gender:
+          type: string
+          description: Patient gender
+          enum: [Male, Female, Other]
+          example: Male
+        notes:
+          type: string
+          description: Clinical notes (max 500 chars)
+          maxLength: 500
+          example: Diabetic patient
+      required:
+        - patient_id
+        - name
+        - floor
+        - room
+        - bed
+        - age
+        - gender
+    
+    PrescriptionInput:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Patient ID (must exist in system)
+          example: P001
+        medicine_name:
+          type: string
+          description: Name of the medication (2-100 chars)
+          minLength: 2
+          maxLength: 100
+          example: Metformin
+        dosage:
+          type: string
+          description: Medication dosage (e.g., "500mg", "10ml")
+          pattern: '^\d+(\.\d+)?\s*(mg|g|ml|mcg|units?)$'
+          example: 500mg
+        frequency:
+          type: string
+          description: Administration frequency (2-100 chars)
+          minLength: 2
+          maxLength: 100
+          example: Twice daily
+        start_date:
+          type: string
+          format: date
+          description: Prescription start date (YYYY-MM-DD)
+          example: "2025-10-30"
+        end_date:
+          type: string
+          format: date
+          description: Prescription end date (YYYY-MM-DD, must be after start_date)
+          example: "2025-11-30"
+        time_slot:
+          type: string
+          description: Administration time slots (comma-separated, 2-100 chars)
+          minLength: 2
+          maxLength: 100
+          example: "8AM, 8PM"
+      required:
+        - patient_id
+        - medicine_name
+        - dosage
+        - frequency
+        - start_date
+        - end_date
+        - time_slot
+    
+    TrackingInput:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Patient ID (must exist in system)
+          example: P001
+        medicine_name:
+          type: string
+          description: Name of the medication (2-100 chars)
+          minLength: 2
+          maxLength: 100
+          example: Metformin
+        dosage:
+          type: string
+          description: Medication dosage
+          pattern: '^\d+(\.\d+)?\s*(mg|g|ml|mcg|units?)$'
+          example: 500mg
+        consume_date:
+          type: string
+          description: |
+            Date and time when medication was administered.
+            Supports multiple formats:
+            - YYYY-MM-DD HH:MM:SS
+            - DD/MM/YYYY HH:MM
+            - DD-MM-YYYY HH:MM:SS
+          example: "2025-11-13 17:16:27"
+        time_slot:
+          type: string
+          description: |
+            Administration time slots (comma-separated).
+            Status is calculated based on consume_date falling within slots.
+          minLength: 2
+          maxLength: 100
+          example: "09:00, 13:00, 17:00, 21:00"
+      required:
+        - patient_id
+        - medicine_name
+        - dosage
+        - consume_date
+        - time_slot
+
+  securitySchemes: {}
+
+security: []

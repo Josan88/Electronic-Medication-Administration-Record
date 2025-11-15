@@ -2,6 +2,14 @@
 
 A comprehensive web-based Electronic Medication Administration Record system that integrates with ThingSpeak IoT platform for real-time data storage and retrieval.
 
+## 📚 Documentation
+
+- **[API Documentation (Swagger UI)](http://localhost:5000/api/docs)** - Interactive API reference
+- **[API Usage Examples](docs/API_EXAMPLES.md)** - Practical examples with curl, PowerShell, Python, and JavaScript
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - System architecture, data flow diagrams, and design decisions
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete deployment instructions for development and production
+- **[Contributing Guide](CONTRIBUTING.md)** - Guidelines for contributing to the project
+
 ## 🌟 Features
 
 - **Patient Management**: Add, view, and manage patient information
@@ -10,6 +18,8 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 - **Dashboard**: Quick lookup for patient information with complete medication history
 - **Real-time Sync**: Data stored on ThingSpeak cloud platform for accessibility anywhere
 - **Statistics**: Visual overview of total patients, prescriptions, and daily administrations
+- **API Documentation**: Interactive Swagger UI for API exploration and testing
+- **Queue Management**: Persistent prescription queue with automatic retry and monitoring
 
 ## 🚀 Quick Start
 
@@ -22,30 +32,32 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 
 1. **Clone the repository:**
 
-   ```powershell
+   ```bash
    git clone https://github.com/Josan88/Electronic-Medication-Administration-Record.git
    cd Electronic-Medication-Administration-Record
    ```
 
 2. **Install dependencies:**
 
-   ```powershell
+   ```bash
    pip install -r requirements.txt
    ```
 
 3. **Configure environment variables:**
 
    - Create a `.env` file in the project root
-   - Add your ThingSpeak API keys (see Environment Variables section below)
+   - Add your ThingSpeak API keys (see [Environment Variables](#environment-variables) section below)
 
 4. **Start the application:**
 
-   ```powershell
+   ```bash
    python app.py
    ```
 
-5. **Open your browser:**
-   Navigate to **http://localhost:5000**
+5. **Access the application:**
+   - **Main UI**: http://localhost:5000
+   - **API Documentation**: http://localhost:5000/api/docs
+   - **Health Check**: http://localhost:5000/api/health
 
 ### First-Time Usage
 
@@ -147,11 +159,27 @@ The system uses three ThingSpeak channels:
 
 ## API Endpoints
 
-### Health Check
+### Interactive API Documentation
+
+The eMAR system provides **interactive API documentation** using Swagger UI:
+
+- **Access**: http://localhost:5000/api/docs
+- **Features**:
+  - Browse all API endpoints with detailed descriptions
+  - View request/response schemas and examples
+  - Test API endpoints directly from your browser
+  - See authentication requirements and error codes
+  - Download OpenAPI specification (swagger.yaml)
+
+For detailed architecture and data flow information, see the [Architecture Guide](docs/ARCHITECTURE.md).
+
+### Endpoint Overview
+
+#### Health Check
 
 - **GET** `/api/health` - Check API status
 
-### Patient Management
+#### Patient Management
 
 - **GET** `/api/patients` - Get all patients
 - **POST** `/api/patients` - Add new patient
