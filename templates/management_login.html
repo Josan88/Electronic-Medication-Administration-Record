@@ -212,6 +212,8 @@
         // Simple validation for demo
         if (username === 'manager' && password === 'manager123') {
           messageDiv.innerHTML = '<div class="message success">Login successful! Redirecting...</div>';
+          // Clear any saved dashboard preference when logging in with new role
+          localStorage.removeItem('activeDashboard');
           setTimeout(() => {
             window.location.href = "/dashboard?role=management";
           }, 1000);

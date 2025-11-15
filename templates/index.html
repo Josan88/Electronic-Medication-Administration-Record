@@ -12,6 +12,13 @@
       // Store user role from URL parameter
       const urlParams = new URLSearchParams(window.location.search);
       const userRole = urlParams.get('role') || 'nurse';
+      
+      // If role has changed, clear the saved dashboard preference
+      const previousRole = localStorage.getItem('userRole');
+      if (previousRole && previousRole !== userRole) {
+        localStorage.removeItem('activeDashboard');
+      }
+      
       localStorage.setItem('userRole', userRole);
     </script>
   </head>

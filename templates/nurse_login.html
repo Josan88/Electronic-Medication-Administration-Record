@@ -212,6 +212,8 @@
         // Simple validation for demo
         if (username === 'nurse' && password === 'nurse123') {
           messageDiv.innerHTML = '<div class="message success">Login successful! Redirecting...</div>';
+          // Clear any saved dashboard preference when logging in with new role
+          localStorage.removeItem('activeDashboard');
           setTimeout(() => {
             window.location.href = "/dashboard?role=nurse";
           }, 1000);
