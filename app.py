@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify  # type: ignore
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session  # type: ignore
 import time
 from threading import Thread
 from config import config
@@ -19,10 +19,52 @@ TS_RATE_LIMIT_SECONDS = config.THINGSPEAK_RATE_LIMIT_SECONDS
 # Register all route blueprints
 register_blueprints(app, persistent_queue)
 
+# Demo credentials (for demonstration purposes only)
+DEMO_USERS = {
+    "nurse": "nurse123",
+    "management": "manager123"
+}
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """Login page and authentication handler."""
+    if request.method == "POST":
+        user_type = request.form.get("user_type", "").lower()
+        password = request.form.get("password", "")
+        
+        # Validate credentials
+        if user_type in DEMO_USERS and DEMO_USERS[user_type] == password:
+            session["user_type"] = user_type
+            session["authenticated"] = True
+            logger.info(f"User logged in: {user_type}")
+            return redirect(url_for("index"))
+        else:
+            logger.warning(f"Failed login attempt for user type: {user_type}")
+            return render_template("login.html", error="Invalid credentials. Please try again.")
+    
+    # If already logged in, redirect to dashboard
+    if session.get("authenticated"):
+        return redirect(url_for("index"))
+    
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    """Logout handler."""
+    user_type = session.get("user_type", "unknown")
+    session.clear()
+    logger.info(f"User logged out: {user_type}")
+    return redirect(url_for("login"))
+
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    """Main dashboard - requires authentication."""
+    if not session.get("authenticated"):
+        return redirect(url_for("login"))
+    return render_template("index.html", user_type=session.get("user_type"))
 
 
 @app.route("/api/health")
