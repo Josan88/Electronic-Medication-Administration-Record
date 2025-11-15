@@ -45,8 +45,11 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 
 3. **Configure environment variables:**
 
-   - Create a `.env` file in the project root
-   - Add your ThingSpeak API keys (see [Environment Variables](#environment-variables) section below)
+   - Copy `.env.example` to `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Edit `.env` and add your ThingSpeak API keys (see [Environment Variables](#environment-variables) section below)
 
 4. **Start the application:**
 
@@ -321,7 +324,13 @@ POST /api/medication-tracking
 
 ### Environment Variables
 
-Create a `.env` file in the project root with the following variables:
+Create a `.env` file by copying the example template:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` with your ThingSpeak API keys:
 
 ```
 SECRET_KEY=your-flask-secret-key
@@ -335,6 +344,8 @@ TRACKING_CHANNEL_ID=3131200
 TRACKING_WRITE_KEY=your-tracking-write-key
 TRACKING_READ_KEY=your-tracking-read-key
 ```
+
+**Note:** The `.env.example` file is provided as a template. Never commit your actual `.env` file with real API keys to version control.
 
 ### Browser Compatibility
 
