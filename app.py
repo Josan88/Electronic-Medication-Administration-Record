@@ -38,7 +38,7 @@ def health():
 def process_prescription_queue():
     """Background worker to process the prescription queue at the ThingSpeak rate limit."""
     global last_ts_write_time
-    
+
     logger.info("Prescription queue worker started")
 
     while True:
@@ -53,18 +53,36 @@ def process_prescription_queue():
                 if item:
                     try:
                         # Write to ThingSpeak using service
-                        entry_id = thingspeak_service.write_to_channel("medicine_prescription", item.data)
-                        logger.info(f"Successfully posted prescription entry {entry_id} for patient {item.data.get('patient_id', 'unknown')}")
-                        
-                        # Mark as successfully processed
-                        persistent_queue.mark_success(item)
-                        
-                        # Update the last successful write time
-                        last_ts_write_time = time.time()
+                        entry_id = thingspeak_service.write_to_channel(
+                            "medicine_prescription", item.data
+                        )
+
+                        # Treat entry_id == 0 as a failed write that should be retried
+                        if isinstance(entry_id, int) and entry_id > 0:
+                            logger.info(
+                                f"Successfully posted prescription entry {entry_id} for patient {item.data.get('patient_id', 'unknown')}"
+                            )
+
+                            # Mark as successfully processed
+                            persistent_queue.mark_success(item)
+
+                            # Update the last successful write time
+                            last_ts_write_time = time.time()
+                        else:
+                            error_msg = (
+                                "ThingSpeak returned entry_id 0 (write not accepted)"
+                            )
+                            logger.warning(
+                                f"Write not accepted for patient {item.data.get('patient_id', 'unknown')}: {error_msg}"
+                            )
+                            # Mark as failure to requeue for retry
+                            persistent_queue.mark_failure(item, error_msg)
                     except Exception as e:
                         # Mark as failed with error message
                         error_msg = str(e)
-                        logger.error(f"Failed to post prescription for patient {item.data.get('patient_id', 'unknown')}: {error_msg}")
+                        logger.error(
+                            f"Failed to post prescription for patient {item.data.get('patient_id', 'unknown')}: {error_msg}"
+                        )
                         persistent_queue.mark_failure(item, error_msg)
 
             # Sleep for 1 second before checking the queue again
@@ -78,7 +96,9 @@ def process_prescription_queue():
 # Start the background worker thread when the app starts
 worker_thread = Thread(target=process_prescription_queue, daemon=True)
 worker_thread.start()
-logger.info("Electronic Medication Administration Record (eMAR) application initialized")
+logger.info(
+    "Electronic Medication Administration Record (eMAR) application initialized"
+)
 
 if __name__ == "__main__":
     logger.info("Starting Flask development server on http://0.0.0.0:5000")
