@@ -1,6 +1,7 @@
-from flask import Flask, render_template, jsonify, request  # type: ignore
+from flask import Flask, render_template, jsonify, request, send_from_directory  # type: ignore
 import time
 from threading import Thread
+from flask_swagger_ui import get_swaggerui_blueprint
 from config import config
 from services.thingspeak_service import thingspeak_service
 from services.queue_service import persistent_queue
@@ -18,6 +19,19 @@ TS_RATE_LIMIT_SECONDS = config.THINGSPEAK_RATE_LIMIT_SECONDS
 
 # Register all route blueprints
 register_blueprints(app, persistent_queue)
+
+# Configure Swagger UI
+SWAGGER_URL = '/api/docs'
+API_URL = '/swagger.yaml'
+
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': "eMAR API Documentation"
+    }
+)
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 
 @app.route("/")
@@ -43,6 +57,12 @@ def index():
     """Main dashboard after login"""
     role = request.args.get('role', 'nurse')
     return render_template("index.html", role=role)
+
+
+@app.route('/swagger.yaml')
+def swagger_spec():
+    """Serve the OpenAPI specification file"""
+    return send_from_directory('.', 'swagger.yaml')
 
 
 @app.route("/api/health")
