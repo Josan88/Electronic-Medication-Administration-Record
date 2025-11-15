@@ -40,7 +40,7 @@ def test_tracking_status_calculation():
             "expected_status": "complete"
         },
         {
-            "name": "Pending - time between slots",
+            "name": "Complete - time between slots",
             "data": {
                 "patient_id": "P001",
                 "medicine_name": "Lisinopril",
@@ -48,10 +48,10 @@ def test_tracking_status_calculation():
                 "consume_date": "2025-11-13 14:30:00",
                 "time_slot": "09:00, 13:00, 17:00, 21:00"
             },
-            "expected_status": "pending"
+            "expected_status": "complete"
         },
         {
-            "name": "Pending - time too far from slot",
+            "name": "Complete - time between evening and night slots",
             "data": {
                 "patient_id": "P001",
                 "medicine_name": "Atorvastatin",
@@ -59,7 +59,7 @@ def test_tracking_status_calculation():
                 "consume_date": "2025-11-13 18:00:00",
                 "time_slot": "09:00, 13:00, 17:00, 21:00"
             },
-            "expected_status": "pending"
+            "expected_status": "complete"
         },
         {
             "name": "Complete - within morning slot",

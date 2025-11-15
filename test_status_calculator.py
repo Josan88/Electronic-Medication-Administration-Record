@@ -56,12 +56,13 @@ def test_is_time_within_slot():
         # (consume_datetime, time_slot, expected_result, description)
         (datetime(2025, 11, 13, 17, 16), "09:00, 13:00, 17:00, 21:00", True, "17:16 matches 17:00 slot"),
         (datetime(2025, 11, 13, 17, 0), "09:00, 13:00, 17:00, 21:00", True, "17:00 exactly matches 17:00 slot"),
-        (datetime(2025, 11, 13, 17, 29), "09:00, 13:00, 17:00, 21:00", True, "17:29 within 30 min of 17:00"),
-        (datetime(2025, 11, 13, 16, 31), "09:00, 13:00, 17:00, 21:00", True, "16:31 within 30 min of 17:00"),
-        (datetime(2025, 11, 13, 18, 0), "09:00, 13:00, 17:00, 21:00", False, "18:00 too far from 17:00"),
-        (datetime(2025, 11, 13, 14, 30), "09:00, 13:00, 17:00, 21:00", False, "14:30 between slots"),
+        (datetime(2025, 11, 13, 17, 29), "09:00, 13:00, 17:00, 21:00", True, "17:29 between 17:00 and 21:00 slot starts"),
+        (datetime(2025, 11, 13, 16, 31), "09:00, 13:00, 17:00, 21:00", True, "16:31 between 13:00 and 17:00 slots"),
+        (datetime(2025, 11, 13, 18, 0), "09:00, 13:00, 17:00, 21:00", True, "18:00 between 17:00 and 21:00 slots"),
+        (datetime(2025, 11, 13, 14, 30), "09:00, 13:00, 17:00, 21:00", True, "14:30 between 13:00 and 17:00 slots"),
         (datetime(2025, 11, 13, 9, 15), "09:00, 13:00, 17:00, 21:00", True, "9:15 matches 09:00 slot"),
         (datetime(2025, 11, 13, 21, 10), "09:00, 13:00, 17:00, 21:00", True, "21:10 matches 21:00 slot"),
+        (datetime(2025, 11, 13, 8, 0), "09:00, 13:00, 17:00, 21:00", False, "8:00 before the first slot"),
     ]
     
     passed = 0
@@ -90,9 +91,9 @@ def test_calculate_status():
         # (consume_date, time_slot, expected_status, description)
         ("2025-11-13 17:16:27", "09:00, 13:00, 17:00, 21:00", "complete", "Within 17:00 slot"),
         ("2025-11-13 17:00:00", "09:00, 13:00, 17:00, 21:00", "complete", "Exactly at 17:00"),
-        ("2025-11-13 17:29:00", "09:00, 13:00, 17:00, 21:00", "complete", "Within 30 min window"),
-        ("2025-11-13 18:00:00", "09:00, 13:00, 17:00, 21:00", "pending", "Outside time window"),
-        ("2025-11-13 14:30:00", "09:00, 13:00, 17:00, 21:00", "pending", "Between slots"),
+        ("2025-11-13 17:29:00", "09:00, 13:00, 17:00, 21:00", "complete", "Between 17:00 and 21:00 slots"),
+        ("2025-11-13 18:00:00", "09:00, 13:00, 17:00, 21:00", "complete", "Between 17:00 and 21:00 slots"),
+        ("2025-11-13 14:30:00", "09:00, 13:00, 17:00, 21:00", "complete", "Between 13:00 and 17:00 slots"),
         ("2025-11-13 09:15:00", "09:00, 13:00, 17:00, 21:00", "complete", "Within 09:00 slot"),
         ("2025-11-13 13:10:00", "09:00, 13:00, 17:00, 21:00", "complete", "Within 13:00 slot"),
         ("2025-11-13 21:00:00", "09:00, 13:00, 17:00, 21:00", "complete", "Within 21:00 slot"),

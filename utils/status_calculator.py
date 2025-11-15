@@ -5,11 +5,11 @@ This module provides functionality to determine medication administration status
 based on consume date/time and prescribed time slots.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from typing import Optional
 
 
-def parse_time_from_string(time_str: str) -> Optional[datetime.time]:
+def parse_time_from_string(time_str: str) -> Optional[time]:
     """
     Parse time from various string formats.
     
@@ -46,29 +46,28 @@ def parse_time_from_string(time_str: str) -> Optional[datetime.time]:
     return None
 
 
-def is_time_within_slot(consume_datetime: datetime, time_slot: str, tolerance_minutes: int = 30) -> bool:
+def is_time_within_slot(consume_datetime: datetime, time_slot: str) -> bool:
     """
-    Check if a consume datetime falls within a time slot with tolerance.
+    Check if a consume datetime falls between sequential time slots.
     
     A medication is considered "within" a time slot if it was administered
-    within ±tolerance_minutes of any scheduled time in the slot.
+    after the slot's start time and before the start of the next slot.
     
     Args:
         consume_datetime: The actual datetime when medication was consumed
         time_slot: Comma-separated time slots (e.g., "09:00, 13:00, 17:00, 21:00")
-        tolerance_minutes: Minutes of tolerance before/after scheduled time (default: 30)
     
     Returns:
-        True if consume_datetime falls within any time slot (with tolerance), False otherwise
+        True if consume_datetime falls between any pair of sequential slots, False otherwise
     
     Example:
-        >>> dt = datetime(2025, 11, 13, 17, 15)  # 5:15 PM
+        >>> dt = datetime(2025, 11, 13, 14, 30)  # 2:30 PM
         >>> is_time_within_slot(dt, "09:00, 13:00, 17:00, 21:00")
-        True  # Within 30 min of 17:00
+        True  # Between 13:00 and 17:00 slots
         
-        >>> dt = datetime(2025, 11, 13, 18, 0)  # 6:00 PM
+        >>> dt = datetime(2025, 11, 13, 8, 0)  # 8:00 AM
         >>> is_time_within_slot(dt, "09:00, 13:00, 17:00, 21:00")
-        False  # More than 30 min from 17:00
+        False  # Before the first slot of the day
     """
     if not time_slot or not isinstance(time_slot, str):
         return False
@@ -79,21 +78,28 @@ def is_time_within_slot(consume_datetime: datetime, time_slot: str, tolerance_mi
     if not slots:
         return False
     
-    consume_time = consume_datetime.time()
     consume_date = consume_datetime.date()
+    slot_datetimes = []
     
     for slot in slots:
         slot_time = parse_time_from_string(slot)
         if slot_time is None:
             continue
+        slot_datetimes.append(datetime.combine(consume_date, slot_time))
+    
+    if not slot_datetimes:
+        return False
+    
+    slot_datetimes.sort()
+    
+    for index, slot_start in enumerate(slot_datetimes):
+        next_index = (index + 1) % len(slot_datetimes)
+        next_start = slot_datetimes[next_index]
         
-        # Create datetime objects for comparison
-        slot_datetime = datetime.combine(consume_date, slot_time)
+        if next_index == 0:
+            next_start += timedelta(days=1)
         
-        # Calculate time difference
-        time_diff = abs((consume_datetime - slot_datetime).total_seconds() / 60)  # in minutes
-        
-        if time_diff <= tolerance_minutes:
+        if slot_start <= consume_datetime < next_start:
             return True
     
     return False
@@ -103,8 +109,8 @@ def calculate_status(consume_date: str, time_slot: str) -> str:
     """
     Calculate medication administration status based on consume date and time slot.
     
-    Status is "complete" if the consume_date time falls within the prescribed time_slot
-    (with 30-minute tolerance). Otherwise, status is "pending".
+    Status is "complete" if the consume_date time falls between the start of a time slot
+    and the start of the next time slot. Otherwise, status is "pending".
     
     Args:
         consume_date: Date/time string when medication was consumed
@@ -116,10 +122,10 @@ def calculate_status(consume_date: str, time_slot: str) -> str:
     
     Example:
         >>> calculate_status("2025-11-13 17:16:27", "09:00, 13:00, 17:00, 21:00")
-        'complete'  # 17:16 is within 30 min of 17:00
+        'complete'  # 17:16 is between 17:00 and 21:00 slots
         
         >>> calculate_status("2025-11-13 14:30:00", "09:00, 13:00, 17:00, 21:00")
-        'pending'  # 14:30 is not within 30 min of any slot
+        'complete'  # Between the 13:00 and 17:00 slots
     """
     try:
         # Parse consume_date - try multiple formats

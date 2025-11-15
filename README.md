@@ -265,13 +265,13 @@ POST /api/medication-tracking
 ```
 
 **Status is automatically calculated when reading records:**
-- **"complete"** - If consume_date time is within ±30 minutes of any time_slot
-- **"pending"** - If consume_date time is outside the time slot window
+- **"complete"** - If the consume_date time falls between the start time of one slot and the start time of the next slot
+- **"pending"** - If the consume_date time does not fall within any slot window
 - Status is computed dynamically based on consume_date and time_slot (not stored in ThingSpeak)
 
 **Example:**
 - `consume_date: "2025-11-13 17:16:27"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"complete"** ✓ (within 17:00 slot)
-- `consume_date: "2025-11-13 14:30:00"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"pending"** ⏳ (between slots)
+- `consume_date: "2025-11-13 14:30:00"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"complete"** ✓ (between the 13:00 and 17:00 slots)
 
 ## ⚠️ Important Notes
 
@@ -393,8 +393,8 @@ Electronic-Medication-Administration-Record/
 - Real-time recording of medication administration
 - Track exact date and time of administration
 - **Automatic status calculation**: System determines if medication was given within correct time slot
-  - **Complete** (✓): Administered within ±30 minutes of scheduled time
-  - **Pending** (⏳): Administered outside the time window
+  - **Complete**: Administered after the slot start and before the next slot begins
+  - **Pending**: Administered outside any slot window
 - Visual status badges in UI (green for complete, yellow for pending)
 - Monitor compliance with prescriptions
 - Generate administration history
