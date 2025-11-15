@@ -710,3 +710,9 @@ footer {
   background-color: #ffc107;
   color: #333;
 }
+
+/* Role-based visibility */
+.nurse-only,
+.management-only {
+  display: block;
+}

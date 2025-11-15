@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify  # type: ignore
+from flask import Flask, render_template, jsonify, request  # type: ignore
 import time
 from threading import Thread
 from config import config
@@ -21,8 +21,28 @@ register_blueprints(app, persistent_queue)
 
 
 @app.route("/")
+def role_selection():
+    """Landing page for role selection"""
+    return render_template("role_selection.html")
+
+
+@app.route("/nurse-login")
+def nurse_login():
+    """Nurse login page"""
+    return render_template("nurse_login.html")
+
+
+@app.route("/management-login")
+def management_login():
+    """Management login page"""
+    return render_template("management_login.html")
+
+
+@app.route("/dashboard")
 def index():
-    return render_template("index.html")
+    """Main dashboard after login"""
+    role = request.args.get('role', 'nurse')
+    return render_template("index.html", role=role)
 
 
 @app.route("/api/health")

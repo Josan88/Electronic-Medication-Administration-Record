@@ -23,8 +23,12 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize event listeners
   initializeEventListeners();
 
+  // Handle role-based access
+  const userRole = localStorage.getItem('userRole') || 'nurse';
+  setupRoleBasedAccess(userRole);
+
   // Load initial data
-  const savedDashboard = localStorage.getItem("activeDashboard") || "dutyDashboard"; // Default to dutyDashboard
+  const savedDashboard = localStorage.getItem("activeDashboard") || getDefaultDashboard(userRole);
   showDashboard(savedDashboard);
   loadPatients();
   loadPrescriptions();
@@ -34,6 +38,24 @@ document.addEventListener("DOMContentLoaded", function () {
   renderDutyTimetable();
   updateDutyTimetableStatus();
 });
+
+// Role-based access control
+function setupRoleBasedAccess(role) {
+  const nurseElements = document.querySelectorAll('.nurse-only');
+  const managementElements = document.querySelectorAll('.management-only');
+
+  if (role === 'management') {
+    nurseElements.forEach(el => el.style.display = 'none');
+    managementElements.forEach(el => el.style.display = 'block');
+  } else {
+    nurseElements.forEach(el => el.style.display = 'block');
+    managementElements.forEach(el => el.style.display = 'none');
+  }
+}
+
+function getDefaultDashboard(role) {
+  return role === 'management' ? 'managementDashboard' : 'dutyDashboard';
+}
 
 // API Health Check
 async function checkAPIHealth() {

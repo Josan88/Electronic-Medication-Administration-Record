@@ -8,6 +8,12 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
+    <script>
+      // Store user role from URL parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const userRole = urlParams.get('role') || 'nurse';
+      localStorage.setItem('userRole', userRole);
+    </script>
   </head>
   <body>
     <input type="checkbox" id="burger-menu" class="burger-menu" />
@@ -19,14 +25,14 @@
 
     <div class="sidenav">
       <h2>Dashboards</h2>
-      <button class="btn btn-menu" onclick="showDashboard('dutyDashboard')">
+      <button class="btn btn-menu nurse-only" onclick="showDashboard('dutyDashboard')">
         📋 Duty Dashboard
       </button>
-      <button class="btn btn-menu" onclick="showDashboard('nurseDashboard')">
+      <button class="btn btn-menu nurse-only" onclick="showDashboard('nurseDashboard')">
         🧑‍⚕️ Nurse Dashboard
       </button>
       <button
-        class="btn btn-menu"
+        class="btn btn-menu management-only"
         onclick="showDashboard('managementDashboard')"
       >
         📊 Management Dashboard
@@ -35,6 +41,12 @@
       <p class="api-status">
         API Status: <span id="apiStatus">Checking...</span>
       </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+        <a href="{{ url_for('role_selection') }}" style="color: #667eea; text-decoration: none; font-size: 0.9rem;">
+          ← Change Role
+        </a>
+      </div>
     </div>
     <div class="container">
       <header>

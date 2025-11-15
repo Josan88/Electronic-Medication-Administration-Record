@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>eMAR - Nurse Login</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <style>
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+      }
+
+      .login-box {
+        background: white;
+        padding: 3rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 450px;
+        width: 100%;
+      }
+
+      .login-box h1 {
+        color: #667eea;
+        margin-bottom: 0.5rem;
+        text-align: center;
+        font-size: 2rem;
+      }
+
+      .role-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: #667eea;
+        color: white;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+      }
+
+      .demo-credentials {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .demo-credentials h3 {
+        color: #856404;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        text-align: center;
+      }
+
+      .credential-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: white;
+        border-radius: 5px;
+      }
+
+      .credential-item strong {
+        color: #333;
+      }
+
+      .credential-item code {
+        background: #f4f4f4;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        color: #667eea;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .btn-login {
+        width: 100%;
+        padding: 1rem;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        font-weight: 600;
+      }
+
+      .btn-login:hover {
+        background: #5568d3;
+      }
+
+      .back-link {
+        text-align: center;
+        margin-top: 1.5rem;
+      }
+
+      .back-link a {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      .back-link a:hover {
+        text-decoration: underline;
+      }
+
+      .message {
+        padding: 0.75rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+
+      .message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-box">
+        <h1>🧑‍⚕️ Nurse Login</h1>
+        <div style="text-align: center;">
+          <span class="role-badge">Nurse Portal</span>
+        </div>
+
+        <div class="demo-credentials">
+          <h3>📋 Demo Credentials</h3>
+          <div class="credential-item">
+            <strong>Username:</strong>
+            <code>nurse</code>
+          </div>
+          <div class="credential-item">
+            <strong>Password:</strong>
+            <code>nurse123</code>
+          </div>
+        </div>
+
+        <div id="message"></div>
+
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required />
+          </div>
+
+          <button type="submit" class="btn-login">Login</button>
+        </form>
+
+        <div class="back-link">
+          <a href="{{ url_for('role_selection') }}">← Back to Role Selection</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const messageDiv = document.getElementById('message');
+
+        // Simple validation for demo
+        if (username === 'nurse' && password === 'nurse123') {
+          messageDiv.innerHTML = '<div class="message success">Login successful! Redirecting...</div>';
+          setTimeout(() => {
+            window.location.href = "/dashboard?role=nurse";
+          }, 1000);
+        } else {
+          messageDiv.innerHTML = '<div class="message error">Invalid credentials. Please use the demo credentials shown above.</div>';
+        }
+      });
+    </script>
+  </body>
+</html>
