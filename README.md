@@ -5,6 +5,7 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 ## 📚 Documentation
 
 - **[API Documentation (Swagger UI)](http://localhost:5000/api/docs)** - Interactive API reference
+- **[API Usage Examples](docs/API_EXAMPLES.md)** - Practical examples with curl, PowerShell, Python, and JavaScript
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - System architecture, data flow diagrams, and design decisions
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete deployment instructions for development and production
 - **[Contributing Guide](CONTRIBUTING.md)** - Guidelines for contributing to the project
