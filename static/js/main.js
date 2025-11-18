@@ -908,7 +908,57 @@ function isServed(prescription, tracking, specificSlot = null) {
     const trackSlot = trackSlotRaw.split(",")[0].trim();
 
     // Check if the tracking slot matches any of the slots to check
-    return slotsToCheck.includes(trackSlot);
+    if (!slotsToCheck.includes(trackSlot)) {
+      return false;
+    }
+
+    // IMPORTANT: Validate that the actual consumption time falls within the expected time window
+    // Parse the actual consumption time from consume_date
+    const consumeTime = consumeDateStr.includes(" ") 
+      ? consumeDateStr.split(" ")[1] // "2025-11-18 10:20:18" -> "10:20:18"
+      : null;
+    
+    if (!consumeTime) {
+      // If no time component, we can't validate the window
+      return true; // Accept it (legacy behavior)
+    }
+
+    // Extract hour and minute from consume time (e.g., "10:20:18" -> 10, 20)
+    const [consumeHour, consumeMinute] = consumeTime.split(":").map(Number);
+    const consumeMinutes = consumeHour * 60 + consumeMinute;
+
+    // Parse the tracked slot time (e.g., "09:00" -> 9, 0)
+    const [slotHour, slotMinute] = trackSlot.split(":").map(Number);
+    const slotMinutes = slotHour * 60 + slotMinute;
+
+    // Find the next slot time to determine the window
+    const allSlots = prescriptionSlots.map(s => {
+      const [h, m] = s.split(":").map(Number);
+      return h * 60 + m;
+    }).sort((a, b) => a - b);
+
+    const currentSlotIndex = allSlots.indexOf(slotMinutes);
+    if (currentSlotIndex === -1) return false;
+
+    const nextSlotMinutes = currentSlotIndex < allSlots.length - 1
+      ? allSlots[currentSlotIndex + 1]
+      : allSlots[0] + 1440; // Next day's first slot
+
+    // Check if consume time falls within [slotMinutes, nextSlotMinutes)
+    if (nextSlotMinutes > 1440) {
+      // Window crosses midnight (e.g., 21:00 to 09:00 next day)
+      // OR single slot per day (e.g., 13:00 to 13:00 next day)
+      if (currentSlotIndex < allSlots.length - 1) {
+        // Multiple slots, last one crosses to first one next day
+        return consumeMinutes >= slotMinutes || consumeMinutes < (nextSlotMinutes - 1440);
+      } else {
+        // Single slot - window is from slot time today until same time tomorrow
+        // Only times >= slotMinutes are valid today
+        return consumeMinutes >= slotMinutes;
+      }
+    } else {
+      return consumeMinutes >= slotMinutes && consumeMinutes < nextSlotMinutes;
+    }
   });
 }
 
