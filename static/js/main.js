@@ -777,12 +777,32 @@ async function showDutyDashboard() {
     const prescriptions = prescResult.data || [];
     const tracking = trackResult.data || [];
 
+    // Get today's date for filtering active prescriptions
+    const today = new Date().toISOString().split("T")[0];
+
+    // Filter prescriptions to only include active ones (today is within start_date and end_date)
+    const activePrescriptions = prescriptions.filter((p) => {
+      const startDate = p.start_date || "";
+      const endDate = p.end_date || "";
+      
+      // If no dates specified, include the prescription
+      if (!startDate && !endDate) return true;
+      
+      // Check if today is on or after start_date
+      const afterStart = !startDate || today >= startDate;
+      
+      // Check if today is on or before end_date
+      const beforeEnd = !endDate || today <= endDate;
+      
+      return afterStart && beforeEnd;
+    });
+
     // Create patients lookup map
     const patientsMap = new Map(patients.map((p) => [p.patient_id, p]));
 
     // Group by time slot with patient details
     const grouped = {};
-    prescriptions.forEach((p) => {
+    activePrescriptions.forEach((p) => {
       const patient = patientsMap.get(p.patient_id) || {};
       const slots = (p.time_slot || "Unknown").split(",").map((s) => s.trim());
 
