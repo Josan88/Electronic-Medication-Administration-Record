@@ -790,6 +790,7 @@ async function showDutyDashboard() {
         if (!grouped[slot]) grouped[slot] = [];
         grouped[slot].push({
           patient_id: p.patient_id,
+          medicine_name: p.medicine_name,
           floor: patient.floor || "N/A",
           room: patient.room || "N/A",
           bed: patient.bed || "N/A",
@@ -826,11 +827,14 @@ function isServed(prescription, tracking, specificSlot = null) {
       return false;
     }
     
-    // Parse tracking time slots (may also be comma-separated)
-    const trackingSlots = String(t.time_slot || "").split(",").map((s) => s.trim());
+    // For tracking records, the time_slot should be a single slot
+    // If it's comma-separated (malformed data), only use the first slot
+    // This represents the actual time the medication was administered
+    const trackSlotRaw = String(t.time_slot || "").trim();
+    const trackSlot = trackSlotRaw.split(",")[0].trim();
     
-    // Check if any tracking time slot matches any of the slots to check
-    return slotsToCheck.some((slot) => trackingSlots.includes(slot));
+    // Check if the tracking slot matches any of the slots to check
+    return slotsToCheck.includes(trackSlot);
   });
 }
 
@@ -919,6 +923,7 @@ function renderTimelineTable(grouped) {
       thead.innerHTML = `
         <tr>
           <th>Patient ID</th>
+          <th>Medicine</th>
           <th>Floor</th>
           <th>Room</th>
           <th>Bed</th>
@@ -937,6 +942,7 @@ function renderTimelineTable(grouped) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${p.patient_id}</td>
+          <td>${p.medicine_name || "N/A"}</td>
           <td>${p.floor}</td>
           <td>${p.room}</td>
           <td>${p.bed}</td>

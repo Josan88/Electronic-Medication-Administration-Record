@@ -43,11 +43,14 @@ def is_served_python(prescription, tracking, specific_slot=None):
            t.get("medicine_name") != prescription.get("medicine_name"):
             continue
         
-        # Parse tracking time slots (may also be comma-separated)
-        tracking_slots = [s.strip() for s in str(t.get("time_slot", "")).split(",")]
+        # For tracking records, the time_slot should be a single slot
+        # If it's comma-separated (malformed data), only use the first slot
+        # This represents the actual time the medication was administered
+        track_slot_raw = str(t.get("time_slot", "")).strip()
+        track_slot = track_slot_raw.split(",")[0].strip()
         
-        # Check if any tracking time slot matches any of the slots to check
-        if any(slot in tracking_slots for slot in slots_to_check):
+        # Check if the tracking slot matches any of the slots to check
+        if track_slot in slots_to_check:
             return True
     
     return False
@@ -335,17 +338,17 @@ def test_tracking_with_multiple_slots():
         }
     ]
     
-    # Without specific slot - should match because at least one slot matches
+    # Without specific slot - should match because first slot (09:00) is in prescription slots
     result_any = is_served_python(prescription, tracking)
     expected_any = True
     
-    # With specific slot 09:00 - should match
+    # With specific slot 09:00 - should match (it's the first slot in malformed data)
     result_09 = is_served_python(prescription, tracking, "09:00")
     expected_09 = True
     
-    # With specific slot 13:00 - should also match (malformed data has all slots)
+    # With specific slot 13:00 - should NOT match (only first slot is used from malformed data)
     result_13 = is_served_python(prescription, tracking, "13:00")
-    expected_13 = True
+    expected_13 = False
     
     passed = True
     
@@ -362,12 +365,12 @@ def test_tracking_with_multiple_slots():
         passed = False
     
     if result_13 == expected_13:
-        print(f"✓ Slot 13:00 check with malformed tracking: {result_13}")
+        print(f"✓ Slot 13:00 check with malformed tracking: {result_13} (only first slot is used)")
     else:
         print(f"✗ Slot 13:00 check failed: Expected {expected_13}, Got {result_13}")
         passed = False
     
-    print(f"  Note: This test covers malformed tracking data with multiple slots")
+    print(f"  Note: Malformed tracking data only uses first slot to prevent incorrect matches")
     
     return passed
 
