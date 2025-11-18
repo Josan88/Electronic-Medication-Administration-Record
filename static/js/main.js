@@ -793,7 +793,7 @@ async function showDutyDashboard() {
           floor: patient.floor || "N/A",
           room: patient.room || "N/A",
           bed: patient.bed || "N/A",
-          served: isServed(p, tracking),
+          served: isServed(p, tracking, slot),
         });
       });
     });
@@ -805,15 +805,29 @@ async function showDutyDashboard() {
   }
 }
 
-function isServed(prescription, tracking) {
+function isServed(prescription, tracking, specificSlot = null) {
   const today = new Date().toISOString().split("T")[0];
-  return tracking.some(
-    (t) =>
-      t.patient_id === prescription.patient_id &&
-      t.medicine_name === prescription.medicine_name &&
-      t.time_slot === prescription.time_slot &&
-      t.consume_date === today
-  );
+  
+  // Parse prescription time slots (may be comma-separated)
+  const prescriptionSlots = (prescription.time_slot || "").split(",").map((s) => s.trim());
+  
+  // If a specific slot is provided, only check for that slot
+  const slotsToCheck = specificSlot ? [specificSlot] : prescriptionSlots;
+  
+  return tracking.some((t) => {
+    // Check if tracking date is today
+    const trackDate = t.consume_date ? String(t.consume_date).split("T")[0] : null;
+    if (trackDate !== today) return false;
+    
+    // Check patient and medicine match
+    if (t.patient_id !== prescription.patient_id || t.medicine_name !== prescription.medicine_name) {
+      return false;
+    }
+    
+    // Check if tracking time slot matches any of the slots to check
+    const trackSlot = String(t.time_slot || "").trim();
+    return slotsToCheck.includes(trackSlot);
+  });
 }
 
 async function updateDutyTimetableStatus() {
