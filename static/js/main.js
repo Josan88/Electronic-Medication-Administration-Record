@@ -816,7 +816,9 @@ function isServed(prescription, tracking, specificSlot = null) {
   
   return tracking.some((t) => {
     // Check if tracking date is today
-    const trackDate = t.consume_date ? String(t.consume_date).split("T")[0] : null;
+    // Handle both "T" and space separators in date format
+    const consumeDateStr = String(t.consume_date || "");
+    const trackDate = consumeDateStr.split("T")[0].split(" ")[0];
     if (trackDate !== today) return false;
     
     // Check patient and medicine match
@@ -824,9 +826,11 @@ function isServed(prescription, tracking, specificSlot = null) {
       return false;
     }
     
-    // Check if tracking time slot matches any of the slots to check
-    const trackSlot = String(t.time_slot || "").trim();
-    return slotsToCheck.includes(trackSlot);
+    // Parse tracking time slots (may also be comma-separated)
+    const trackingSlots = String(t.time_slot || "").split(",").map((s) => s.trim());
+    
+    // Check if any tracking time slot matches any of the slots to check
+    return slotsToCheck.some((slot) => trackingSlots.includes(slot));
   });
 }
 

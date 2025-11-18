@@ -32,7 +32,9 @@ def is_served_python(prescription, tracking, specific_slot=None):
     
     for t in tracking:
         # Check if tracking date is today
-        track_date = str(t.get("consume_date", "")).split("T")[0] if t.get("consume_date") else None
+        # Handle both "T" and space separators in date format
+        consume_date_str = str(t.get("consume_date", ""))
+        track_date = consume_date_str.split("T")[0].split(" ")[0] if consume_date_str else None
         if track_date != today:
             continue
         
@@ -41,9 +43,11 @@ def is_served_python(prescription, tracking, specific_slot=None):
            t.get("medicine_name") != prescription.get("medicine_name"):
             continue
         
-        # Check if tracking time slot matches any of the slots to check
-        track_slot = str(t.get("time_slot", "")).strip()
-        if track_slot in slots_to_check:
+        # Parse tracking time slots (may also be comma-separated)
+        tracking_slots = [s.strip() for s in str(t.get("time_slot", "")).split(",")]
+        
+        # Check if any tracking time slot matches any of the slots to check
+        if any(slot in tracking_slots for slot in slots_to_check):
             return True
     
     return False
@@ -307,6 +311,67 @@ def test_different_date_no_match():
         return False
 
 
+def test_tracking_with_multiple_slots():
+    """Test tracking record with multiple slots (malformed data)"""
+    print("\n" + "="*60)
+    print("TEST: Tracking with Multiple Slots (Malformed Data)")
+    print("="*60)
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    prescription = {
+        "patient_id": "P001",
+        "medicine_name": "Metformin",
+        "time_slot": "09:00, 13:00, 17:00, 21:00"
+    }
+    
+    # Tracking record incorrectly has all time slots
+    tracking = [
+        {
+            "patient_id": "P001",
+            "medicine_name": "Metformin",
+            "time_slot": "09:00, 13:00, 17:00, 21:00",  # Malformed: should be single slot
+            "consume_date": today
+        }
+    ]
+    
+    # Without specific slot - should match because at least one slot matches
+    result_any = is_served_python(prescription, tracking)
+    expected_any = True
+    
+    # With specific slot 09:00 - should match
+    result_09 = is_served_python(prescription, tracking, "09:00")
+    expected_09 = True
+    
+    # With specific slot 13:00 - should also match (malformed data has all slots)
+    result_13 = is_served_python(prescription, tracking, "13:00")
+    expected_13 = True
+    
+    passed = True
+    
+    if result_any == expected_any:
+        print(f"✓ Any slot check with malformed tracking: {result_any}")
+    else:
+        print(f"✗ Any slot check failed: Expected {expected_any}, Got {result_any}")
+        passed = False
+    
+    if result_09 == expected_09:
+        print(f"✓ Slot 09:00 check with malformed tracking: {result_09}")
+    else:
+        print(f"✗ Slot 09:00 check failed: Expected {expected_09}, Got {result_09}")
+        passed = False
+    
+    if result_13 == expected_13:
+        print(f"✓ Slot 13:00 check with malformed tracking: {result_13}")
+    else:
+        print(f"✗ Slot 13:00 check failed: Expected {expected_13}, Got {result_13}")
+        passed = False
+    
+    print(f"  Note: This test covers malformed tracking data with multiple slots")
+    
+    return passed
+
+
 def run_all_tests():
     """Run all test suites"""
     print("\n" + "="*60)
@@ -332,6 +397,9 @@ def run_all_tests():
         all_passed = False
     
     if not test_different_date_no_match():
+        all_passed = False
+    
+    if not test_tracking_with_multiple_slots():
         all_passed = False
     
     # Final summary
