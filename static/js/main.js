@@ -886,15 +886,16 @@ function renderTimelineTable(grouped) {
   };
 
   FIXED_TIME_SLOTS.forEach(({ value: slot, label }) => {
-    const medsToday = (grouped[slot] || []).filter((p) => !p.served);
+    const allMeds = grouped[slot] || [];
+    const pendingCount = allMeds.filter((p) => !p.served).length;
     const accordionItem = document.createElement("div");
     accordionItem.className = "accordion-item";
 
     const header = document.createElement("div");
     header.className = "accordion-header";
-    header.innerHTML = `⏰ ${label} (${medsToday.length} pending)`;
+    header.innerHTML = `⏰ ${label} (${pendingCount} pending)`;
 
-    if (medsToday.length > 0) {
+    if (pendingCount > 0) {
       header.classList.add("has-pending");
     }
 
@@ -907,9 +908,9 @@ function renderTimelineTable(grouped) {
       header.classList.add("current-round");
     }
 
-    if (medsToday.length === 0) {
+    if (allMeds.length === 0) {
       body.innerHTML =
-        '<p class="text-center">No pending medications for this time slot</p>';
+        '<p class="text-center">No medications scheduled for this time slot</p>';
     } else {
       const table = document.createElement("table");
       table.className = "table table-sm table-bordered";
@@ -926,8 +927,8 @@ function renderTimelineTable(grouped) {
       `;
 
       const tbody = document.createElement("tbody");
-      // Sort medsToday array - pending first, served last
-      const sortedMeds = medsToday.sort((a, b) => {
+      // Sort allMeds array - pending first, complete last
+      const sortedMeds = allMeds.sort((a, b) => {
         if (a.served === b.served) return 0;
         return a.served ? 1 : -1; // Push served items to the bottom
       });
@@ -940,7 +941,7 @@ function renderTimelineTable(grouped) {
           <td>${p.room}</td>
           <td>${p.bed}</td>
           <td class="${p.served ? "text-success" : "text-warning"}">
-            ${p.served ? "✔ Served" : "⏳ Pending"}
+            ${p.served ? "✔ Complete" : "⏳ Pending"}
           </td>
         `;
         tbody.appendChild(tr);
