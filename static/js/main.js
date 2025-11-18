@@ -24,37 +24,38 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeEventListeners();
 
   // Handle role-based access
-  const userRole = localStorage.getItem('userRole') || 'nurse';
+  const userRole = localStorage.getItem("userRole") || "nurse";
   setupRoleBasedAccess(userRole);
 
   // Load initial data
-  const savedDashboard = localStorage.getItem("activeDashboard") || getDefaultDashboard(userRole);
+  const savedDashboard =
+    localStorage.getItem("activeDashboard") || getDefaultDashboard(userRole);
   showDashboard(savedDashboard);
   loadPatients();
   loadPrescriptions();
   loadTracking();
   updateStats();
 
-  renderDutyTimetable();
-  updateDutyTimetableStatus();
+  // renderDutyTimetable is now part of showDutyDashboard
+  // updateDutyTimetableStatus is called after tracking data loads
 });
 
 // Role-based access control
 function setupRoleBasedAccess(role) {
-  const nurseElements = document.querySelectorAll('.nurse-only');
-  const managementElements = document.querySelectorAll('.management-only');
+  const nurseElements = document.querySelectorAll(".nurse-only");
+  const managementElements = document.querySelectorAll(".management-only");
 
-  if (role === 'management') {
-    nurseElements.forEach(el => el.style.display = 'none');
-    managementElements.forEach(el => el.style.display = 'block');
+  if (role === "management") {
+    nurseElements.forEach((el) => (el.style.display = "none"));
+    managementElements.forEach((el) => (el.style.display = "block"));
   } else {
-    nurseElements.forEach(el => el.style.display = 'block');
-    managementElements.forEach(el => el.style.display = 'none');
+    nurseElements.forEach((el) => (el.style.display = "block"));
+    managementElements.forEach((el) => (el.style.display = "none"));
   }
 }
 
 function getDefaultDashboard(role) {
-  return role === 'management' ? 'managementDashboard' : 'dutyDashboard';
+  return role === "management" ? "managementDashboard" : "dutyDashboard";
 }
 
 // API Health Check
@@ -561,7 +562,8 @@ async function loadPrescriptions() {
 }
 
 async function loadPatientActiveMeds() {
-  const patientIdRaw = document.getElementById("patientSearchInput")?.value || "";
+  const patientIdRaw =
+    document.getElementById("patientSearchInput")?.value || "";
   const patientId = patientIdRaw.trim();
   const resultContainer = document.getElementById("patientMedsResult");
 
@@ -618,7 +620,9 @@ async function loadPatientActiveMeds() {
       : `<div class="card patient-info-card" style="margin-top: 2rem;"><h4>Patient: ${patientId}</h4></div>`;
 
     // Show patient card immediately with a static loading message
-    resultContainer.innerHTML = infoHtml + '<p style="margin-top: 1rem; color: #999;">Loading medications...</p>';
+    resultContainer.innerHTML =
+      infoHtml +
+      '<p style="margin-top: 1rem; color: #999;">Loading medications...</p>';
 
     // Fetch prescriptions for this patient
     let prescRes = await fetch(`/api/patient/${encodedId}/prescriptions`);
@@ -631,7 +635,9 @@ async function loadPatientActiveMeds() {
       const allRes = await fetch("/api/prescriptions");
       if (allRes.ok) {
         const allJson = await allRes.json();
-        prescs = (allJson.data || []).filter(p => String(p.patient_id) === String(patientId));
+        prescs = (allJson.data || []).filter(
+          (p) => String(p.patient_id) === String(patientId)
+        );
       }
     }
 
@@ -651,8 +657,12 @@ async function loadPatientActiveMeds() {
         .map(
           (med) => `
         <div class="data-item">
-          <strong>${med.medicine_name || "N/A"}</strong> - ${med.dosage || "N/A"} - ${med.frequency || "N/A"}<br>
-          <small>From: ${med.start_date || "N/A"} To: ${med.end_date || "Ongoing"}</small>
+          <strong>${med.medicine_name || "N/A"}</strong> - ${
+            med.dosage || "N/A"
+          } - ${med.frequency || "N/A"}<br>
+          <small>From: ${med.start_date || "N/A"} To: ${
+            med.end_date || "Ongoing"
+          }</small>
         </div>`
         )
         .join("");
@@ -664,7 +674,8 @@ async function loadPatientActiveMeds() {
 
     // scroll patient info into view
     const infoCard = resultContainer.querySelector(".patient-info-card");
-    if (infoCard) infoCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (infoCard)
+      infoCard.scrollIntoView({ behavior: "smooth", block: "center" });
   } catch (err) {
     resultContainer.innerHTML = "<p>Error loading medications</p>";
     console.error("loadPatientActiveMeds error:", err);
@@ -685,12 +696,13 @@ async function loadTracking() {
       result.data.reverse().forEach((record) => {
         const item = document.createElement("div");
         item.className = "data-item";
-        
+
         // Determine status badge styling
         const status = record.status || "pending";
-        const statusClass = status === "complete" ? "status-complete" : "status-pending";
+        const statusClass =
+          status === "complete" ? "status-complete" : "status-pending";
         const statusLabel = status === "complete" ? "✓ Complete" : "⏳ Pending";
-        
+
         item.innerHTML = `
           <h4>${record.medicine_name || "N/A"} - Patient ID: ${
           record.patient_id || "N/A"
@@ -720,6 +732,43 @@ function formatDate(dateString) {
   if (!dateString) return "N/A";
   const date = new Date(dateString);
   return date.toLocaleString();
+}
+
+// Stats Overview
+async function updateStats() {
+  try {
+    const [patientsRes, prescRes, trackRes] = await Promise.all([
+      fetch("/api/patients"),
+      fetch("/api/prescriptions"),
+      fetch("/api/medication-tracking"),
+    ]);
+
+    const patientsData = await patientsRes.json();
+    const prescData = await prescRes.json();
+    const trackData = await trackRes.json();
+
+    const patients = patientsData.data || [];
+    const prescriptions = prescData.data || [];
+    const tracking = trackData.data || [];
+
+    // Count totals
+    const totalPatients = patients.length;
+    const activePrescriptions = prescriptions.length;
+
+    // Count completed today
+    const today = new Date().toISOString().split("T")[0];
+    const completedToday = tracking.filter((r) =>
+      (r.consume_date || "").startsWith(today)
+    ).length;
+
+    document.getElementById("totalPatients").textContent = totalPatients;
+    document.getElementById("totalPrescriptions").textContent =
+      activePrescriptions;
+    document.getElementById("todayAdministrations").textContent =
+      completedToday;
+  } catch (error) {
+    console.error("updateStats error:", error);
+  }
 }
 
 function showMessage(type, message) {
@@ -777,12 +826,32 @@ async function showDutyDashboard() {
     const prescriptions = prescResult.data || [];
     const tracking = trackResult.data || [];
 
+    // Get today's date for filtering active prescriptions
+    const today = new Date().toISOString().split("T")[0];
+
+    // Filter prescriptions to only include active ones (today is within start_date and end_date)
+    const activePrescriptions = prescriptions.filter((p) => {
+      const startDate = p.start_date || "";
+      const endDate = p.end_date || "";
+
+      // If no dates specified, include the prescription
+      if (!startDate && !endDate) return true;
+
+      // Check if today is on or after start_date
+      const afterStart = !startDate || today >= startDate;
+
+      // Check if today is on or before end_date
+      const beforeEnd = !endDate || today <= endDate;
+
+      return afterStart && beforeEnd;
+    });
+
     // Create patients lookup map
     const patientsMap = new Map(patients.map((p) => [p.patient_id, p]));
 
     // Group by time slot with patient details
     const grouped = {};
-    prescriptions.forEach((p) => {
+    activePrescriptions.forEach((p) => {
       const patient = patientsMap.get(p.patient_id) || {};
       const slots = (p.time_slot || "Unknown").split(",").map((s) => s.trim());
 
@@ -790,10 +859,11 @@ async function showDutyDashboard() {
         if (!grouped[slot]) grouped[slot] = [];
         grouped[slot].push({
           patient_id: p.patient_id,
+          medicine_name: p.medicine_name,
           floor: patient.floor || "N/A",
           room: patient.room || "N/A",
           bed: patient.bed || "N/A",
-          served: isServed(p, tracking),
+          served: isServed(p, tracking, slot),
         });
       });
     });
@@ -805,15 +875,91 @@ async function showDutyDashboard() {
   }
 }
 
-function isServed(prescription, tracking) {
+function isServed(prescription, tracking, specificSlot = null) {
   const today = new Date().toISOString().split("T")[0];
-  return tracking.some(
-    (t) =>
-      t.patient_id === prescription.patient_id &&
-      t.medicine_name === prescription.medicine_name &&
-      t.time_slot === prescription.time_slot &&
-      t.consume_date === today
-  );
+
+  // Parse prescription time slots (may be comma-separated)
+  const prescriptionSlots = (prescription.time_slot || "")
+    .split(",")
+    .map((s) => s.trim());
+
+  // If a specific slot is provided, only check for that slot
+  const slotsToCheck = specificSlot ? [specificSlot] : prescriptionSlots;
+
+  return tracking.some((t) => {
+    // Check if tracking date is today
+    // Handle both "T" and space separators in date format
+    const consumeDateStr = String(t.consume_date || "");
+    const trackDate = consumeDateStr.split("T")[0].split(" ")[0];
+    if (trackDate !== today) return false;
+
+    // Check patient and medicine match
+    if (
+      t.patient_id !== prescription.patient_id ||
+      t.medicine_name !== prescription.medicine_name
+    ) {
+      return false;
+    }
+
+    // For tracking records, the time_slot should be a single slot
+    // If it's comma-separated (malformed data), only use the first slot
+    // This represents the actual time the medication was administered
+    const trackSlotRaw = String(t.time_slot || "").trim();
+    const trackSlot = trackSlotRaw.split(",")[0].trim();
+
+    // Check if the tracking slot matches any of the slots to check
+    if (!slotsToCheck.includes(trackSlot)) {
+      return false;
+    }
+
+    // IMPORTANT: Validate that the actual consumption time falls within the expected time window
+    // Parse the actual consumption time from consume_date
+    const consumeTime = consumeDateStr.includes(" ") 
+      ? consumeDateStr.split(" ")[1] // "2025-11-18 10:20:18" -> "10:20:18"
+      : null;
+    
+    if (!consumeTime) {
+      // If no time component, we can't validate the window
+      return true; // Accept it (legacy behavior)
+    }
+
+    // Extract hour and minute from consume time (e.g., "10:20:18" -> 10, 20)
+    const [consumeHour, consumeMinute] = consumeTime.split(":").map(Number);
+    const consumeMinutes = consumeHour * 60 + consumeMinute;
+
+    // Parse the tracked slot time (e.g., "09:00" -> 9, 0)
+    const [slotHour, slotMinute] = trackSlot.split(":").map(Number);
+    const slotMinutes = slotHour * 60 + slotMinute;
+
+    // Find the next slot time to determine the window
+    const allSlots = prescriptionSlots.map(s => {
+      const [h, m] = s.split(":").map(Number);
+      return h * 60 + m;
+    }).sort((a, b) => a - b);
+
+    const currentSlotIndex = allSlots.indexOf(slotMinutes);
+    if (currentSlotIndex === -1) return false;
+
+    const nextSlotMinutes = currentSlotIndex < allSlots.length - 1
+      ? allSlots[currentSlotIndex + 1]
+      : allSlots[0] + 1440; // Next day's first slot
+
+    // Check if consume time falls within [slotMinutes, nextSlotMinutes)
+    if (nextSlotMinutes > 1440) {
+      // Window crosses midnight (e.g., 21:00 to 09:00 next day)
+      // OR single slot per day (e.g., 13:00 to 13:00 next day)
+      if (currentSlotIndex < allSlots.length - 1) {
+        // Multiple slots, last one crosses to first one next day
+        return consumeMinutes >= slotMinutes || consumeMinutes < (nextSlotMinutes - 1440);
+      } else {
+        // Single slot - window is from slot time today until same time tomorrow
+        // Only times >= slotMinutes are valid today
+        return consumeMinutes >= slotMinutes;
+      }
+    } else {
+      return consumeMinutes >= slotMinutes && consumeMinutes < nextSlotMinutes;
+    }
+  });
 }
 
 async function updateDutyTimetableStatus() {
@@ -826,15 +972,16 @@ async function updateDutyTimetableStatus() {
     const trackingRecords = result.data;
 
     // Loop through timetable cells and match with tracking data
-    document.querySelectorAll(".timetable-cell").forEach(cell => {
+    document.querySelectorAll(".timetable-cell").forEach((cell) => {
       const patientId = cell.getAttribute("data-patient-id");
       const timeSlot = cell.getAttribute("data-timeslot");
       const medName = cell.getAttribute("data-medicine");
 
-      const recordFound = trackingRecords.some(r =>
-        r.patient_id === patientId &&
-        r.time_slot === timeSlot &&
-        r.medicine_name === medName
+      const recordFound = trackingRecords.some(
+        (r) =>
+          r.patient_id === patientId &&
+          r.time_slot === timeSlot &&
+          r.medicine_name === medName
       );
 
       if (recordFound) {
@@ -846,7 +993,6 @@ async function updateDutyTimetableStatus() {
     console.error("Error updating timetable from tracking:", err);
   }
 }
-
 
 function renderTimelineTable(grouped) {
   const container = document.querySelector("#timeline-tables");
@@ -868,15 +1014,16 @@ function renderTimelineTable(grouped) {
   };
 
   FIXED_TIME_SLOTS.forEach(({ value: slot, label }) => {
-    const medsToday = (grouped[slot] || []).filter((p) => !p.served);
+    const allMeds = grouped[slot] || [];
+    const pendingCount = allMeds.filter((p) => !p.served).length;
     const accordionItem = document.createElement("div");
     accordionItem.className = "accordion-item";
 
     const header = document.createElement("div");
     header.className = "accordion-header";
-    header.innerHTML = `⏰ ${label} (${medsToday.length} pending)`;
+    header.innerHTML = `⏰ ${label} (${pendingCount} pending)`;
 
-    if (medsToday.length > 0) {
+    if (pendingCount > 0) {
       header.classList.add("has-pending");
     }
 
@@ -889,9 +1036,9 @@ function renderTimelineTable(grouped) {
       header.classList.add("current-round");
     }
 
-    if (medsToday.length === 0) {
+    if (allMeds.length === 0) {
       body.innerHTML =
-        '<p class="text-center">No pending medications for this time slot</p>';
+        '<p class="text-center">No medications scheduled for this time slot</p>';
     } else {
       const table = document.createElement("table");
       table.className = "table table-sm table-bordered";
@@ -900,6 +1047,7 @@ function renderTimelineTable(grouped) {
       thead.innerHTML = `
         <tr>
           <th>Patient ID</th>
+          <th>Medicine</th>
           <th>Floor</th>
           <th>Room</th>
           <th>Bed</th>
@@ -908,8 +1056,8 @@ function renderTimelineTable(grouped) {
       `;
 
       const tbody = document.createElement("tbody");
-      // Sort medsToday array - pending first, served last
-      const sortedMeds = medsToday.sort((a, b) => {
+      // Sort allMeds array - pending first, complete last
+      const sortedMeds = allMeds.sort((a, b) => {
         if (a.served === b.served) return 0;
         return a.served ? 1 : -1; // Push served items to the bottom
       });
@@ -918,11 +1066,12 @@ function renderTimelineTable(grouped) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${p.patient_id}</td>
+          <td>${p.medicine_name || "N/A"}</td>
           <td>${p.floor}</td>
           <td>${p.room}</td>
           <td>${p.bed}</td>
           <td class="${p.served ? "text-success" : "text-warning"}">
-            ${p.served ? "✔ Served" : "⏳ Pending"}
+            ${p.served ? "✔ Complete" : "⏳ Pending"}
           </td>
         `;
         tbody.appendChild(tr);
@@ -1037,7 +1186,10 @@ async function updateManagementChart() {
       if (Array.isArray(p.time_slot)) {
         slots = p.time_slot;
       } else if (typeof p.time_slot === "string" && p.time_slot.trim() !== "") {
-        slots = p.time_slot.split(",").map((s) => s.trim()).filter(Boolean);
+        slots = p.time_slot
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
 
       if (slots.length === 0) return;
@@ -1137,9 +1289,8 @@ window.loadPatients = loadPatients;
 window.loadPrescriptions = loadPrescriptions;
 window.loadTracking = loadTracking;
 window.initManagementChart = initManagementChart;
-window.lookupPatient = lookupPatient;
 
-// Prescription 
+// Prescription
 window.addMedicineField = addMedicineField;
 window.removeMedicineField = removeMedicineField;
 window.addTimeField = addTimeField;
