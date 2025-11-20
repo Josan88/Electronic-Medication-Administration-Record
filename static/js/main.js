@@ -772,16 +772,89 @@ async function updateStats() {
 }
 
 function showMessage(type, message) {
-  const messageDiv = document.createElement("div");
-  messageDiv.className = `message ${type}`;
-  messageDiv.textContent = message;
+  // Get or create toast container
+  let container = document.querySelector('.toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(container);
+  }
 
-  const main = document.querySelector("main");
-  main.insertBefore(messageDiv, main.firstChild);
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
 
+  // Get icon based on type
+  const icons = {
+    success: '✓',
+    error: '✗',
+    info: 'ℹ'
+  };
+  const icon = icons[type] || 'ℹ';
+
+  // Get duration based on type (milliseconds)
+  const durations = {
+    success: 4000,
+    error: 7000,
+    info: 5000
+  };
+  const duration = durations[type] || 5000;
+
+  // Build toast content
+  toast.innerHTML = `
+    <span class="toast-icon" aria-hidden="true">${icon}</span>
+    <div class="toast-content">${escapeHtml(message)}</div>
+    <button class="toast-close" aria-label="Close notification" type="button">×</button>
+    <div class="toast-progress"></div>
+  `;
+
+  // Add to container
+  container.appendChild(toast);
+
+  // Setup progress bar animation
+  const progressBar = toast.querySelector('.toast-progress');
   setTimeout(() => {
-    messageDiv.remove();
-  }, 5000);
+    progressBar.style.transition = `width ${duration}ms linear`;
+    progressBar.style.width = '0%';
+  }, 10);
+
+  // Setup close button
+  const closeBtn = toast.querySelector('.toast-close');
+  closeBtn.addEventListener('click', () => {
+    removeToast(toast);
+  });
+
+  // Auto remove after duration
+  setTimeout(() => {
+    removeToast(toast);
+  }, duration);
+}
+
+function removeToast(toast) {
+  if (toast.classList.contains('hiding')) return;
+  
+  toast.classList.add('hiding');
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+      
+      // Remove container if empty
+      const container = document.querySelector('.toast-container');
+      if (container && container.children.length === 0) {
+        container.remove();
+      }
+    }
+  }, 300); // Match animation duration
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function showDutyTab(tabName) {
