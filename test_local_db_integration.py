@@ -129,6 +129,7 @@ def test_sync_queue_operations():
         # Test 4: Test retry logic
         test_queue.add_sync_operation('medicine_prescription', since_entry_id=0)
         item = test_queue.get_next_ready_item()
+        assert item is not None, "Should get a ready item for retry test"
         test_queue.mark_failure(item, "Test error")
         
         status = test_queue.get_status()
