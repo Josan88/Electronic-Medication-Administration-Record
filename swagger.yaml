@@ -690,7 +690,6 @@ components:
         - bed
         - age
         - gender
-        - notes
     
     PrescriptionInput:
       type: object
