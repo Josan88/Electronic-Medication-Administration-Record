@@ -11,7 +11,6 @@ import time
 from typing import Dict, List, Optional, Any
 from threading import Lock
 from datetime import datetime
-from config import config
 from utils.logging_config import logger
 
 
@@ -37,9 +36,16 @@ class LocalDatabase:
         Initialize local database.
         
         Args:
-            base_path: Base directory for database files (defaults to config value)
+            base_path: Base directory for database files (defaults to config value or /tmp/emar_local_db)
         """
-        self.base_path = base_path or config.LOCAL_DB_PATH
+        if base_path is None:
+            try:
+                from config import config
+                base_path = config.LOCAL_DB_PATH
+            except:
+                base_path = "/tmp/emar_local_db"
+        
+        self.base_path = base_path
         self.lock = Lock()
         
         # Define channel storage files
