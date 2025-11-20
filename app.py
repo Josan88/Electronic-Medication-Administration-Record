@@ -188,7 +188,11 @@ def process_thingspeak_sync():
                 # No pending items, schedule periodic sync for all channels
                 # Check if enough time has passed since last sync
                 current_time = time.time()
-                last_sync = sync_queue.stats.get('last_sync_time', 0)
+                last_sync = sync_queue.stats.get('last_sync_time')
+                
+                # If last_sync is None, initialize to 0 (never synced)
+                if last_sync is None:
+                    last_sync = 0
                 
                 if current_time - last_sync >= SYNC_INTERVAL_SECONDS:
                     # Queue sync operations for all channels
