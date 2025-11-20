@@ -8,6 +8,7 @@ and ThingSpeak synchronization.
 from flask import Blueprint, jsonify
 from services.queue_service import persistent_queue
 from services.sync_service import sync_queue
+from services.thingspeak_bulk_service import thingspeak_bulk_service
 from utils.errors import success_response, error_response
 
 queue_bp = Blueprint('queue', __name__, url_prefix='/api/queue')
@@ -79,5 +80,22 @@ def clear_failed_sync_items():
             message=f"Cleared {count} failed sync items",
             data={"cleared_count": count}
         )
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+@queue_bp.route("/thingspeak-health", methods=["GET"])
+def get_thingspeak_health():
+    """
+    Get ThingSpeak backup database health status.
+    
+    Uses REST API to check status of all configured channels.
+    
+    Returns:
+        JSON response with health status for each ThingSpeak channel
+    """
+    try:
+        health = thingspeak_bulk_service.health_check()
+        return success_response(data=health)
     except Exception as e:
         return error_response(str(e), 500)

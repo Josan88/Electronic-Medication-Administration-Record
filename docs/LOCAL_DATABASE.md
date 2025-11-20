@@ -174,6 +174,30 @@ POST https://api.thingspeak.com/channels/{channel_id}/bulk_update.json
 - Maximum 100 updates per request
 - Standard ThingSpeak API rate limits apply (15 seconds between requests)
 
+### REST API Enhancements
+
+The bulk write service now includes enhanced features from the ThingSpeak REST API:
+
+**Channel Validation**
+- Pre-write channel availability checks using REST API
+- Validates channel status before attempting bulk writes
+- Reduces failed write attempts due to channel unavailability
+
+**Enhanced Error Handling**
+- Status code-specific error messages (400, 401, 404, 429)
+- Timeout configuration (30 seconds default)
+- Detailed error logging with API response details
+
+**Health Monitoring**
+- Channel health check endpoint
+- Last entry ID tracking per channel
+- Channel update timestamp monitoring
+
+**Write Verification** (Optional)
+- Post-write verification to ensure data integrity
+- Compares expected vs actual entry count
+- Available via `verify_after_write` parameter
+
 ## Synchronization Process
 
 ### Automatic Sync
@@ -246,6 +270,43 @@ POST /api/queue/sync-clear-failed
   }
 }
 ```
+
+#### Get ThingSpeak Backup Health Status
+
+```http
+GET /api/queue/thingspeak-health
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "healthy": true,
+    "channels": {
+      "patient_info": {
+        "available": true,
+        "last_entry_id": 150,
+        "updated_at": "2025-11-20T10:00:00Z"
+      },
+      "medicine_prescription": {
+        "available": true,
+        "last_entry_id": 200,
+        "updated_at": "2025-11-20T10:05:00Z"
+      },
+      "medicine_track": {
+        "available": true,
+        "last_entry_id": 300,
+        "updated_at": "2025-11-20T10:10:00Z"
+      }
+    },
+    "timestamp": "2025-11-20T10:15:00Z"
+  }
+}
+```
+
+This endpoint uses the ThingSpeak REST API to validate channel availability and retrieve current status before sync operations.
 
 ## Error Handling
 

@@ -1,6 +1,20 @@
 # ThingSpeak Bulk Write API Examples
 
-This document provides examples of using the ThingSpeak Bulk Write API for the eMAR system.
+This document provides examples of using the ThingSpeak Bulk Write API and REST API enhancements for the eMAR system.
+
+## REST API Reference
+
+- **Bulk Write API**: https://www.mathworks.com/help/thingspeak/bulkwritejsondata.html
+- **REST API**: https://www.mathworks.com/help/thingspeak/rest-api.html
+
+## Enhanced Features
+
+The eMAR system now includes REST API enhancements:
+- Channel status validation before writes
+- Health check endpoints
+- Enhanced error handling (400, 401, 404, 429 status codes)
+- Optional write verification
+- Last entry ID tracking
 
 ## Example 1: Bulk Write Patient Data
 
@@ -393,6 +407,125 @@ else:
     print("Sync failed after retries")
 ```
 
+## Example 7: Using REST API Enhancements
+
+### Check Channel Status Before Writing
+
+```python
+from services.thingspeak_bulk_service import thingspeak_bulk_service
+
+# Check channel health before bulk write
+health = thingspeak_bulk_service.health_check()
+
+if health['healthy']:
+    print("All channels are healthy, proceeding with sync...")
+    
+    # Get status for specific channel
+    status = thingspeak_bulk_service.get_channel_status('patient_info')
+    print(f"Channel: {status.get('name')}")
+    print(f"Last Entry ID: {status.get('last_entry_id')}")
+    print(f"Updated: {status.get('updated_at')}")
+else:
+    print("Some channels are unavailable:")
+    for channel, info in health['channels'].items():
+        if not info.get('available'):
+            print(f"  - {channel}: {info.get('error')}")
+```
+
+### Bulk Write with Validation and Verification
+
+```python
+from services.thingspeak_bulk_service import thingspeak_bulk_service, ThingSpeakBulkError
+
+# Prepare updates
+updates = [
+    {
+        "created_at": "2025-11-20T10:00:00Z",
+        "field1": "P001",
+        "field2": "John Doe",
+        "field3": "1",
+        "field4": "101"
+    }
+]
+
+# Prepare feeds in ThingSpeak format
+feeds = []
+for update in updates:
+    feed = {
+        'created_at': update['created_at'],
+        'field1': update['field1'],
+        'field2': update['field2'],
+        'field3': update['field3'],
+        'field4': update['field4']
+    }
+    feeds.append(feed)
+
+try:
+    # Write with validation (checks channel status first)
+    # and verification (confirms write succeeded)
+    result = thingspeak_bulk_service.bulk_write_to_channel(
+        channel_name='patient_info',
+        feeds=feeds,
+        validate_before_write=True,  # Check channel status first
+        verify_after_write=True       # Verify write succeeded
+    )
+    
+    print(f"✓ Wrote {result['feeds_written']} entries")
+    
+    if result.get('verification'):
+        verification = result['verification']
+        if verification['verified']:
+            print(f"✓ Write verified: {verification['actual_count']} entries confirmed")
+        else:
+            print(f"⚠ Write verification failed")
+            
+except ThingSpeakBulkError as e:
+    print(f"✗ Bulk write failed: {e}")
+```
+
+### Get Last Entry ID for Sync Tracking
+
+```python
+from services.thingspeak_bulk_service import thingspeak_bulk_service
+
+# Get last entry ID to know where to start next sync
+for channel in ['patient_info', 'medicine_prescription', 'medicine_track']:
+    last_id = thingspeak_bulk_service.get_last_entry_id(channel)
+    if last_id:
+        print(f"{channel}: Last entry ID = {last_id}")
+    else:
+        print(f"{channel}: No entries or channel unavailable")
+```
+
+### Enhanced Error Handling
+
+```python
+from services.thingspeak_bulk_service import thingspeak_bulk_service, ThingSpeakBulkError
+import requests
+
+try:
+    result = thingspeak_bulk_service.bulk_write_to_channel(
+        channel_name='patient_info',
+        feeds=feeds
+    )
+except ThingSpeakBulkError as e:
+    error_msg = str(e)
+    
+    # Check for specific error types
+    if "400" in error_msg or "Bad request" in error_msg:
+        print("Invalid data format - check field values")
+    elif "401" in error_msg or "Authentication failed" in error_msg:
+        print("Invalid API key - check credentials")
+    elif "404" in error_msg or "not found" in error_msg:
+        print("Channel not found - verify channel ID")
+    elif "429" in error_msg or "Rate limit" in error_msg:
+        print("Rate limit exceeded - wait before retrying")
+    elif "timeout" in error_msg.lower():
+        print("Request timeout - check network connection")
+    else:
+        print(f"Unexpected error: {error_msg}")
+```
+
 ## Notes
 
 1. **Maximum Updates**: ThingSpeak bulk write API accepts up to 100 updates per request
@@ -400,6 +533,9 @@ else:
 3. **Timestamps**: Use ISO 8601 format with UTC timezone (e.g., "2025-11-20T10:00:00Z")
 4. **Field Format**: Use field1-field8 keys matching your channel configuration
 5. **Batching**: For large datasets, batch updates to respect the 100-update limit
+6. **Validation**: Enable `validate_before_write=True` to check channel status before writing
+7. **Verification**: Enable `verify_after_write=True` to confirm data was written correctly
+8. **Timeout**: Default timeout is 30 seconds, configurable in ThingSpeakBulkService
 
 ## References
 
