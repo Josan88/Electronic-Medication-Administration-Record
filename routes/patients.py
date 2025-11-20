@@ -6,7 +6,7 @@ including CRUD operations and patient-specific queries.
 """
 
 from flask import Blueprint, request
-from services.thingspeak_service import thingspeak_service, ThingSpeakError
+from services.hybrid_service import hybrid_service, HybridDataServiceError
 from utils.errors import error_response, success_response, ValidationError, NotFoundError
 from validators import validate_patient_data
 
@@ -15,17 +15,17 @@ patients_bp = Blueprint('patients', __name__, url_prefix='/api')
 
 @patients_bp.route("/patients", methods=["GET"])
 def get_patients():
-    """Get all patient information from ThingSpeak"""
+    """Get all patient information from local database (with ThingSpeak fallback)"""
     try:
-        patients = thingspeak_service.read_channel("patient_info")
+        patients = hybrid_service.read_channel("patient_info")
         return success_response(data=patients)
-    except ThingSpeakError as e:
+    except HybridDataServiceError as e:
         return error_response(str(e), 500)
 
 
 @patients_bp.route("/patients", methods=["POST"])
 def add_patient():
-    """Add a new patient to ThingSpeak"""
+    """Add a new patient to local database (with async ThingSpeak sync)"""
     try:
         data = request.json
         if data is None:
@@ -34,14 +34,14 @@ def add_patient():
         # Validate and sanitize input data
         validated_data = validate_patient_data(data)
 
-        entry_id = thingspeak_service.write_to_channel("patient_info", validated_data)
+        entry_id = hybrid_service.write_to_channel("patient_info", validated_data)
         return success_response(
             data={"entry_id": entry_id},
             message="Patient added successfully"
         )
     except ValidationError as e:
         return error_response(str(e), 400)
-    except ThingSpeakError as e:
+    except HybridDataServiceError as e:
         return error_response(str(e), 500)
 
 
@@ -49,14 +49,14 @@ def add_patient():
 def get_patient_by_id(patient_id):
     """Get patient information by Patient ID"""
     try:
-        patient = thingspeak_service.get_patient(patient_id)
+        patient = hybrid_service.get_patient(patient_id)
         if patient:
             return success_response(data=patient)
         else:
             raise NotFoundError("Patient not found")
     except NotFoundError as e:
         return error_response(str(e), 404)
-    except ThingSpeakError as e:
+    except HybridDataServiceError as e:
         return error_response(str(e), 500)
 
 

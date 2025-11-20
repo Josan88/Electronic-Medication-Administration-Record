@@ -65,6 +65,16 @@ class Config:
     def THINGSPEAK_RESULTS_LIMIT(self):
         """Maximum number of results to retrieve from ThingSpeak."""
         return 100
+    
+    @property
+    def LOCAL_DB_PATH(self):
+        """Base path for local database storage."""
+        return os.environ.get("LOCAL_DB_PATH", "/tmp/emar_local_db")
+    
+    @property
+    def SYNC_INTERVAL_SECONDS(self):
+        """Interval in seconds between ThingSpeak sync operations."""
+        return int(os.environ.get("SYNC_INTERVAL_SECONDS", "300"))  # Default 5 minutes
 
     @property
     def THINGSPEAK_CHANNELS(self):
