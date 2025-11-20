@@ -235,9 +235,12 @@ def validate_notes(notes: str) -> str:
     
     Returns:
         Validated and sanitized notes
+    
+    Raises:
+        ValidationError: If notes is invalid
     """
     if not notes:
-        return ""
+        raise ValidationError("Notes is required")
     
     # Allow longer notes but sanitize them
     notes = sanitize_string(notes, max_length=500)

@@ -384,11 +384,13 @@ async function addPrescription() {
       !prescriptionData.medicine_name ||
       !prescriptionData.dosage ||
       !prescriptionData.frequency ||
-      !prescriptionData.start_date
+      !prescriptionData.start_date ||
+      !prescriptionData.end_date ||
+      !prescriptionData.time_slot
     ) {
       showMessage(
         "error",
-        `Skipping an incomplete medicine entry. Fill out required fields.`
+        `Skipping an incomplete medicine entry. Fill out all required fields.`
       );
       failureCount++;
       continue;
@@ -483,7 +485,9 @@ function showPrescriptionPreview() {
       data.medicine_name &&
       data.dosage &&
       data.frequency &&
-      data.start_date
+      data.start_date &&
+      data.end_date &&
+      data.time_slot
     ) {
       validCount++;
       previewHTML += `
