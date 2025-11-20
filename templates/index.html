@@ -262,12 +262,17 @@
                   </div>
                   <div class="form-group">
                     <label>Frequency *</label>
+                    <select name="frequency_select" class="frequency-select" required>
+                      <option value="">Select Frequency</option>
+                    </select>
                     <input
                       type="text"
                       name="frequency"
-                      placeholder="e.g., 3 times daily"
-                      required
+                      class="custom-frequency-input"
+                      placeholder="Enter custom frequency (e.g., 3 times daily)"
+                      style="display: none; margin-top: 0.5rem;"
                     />
+                    <small class="frequency-hint" style="display: block; margin-top: 0.25rem; color: #666; font-size: 0.875rem;"></small>
                   </div>
                   <div class="form-group">
                     <label>Start Date *</label>
@@ -277,13 +282,25 @@
                     <label>End Date</label>
                     <input type="date" name="end_date" />
                   </div>
-                  <div class="form-group">
+                  <div class="form-group full-width">
                     <label>Time Slots *</label>
+                    <small style="display: block; margin-bottom: 0.5rem; color: #666;">Select administration times or use suggested times based on frequency</small>
+                    <div class="suggested-times-container" style="margin-bottom: 0.75rem; display: none;">
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-sm use-suggested-times-btn"
+                        style="font-size: 0.875rem;"
+                      >
+                        ✓ Use Suggested Times
+                      </button>
+                      <span class="suggested-times-list" style="margin-left: 0.75rem; color: #667eea; font-size: 0.875rem;"></span>
+                    </div>
                     <div class="time-slots-container"></div>
                     <button
                       type="button"
                       class="btn btn-secondary btn-sm"
                       onclick="addTimeField(this)"
+                      style="margin-top: 0.5rem;"
                     >
                       + Add Time
                     </button>

@@ -242,10 +242,10 @@ paths:
                       - patient_id: P001
                         medicine_name: Metformin
                         dosage: 500mg
-                        frequency: Twice daily
+                        frequency: BID
                         start_date: "2025-10-30"
                         end_date: "2025-11-30"
-                        time_slot: "8AM, 8PM"
+                        time_slot: "09:00, 21:00"
                         created_at: "2025-11-13T10:35:00Z"
         '500':
           description: ThingSpeak error
@@ -357,10 +357,10 @@ paths:
                       - patient_id: P001
                         medicine_name: Metformin
                         dosage: 500mg
-                        frequency: Twice daily
+                        frequency: BID
                         start_date: "2025-10-30"
                         end_date: "2025-11-30"
-                        time_slot: "8AM, 8PM"
+                        time_slot: "09:00, 21:00"
                         created_at: "2025-11-13T10:35:00Z"
         '500':
           description: ThingSpeak error
@@ -392,10 +392,10 @@ paths:
                   patient_id: P001
                   medicine_name: Metformin
                   dosage: 500mg
-                  frequency: Twice daily
+                  frequency: BID
                   start_date: "2025-10-30"
                   end_date: "2025-11-30"
-                  time_slot: "8AM, 8PM"
+                  time_slot: "09:00, 21:00"
       responses:
         '202':
           description: Prescription queued successfully
@@ -711,10 +711,15 @@ components:
           example: 500mg
         frequency:
           type: string
-          description: Administration frequency (2-100 chars)
+          description: |
+            Administration frequency (2-100 chars). Supports standard medical abbreviations
+            such as QD (once daily), BID (twice daily), TID (three times daily), 
+            QID (four times daily), Q4H (every 4 hours), Q6H (every 6 hours), 
+            Q8H (every 8 hours), Q12H (every 12 hours), Q24H (every 24 hours), 
+            PRN (as needed), or custom text descriptions.
           minLength: 2
           maxLength: 100
-          example: Twice daily
+          example: BID
         start_date:
           type: string
           format: date
@@ -727,10 +732,13 @@ components:
           example: "2025-11-30"
         time_slot:
           type: string
-          description: Administration time slots (comma-separated, 2-100 chars)
+          description: |
+            Administration time slots (comma-separated, 2-100 chars).
+            Supports 24-hour format (HH:MM) or 12-hour format with AM/PM.
+            Examples: "09:00, 13:00, 17:00, 21:00" or "9AM, 1PM, 5PM, 9PM"
           minLength: 2
           maxLength: 100
-          example: "8AM, 8PM"
+          example: "09:00, 21:00"
       required:
         - patient_id
         - medicine_name

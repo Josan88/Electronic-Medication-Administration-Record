@@ -716,3 +716,128 @@ footer {
 .management-only {
   display: block;
 }
+
+/* Enhanced Frequency and Time Selection Styles */
+.frequency-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.frequency-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.custom-frequency-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.custom-frequency-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.frequency-hint {
+  font-style: italic;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.suggested-times-container {
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e0e0e0;
+}
+
+.use-suggested-times-btn {
+  background-color: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.3s ease;
+}
+
+.use-suggested-times-btn:hover {
+  background-color: #5568d3;
+}
+
+.suggested-times-list {
+  font-weight: 500;
+}
+
+.time-slot-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.time-slot-select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 0.95rem;
+}
+
+.time-slot-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.remove-time {
+  margin-left: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.remove-time:hover {
+  background-color: #c82333;
+}
+
+/* Accessibility improvements */
+.frequency-select:focus-visible,
+.custom-frequency-input:focus-visible,
+.time-slot-select:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments for time slots */
+@media (max-width: 768px) {
+  .time-slot-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .time-slot-select {
+    margin-bottom: 0.5rem;
+  }
+  
+  .remove-time {
+    margin-left: 0;
+    width: 100%;
+  }
+}

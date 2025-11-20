@@ -1,6 +1,115 @@
 // Electronic Medication Administration Record - Main JavaScript
 
-// Time slots options constant
+// Standard medication frequency options with descriptions
+const FREQUENCY_OPTIONS = [
+  { 
+    value: "QD", 
+    label: "QD (Once Daily)", 
+    description: "Once per day",
+    timesPerDay: 1,
+    suggestedTimes: ["09:00"]
+  },
+  { 
+    value: "BID", 
+    label: "BID (Twice Daily)", 
+    description: "Two times per day",
+    timesPerDay: 2,
+    suggestedTimes: ["09:00", "21:00"]
+  },
+  { 
+    value: "TID", 
+    label: "TID (Three Times Daily)", 
+    description: "Three times per day",
+    timesPerDay: 3,
+    suggestedTimes: ["09:00", "13:00", "21:00"]
+  },
+  { 
+    value: "QID", 
+    label: "QID (Four Times Daily)", 
+    description: "Four times per day",
+    timesPerDay: 4,
+    suggestedTimes: ["09:00", "13:00", "17:00", "21:00"]
+  },
+  { 
+    value: "Q4H", 
+    label: "Q4H (Every 4 Hours)", 
+    description: "Six times per day",
+    timesPerDay: 6,
+    suggestedTimes: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"]
+  },
+  { 
+    value: "Q6H", 
+    label: "Q6H (Every 6 Hours)", 
+    description: "Four times per day",
+    timesPerDay: 4,
+    suggestedTimes: ["00:00", "06:00", "12:00", "18:00"]
+  },
+  { 
+    value: "Q8H", 
+    label: "Q8H (Every 8 Hours)", 
+    description: "Three times per day",
+    timesPerDay: 3,
+    suggestedTimes: ["06:00", "14:00", "22:00"]
+  },
+  { 
+    value: "Q12H", 
+    label: "Q12H (Every 12 Hours)", 
+    description: "Twice per day",
+    timesPerDay: 2,
+    suggestedTimes: ["08:00", "20:00"]
+  },
+  { 
+    value: "Q24H", 
+    label: "Q24H (Every 24 Hours)", 
+    description: "Once per day",
+    timesPerDay: 1,
+    suggestedTimes: ["09:00"]
+  },
+  { 
+    value: "PRN", 
+    label: "PRN (As Needed)", 
+    description: "As needed",
+    timesPerDay: 0,
+    suggestedTimes: []
+  },
+  { 
+    value: "CUSTOM", 
+    label: "Custom Frequency", 
+    description: "Enter custom frequency",
+    timesPerDay: 0,
+    suggestedTimes: []
+  }
+];
+
+// Extended time slot options for flexible scheduling
+const TIME_SLOT_OPTIONS = [
+  { value: "00:00", label: "12:00 AM (Midnight)" },
+  { value: "01:00", label: "1:00 AM" },
+  { value: "02:00", label: "2:00 AM" },
+  { value: "03:00", label: "3:00 AM" },
+  { value: "04:00", label: "4:00 AM" },
+  { value: "05:00", label: "5:00 AM" },
+  { value: "06:00", label: "6:00 AM" },
+  { value: "07:00", label: "7:00 AM" },
+  { value: "08:00", label: "8:00 AM" },
+  { value: "09:00", label: "9:00 AM" },
+  { value: "10:00", label: "10:00 AM" },
+  { value: "11:00", label: "11:00 AM" },
+  { value: "12:00", label: "12:00 PM (Noon)" },
+  { value: "13:00", label: "1:00 PM" },
+  { value: "14:00", label: "2:00 PM" },
+  { value: "15:00", label: "3:00 PM" },
+  { value: "16:00", label: "4:00 PM" },
+  { value: "17:00", label: "5:00 PM" },
+  { value: "18:00", label: "6:00 PM" },
+  { value: "19:00", label: "7:00 PM" },
+  { value: "20:00", label: "8:00 PM" },
+  { value: "21:00", label: "9:00 PM" },
+  { value: "22:00", label: "10:00 PM" },
+  { value: "23:00", label: "11:00 PM" },
+];
+
+// Legacy support - keep for backward compatibility
 const FIXED_TIME_SLOTS = [
   { value: "09:00", label: "9:00 AM" },
   { value: "13:00", label: "1:00 PM" },
@@ -262,8 +371,132 @@ function addMedicineField() {
     startDateInput.value = getLocalDateString();
   }
 
+  // Populate frequency dropdown
+  const frequencySelect = newGroup.querySelector('select[name="frequency_select"]');
+  if (frequencySelect) {
+    FREQUENCY_OPTIONS.forEach(option => {
+      const optEl = document.createElement('option');
+      optEl.value = option.value;
+      optEl.textContent = option.label;
+      optEl.setAttribute('data-description', option.description);
+      optEl.setAttribute('data-times-per-day', option.timesPerDay);
+      optEl.setAttribute('data-suggested-times', JSON.stringify(option.suggestedTimes));
+      frequencySelect.appendChild(optEl);
+    });
+
+    // Add event listener for frequency change
+    frequencySelect.addEventListener('change', function() {
+      handleFrequencyChange(this);
+    });
+  }
+
   // Append the new group
   container.appendChild(newGroup);
+}
+
+// Handle frequency selection change
+function handleFrequencyChange(selectElement) {
+  const medicineGroup = selectElement.closest('.medicine-group');
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  const frequencyValue = selectElement.value;
+  
+  // Get related elements
+  const customInput = medicineGroup.querySelector('input[name="frequency"]');
+  const hintElement = medicineGroup.querySelector('.frequency-hint');
+  const suggestedTimesContainer = medicineGroup.querySelector('.suggested-times-container');
+  const suggestedTimesList = medicineGroup.querySelector('.suggested-times-list');
+  const useSuggestedBtn = medicineGroup.querySelector('.use-suggested-times-btn');
+  
+  if (frequencyValue === 'CUSTOM') {
+    // Show custom input field
+    customInput.style.display = 'block';
+    customInput.required = true;
+    customInput.value = '';
+    hintElement.textContent = 'Enter a custom frequency (e.g., "Every other day", "Weekly on Monday")';
+    suggestedTimesContainer.style.display = 'none';
+  } else if (frequencyValue) {
+    // Hide custom input and show hint
+    customInput.style.display = 'none';
+    customInput.required = false;
+    customInput.value = frequencyValue;
+    
+    const description = selectedOption.getAttribute('data-description');
+    const timesPerDay = selectedOption.getAttribute('data-times-per-day');
+    const suggestedTimes = JSON.parse(selectedOption.getAttribute('data-suggested-times') || '[]');
+    
+    hintElement.textContent = description;
+    
+    // Show suggested times if available
+    if (suggestedTimes.length > 0) {
+      suggestedTimesContainer.style.display = 'block';
+      
+      // Format suggested times for display
+      const timeLabels = suggestedTimes.map(time => {
+        const timeOpt = TIME_SLOT_OPTIONS.find(opt => opt.value === time);
+        return timeOpt ? timeOpt.label : time;
+      });
+      suggestedTimesList.textContent = `Suggested: ${timeLabels.join(', ')}`;
+      
+      // Set up button to use suggested times
+      useSuggestedBtn.onclick = function() {
+        applySuggestedTimes(medicineGroup, suggestedTimes);
+      };
+    } else {
+      suggestedTimesContainer.style.display = 'none';
+    }
+  } else {
+    // No selection
+    customInput.style.display = 'none';
+    customInput.required = false;
+    hintElement.textContent = '';
+    suggestedTimesContainer.style.display = 'none';
+  }
+}
+
+// Apply suggested times to the medicine group
+function applySuggestedTimes(medicineGroup, suggestedTimes) {
+  const timeSlotsContainer = medicineGroup.querySelector('.time-slots-container');
+  
+  // Clear existing time slots
+  timeSlotsContainer.innerHTML = '';
+  
+  // Add suggested time slots
+  suggestedTimes.forEach(time => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'time-slot-wrapper';
+    
+    const selectField = document.createElement('select');
+    selectField.name = 'time_slots[]';
+    selectField.required = true;
+    selectField.className = 'form-control time-slot-select';
+    selectField.style.marginRight = '10px';
+    selectField.style.marginBottom = '5px';
+    
+    TIME_SLOT_OPTIONS.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      if (opt.value === time) {
+        option.selected = true;
+      }
+      selectField.appendChild(option);
+    });
+    
+    // Add remove button
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'btn btn-danger btn-sm remove-time';
+    removeButton.innerHTML = '✕';
+    removeButton.onclick = function() {
+      this.parentElement.remove();
+    };
+    
+    wrapper.appendChild(selectField);
+    wrapper.appendChild(removeButton);
+    timeSlotsContainer.appendChild(wrapper);
+  });
+  
+  showMessage('success', 'Suggested times applied successfully!');
 }
 
 function removeMedicineField(button) {
@@ -274,23 +507,6 @@ function removeMedicineField(button) {
 function addTimeField(button) {
   const container = button.previousElementSibling; // the div.time-slots-container
   const medicineGroup = button.closest(".medicine-group");
-
-  // Get the frequency value
-  const frequencyInput = medicineGroup.querySelector('[name="frequency"]');
-  const maxSlots = parseInt(frequencyInput.value) || 0;
-
-  // Count current time slots
-  const currentSlots = container.querySelectorAll(
-    'select[name="time_slots[]"]'
-  ).length;
-
-  if (currentSlots >= maxSlots) {
-    showMessage(
-      "error",
-      `You can only add ${maxSlots} time slot(s) as per the frequency.`
-    );
-    return;
-  }
 
   // Create new select wrapper div
   const wrapper = document.createElement("div");
@@ -304,7 +520,7 @@ function addTimeField(button) {
   selectField.style.marginRight = "10px";
   selectField.style.marginBottom = "5px";
 
-  FIXED_TIME_SLOTS.forEach((opt) => {
+  TIME_SLOT_OPTIONS.forEach((opt) => {
     const option = document.createElement("option");
     option.value = opt.value;
     option.textContent = opt.label;
