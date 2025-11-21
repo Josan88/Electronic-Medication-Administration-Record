@@ -126,6 +126,14 @@ def process_thingspeak_sync():
 
     # Sync interval in seconds (e.g., every 5 minutes)
     SYNC_INTERVAL_SECONDS = 300
+    
+    # Track last write time per channel to respect ThingSpeak rate limits (15s)
+    last_write_times = {
+        'patient_info': 0,
+        'medicine_prescription': 0,
+        'medicine_track': 0
+    }
+    THINGSPEAK_RATE_LIMIT = 15  # seconds between writes to same channel
 
     while True:
         try:
@@ -136,6 +144,20 @@ def process_thingspeak_sync():
                 try:
                     channel_name = item.channel_name
                     since_entry_id = item.since_entry_id
+                    
+                    # Check ThingSpeak rate limit for this channel
+                    current_time = time.time()
+                    time_since_last_write = current_time - last_write_times.get(channel_name, 0)
+                    
+                    if time_since_last_write < THINGSPEAK_RATE_LIMIT:
+                        # Too soon to write to this channel, reschedule for later
+                        wait_time = THINGSPEAK_RATE_LIMIT - time_since_last_write
+                        item.next_retry_at = current_time + wait_time
+                        logger.debug(
+                            f"Rate limit: waiting {wait_time:.1f}s before syncing {channel_name}"
+                        )
+                        time.sleep(1)
+                        continue
 
                     # Get feeds from local database that need to be synced
                     feeds = local_db.get_feeds_for_bulk_write(
@@ -163,9 +185,12 @@ def process_thingspeak_sync():
                                 f"{result.get('feeds_written', 0)} entries"
                             )
 
-                            # Small delay between batches to respect rate limits
+                            # Update last write time after successful write
+                            last_write_times[channel_name] = time.time()
+
+                            # Delay between batches to respect rate limits
                             if batch_idx < len(batches) - 1:
-                                time.sleep(1)
+                                time.sleep(THINGSPEAK_RATE_LIMIT)
 
                         # Mark as success with highest entry_id synced
                         highest_entry_id = max(

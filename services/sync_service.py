@@ -167,6 +167,16 @@ class SyncQueue:
             if since_entry_id is None:
                 since_entry_id = self.last_synced_entry_ids.get(channel_name, 0)
             
+            # Check if there's already a pending sync for this channel
+            # to avoid duplicate sync operations that cause rate limit errors
+            for existing_item in self.pending_items:
+                if existing_item.channel_name == channel_name:
+                    logger.debug(
+                        f"Sync operation for {channel_name} already pending, "
+                        f"skipping duplicate"
+                    )
+                    return
+            
             item = SyncQueueItem(channel_name, since_entry_id)
             self.pending_items.append(item)
             self._save_to_disk()

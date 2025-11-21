@@ -213,6 +213,15 @@ The system automatically syncs data to ThingSpeak in the background:
    - Update last synced entry_id on success
    - Retry with exponential backoff on failure
 
+### Rate Limiting
+
+To prevent ThingSpeak API rate limit errors:
+
+- **Deduplication**: Only one sync operation per channel can be pending at a time
+- **Rate Limit Enforcement**: 15-second minimum delay between writes to the same channel
+- **Batch Delays**: 15-second delay between batches for the same channel
+- **Smart Queuing**: Sync operations wait if rate limit not yet satisfied
+
 ### Retry Logic
 
 - **Max Attempts**: 5 per sync operation
