@@ -24,15 +24,11 @@ TS_RATE_LIMIT_SECONDS = config.THINGSPEAK_RATE_LIMIT_SECONDS
 register_blueprints(app, persistent_queue)
 
 # Configure Swagger UI
-SWAGGER_URL = '/api/docs'
-API_URL = '/swagger.yaml'
+SWAGGER_URL = "/api/docs"
+API_URL = "/swagger.yaml"
 
 swaggerui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,
-    API_URL,
-    config={
-        'app_name': "eMAR API Documentation"
-    }
+    SWAGGER_URL, API_URL, config={"app_name": "eMAR API Documentation"}
 )
 app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
@@ -58,14 +54,14 @@ def management_login():
 @app.route("/dashboard")
 def index():
     """Main dashboard after login"""
-    role = request.args.get('role', 'nurse')
+    role = request.args.get("role", "nurse")
     return render_template("index.html", role=role)
 
 
-@app.route('/swagger.yaml')
+@app.route("/swagger.yaml")
 def swagger_spec():
     """Serve the OpenAPI specification file"""
-    return send_from_directory('.', 'swagger.yaml')
+    return send_from_directory(".", "swagger.yaml")
 
 
 @app.route("/api/health")
@@ -127,37 +123,36 @@ def process_prescription_queue():
 def process_thingspeak_sync():
     """Background worker to sync local database to ThingSpeak using bulk write."""
     logger.info("ThingSpeak sync worker started")
-    
+
     # Sync interval in seconds (e.g., every 5 minutes)
     SYNC_INTERVAL_SECONDS = 300
-    
+
     while True:
         try:
             # Check for pending sync operations
             item = sync_queue.get_next_ready_item()
-            
+
             if item:
                 try:
                     channel_name = item.channel_name
                     since_entry_id = item.since_entry_id
-                    
+
                     # Get feeds from local database that need to be synced
                     feeds = local_db.get_feeds_for_bulk_write(
-                        channel_name,
-                        since_entry_id
+                        channel_name, since_entry_id
                     )
-                    
+
                     if feeds:
                         # Prepare batches (max 100 per batch as per ThingSpeak limits)
                         batches = thingspeak_bulk_service.prepare_feeds_for_bulk_write(
                             feeds, max_batch_size=100
                         )
-                        
+
                         logger.info(
                             f"Syncing {len(feeds)} entries to ThingSpeak {channel_name} "
                             f"in {len(batches)} batches"
                         )
-                        
+
                         # Write each batch
                         for batch_idx, batch in enumerate(batches):
                             result = thingspeak_bulk_service.bulk_write_to_channel(
@@ -167,19 +162,21 @@ def process_thingspeak_sync():
                                 f"Batch {batch_idx + 1}/{len(batches)} synced: "
                                 f"{result.get('feeds_written', 0)} entries"
                             )
-                            
+
                             # Small delay between batches to respect rate limits
                             if batch_idx < len(batches) - 1:
                                 time.sleep(1)
-                        
+
                         # Mark as success with highest entry_id synced
-                        highest_entry_id = max(feed.get('entry_id', 0) for feed in feeds)
+                        highest_entry_id = max(
+                            feed.get("entry_id", 0) for feed in feeds
+                        )
                         sync_queue.mark_success(item, highest_entry_id)
                     else:
                         # No new data to sync, mark as success
                         sync_queue.mark_success(item, since_entry_id)
                         logger.debug(f"No new data to sync for {channel_name}")
-                        
+
                 except Exception as e:
                     error_msg = str(e)
                     logger.error(f"Failed to sync {item.channel_name}: {error_msg}")
@@ -188,25 +185,33 @@ def process_thingspeak_sync():
                 # No pending items, schedule periodic sync for all channels
                 # Check if enough time has passed since last sync
                 current_time = time.time()
-                last_sync = sync_queue.stats.get('last_sync_time')
-                
+                last_sync = sync_queue.stats.get("last_sync_time")
+
                 # If last_sync is None, initialize to 0 (never synced)
                 if last_sync is None:
                     last_sync = 0
-                
+
                 if current_time - last_sync >= SYNC_INTERVAL_SECONDS:
                     # Queue sync operations for all channels
-                    for channel_name in ['patient_info', 'medicine_prescription', 'medicine_track']:
-                        last_synced_entry_id = sync_queue.get_last_synced_entry_id(channel_name)
-                        sync_queue.add_sync_operation(channel_name, last_synced_entry_id)
+                    for channel_name in [
+                        "patient_info",
+                        "medicine_prescription",
+                        "medicine_track",
+                    ]:
+                        last_synced_entry_id = sync_queue.get_last_synced_entry_id(
+                            channel_name
+                        )
+                        sync_queue.add_sync_operation(
+                            channel_name, last_synced_entry_id
+                        )
                         logger.debug(
                             f"Scheduled periodic sync for {channel_name} "
                             f"(since entry_id {last_synced_entry_id})"
                         )
-            
+
             # Sleep for a bit before checking again
             time.sleep(10)
-            
+
         except Exception as e:
             logger.error(f"Error in ThingSpeak sync worker: {e}", exc_info=True)
             time.sleep(30)  # Wait longer on error
