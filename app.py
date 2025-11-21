@@ -129,9 +129,9 @@ def process_thingspeak_sync():
     
     # Track last write time per channel to respect ThingSpeak rate limits (15s)
     last_write_times = {
-        'patient_info': 0,
-        'medicine_prescription': 0,
-        'medicine_track': 0
+        'patient_info': 0.0,
+        'medicine_prescription': 0.0,
+        'medicine_track': 0.0
     }
     THINGSPEAK_RATE_LIMIT = 15  # seconds between writes to same channel
 
