@@ -184,6 +184,7 @@ The bulk write service now includes enhanced features from the ThingSpeak REST A
 - Reduces failed write attempts due to channel unavailability
 
 **Enhanced Error Handling**
+- Accepts both 200 (OK) and 202 (Accepted) status codes as successful responses
 - Status code-specific error messages (400, 401, 404, 429)
 - Timeout configuration (30 seconds default)
 - Detailed error logging with API response details

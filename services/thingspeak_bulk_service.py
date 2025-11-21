@@ -213,11 +213,12 @@ class ThingSpeakBulkService:
             )
             
             # Enhanced error handling based on status codes
-            if response.status_code == 200:
+            # ThingSpeak Bulk Write API returns 200 or 202 (Accepted) for successful writes
+            if response.status_code in (200, 202):
                 result = response.json()
                 logger.info(
                     f"Successfully bulk wrote {len(updates)} entries to ThingSpeak channel {channel_name}. "
-                    f"Response: {result}"
+                    f"Status: {response.status_code}, Response: {result}"
                 )
                 
                 # Optional verification after write

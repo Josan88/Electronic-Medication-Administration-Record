@@ -12,7 +12,7 @@ This document provides examples of using the ThingSpeak Bulk Write API and REST 
 The eMAR system now includes REST API enhancements:
 - Channel status validation before writes
 - Health check endpoints
-- Enhanced error handling (400, 401, 404, 429 status codes)
+- Enhanced error handling (accepts 200/202 success codes, handles 400, 401, 404, 429 errors)
 - Optional write verification
 - Last entry ID tracking
 
@@ -536,6 +536,7 @@ except ThingSpeakBulkError as e:
 6. **Validation**: Enable `validate_before_write=True` to check channel status before writing
 7. **Verification**: Enable `verify_after_write=True` to confirm data was written correctly
 8. **Timeout**: Default timeout is 30 seconds, configurable in ThingSpeakBulkService
+9. **Success Codes**: ThingSpeak Bulk Write API returns 200 (OK) or 202 (Accepted) for successful writes
 
 ## References
 
