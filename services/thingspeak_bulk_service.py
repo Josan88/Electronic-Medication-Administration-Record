@@ -249,7 +249,9 @@ class ThingSpeakBulkService:
                 logger.warning(error_msg)
                 raise ThingSpeakBulkError(error_msg)
             else:
-                response.raise_for_status()
+                error_msg = f"Unexpected status code {response.status_code} for {channel_name}: {response.text}"
+                logger.error(error_msg)
+                raise ThingSpeakBulkError(error_msg)
             
         except requests.Timeout as e:
             error_msg = f"Request timeout for {channel_name}: {str(e)}"
