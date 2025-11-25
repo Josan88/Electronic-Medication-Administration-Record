@@ -539,8 +539,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-server()
-
-
-if __name__ == "__main__":
-    sys.exit(main())
