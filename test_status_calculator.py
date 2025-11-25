@@ -126,18 +126,25 @@ def run_all_tests():
     print("="*60)
     
     all_passed = True
-    
-    # Run individual test suites
-    if not test_parse_time_from_string():
-        all_passed = False
-    
-    if not test_is_time_within_slot():
-        all_passed = False
-    
-    if not test_calculate_status():
-        all_passed = False
-    
+
+    test_suites = [
+        ("test_parse_time_from_string", test_parse_time_from_string),
+        ("test_is_time_within_slot", test_is_time_within_slot),
+        ("test_calculate_status", test_calculate_status),
+    ]
+
+    for name, test_func in test_suites:
+        try:
+            test_func()
+        except AssertionError as exc:
+            all_passed = False
+            print(f"✗ {name} failed: {exc}")
+        except Exception as exc:  # Capture unexpected errors for visibility
+            all_passed = False
+            print(f"✗ {name} raised unexpected error: {exc}")
+
     # Final summary
+
     print("\n" + "="*60)
     if all_passed:
         print("✓ ALL TESTS PASSED")

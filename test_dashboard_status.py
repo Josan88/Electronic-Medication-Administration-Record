@@ -338,30 +338,35 @@ def run_all_tests():
     print("="*60)
     
     all_passed = True
-    
-    # Run individual test suites
-    if not test_single_slot_prescription():
-        all_passed = False
-    
-    if not test_multiple_slot_prescription_first_slot():
-        all_passed = False
-    
-    if not test_multiple_slot_prescription_middle_slot():
-        all_passed = False
-    
-    if not test_different_patient_no_match():
-        all_passed = False
-    
-    if not test_different_medicine_no_match():
-        all_passed = False
-    
-    if not test_different_date_no_match():
-        all_passed = False
-    
-    if not test_tracking_with_multiple_slots():
-        all_passed = False
-    
+
+    test_suites = [
+        ("test_single_slot_prescription", test_single_slot_prescription),
+        (
+            "test_multiple_slot_prescription_first_slot",
+            test_multiple_slot_prescription_first_slot,
+        ),
+        (
+            "test_multiple_slot_prescription_middle_slot",
+            test_multiple_slot_prescription_middle_slot,
+        ),
+        ("test_different_patient_no_match", test_different_patient_no_match),
+        ("test_different_medicine_no_match", test_different_medicine_no_match),
+        ("test_different_date_no_match", test_different_date_no_match),
+        ("test_tracking_with_multiple_slots", test_tracking_with_multiple_slots),
+    ]
+
+    for name, test_func in test_suites:
+        try:
+            test_func()
+        except AssertionError as exc:
+            all_passed = False
+            print(f"✗ {name} failed: {exc}")
+        except Exception as exc:  # Capture unexpected errors for visibility
+            all_passed = False
+            print(f"✗ {name} raised unexpected error: {exc}")
+
     # Final summary
+
     print("\n" + "="*60)
     if all_passed:
         print("✓ ALL TESTS PASSED")

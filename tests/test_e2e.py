@@ -634,11 +634,12 @@ class TestStatusSimulation:
         expect(page.locator("#managementChart")).to_be_visible()
 
         administered_count_text = page.locator("#todayAdministrations").inner_text()
-        administered_count = int(administered_count_text)
 
         assert administered_count_text.isdigit(), (
             f"Expected numeric administered count, got: {administered_count_text}"
         )
+
+        administered_count = int(administered_count_text)
 
 
 class TestVideoRecording:
