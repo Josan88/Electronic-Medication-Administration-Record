@@ -164,7 +164,8 @@ def test_patient_api_validation():
             "room": "301",
             "bed": "A",
             "age": "45",
-            "gender": "Male"
+            "gender": "Male",
+            "notes": "Test notes"
         }
         response = requests.post(
             f"{BASE_URL}/api/patients",
@@ -196,7 +197,7 @@ def test_patient_api_validation():
             "bed": "A",
             "age": "45",
             "gender": "Male",
-            "notes": ""
+            "notes": "Regular notes"
         }
         response = requests.post(
             f"{BASE_URL}/api/patients",
@@ -228,7 +229,7 @@ def test_patient_api_validation():
             "bed": "A",
             "age": "200",
             "gender": "Male",
-            "notes": ""
+            "notes": "Test notes"
         }
         response = requests.post(
             f"{BASE_URL}/api/patients",
