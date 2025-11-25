@@ -42,8 +42,12 @@ def flask_server(flask_port):
     """
     Start Flask application in a background thread for testing.
     The server runs for the entire test session.
+    
+    Note: Environment variables are set before importing the app module to ensure
+    the config module picks up these test values during module initialization.
     """
-    # Set minimal environment variables for testing
+    # Set minimal environment variables for testing BEFORE importing app
+    # This ensures config.py uses these test values during initialization
     os.environ.setdefault('SECRET_KEY', 'test-secret-key')
     os.environ.setdefault('PATIENT_CHANNEL_ID', 'test_channel')
     os.environ.setdefault('PATIENT_WRITE_KEY', 'test_key')
@@ -55,6 +59,7 @@ def flask_server(flask_port):
     os.environ.setdefault('TRACKING_WRITE_KEY', 'test_key')
     os.environ.setdefault('TRACKING_READ_KEY', 'test_key')
 
+    # Import app after setting env vars to ensure config picks them up
     from app import app
     
     # Configure Flask for testing
