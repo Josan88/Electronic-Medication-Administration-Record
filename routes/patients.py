@@ -64,9 +64,9 @@ def get_patient_by_id(patient_id):
 def get_patient_prescriptions(patient_id):
     """Get all prescriptions for a specific patient"""
     try:
-        prescriptions = thingspeak_service.get_patient_prescriptions(patient_id)
+        prescriptions = hybrid_service.get_patient_prescriptions(patient_id)
         return success_response(data=prescriptions)
-    except ThingSpeakError as e:
+    except HybridDataServiceError as e:
         return error_response(str(e), 500)
 
 
@@ -74,9 +74,9 @@ def get_patient_prescriptions(patient_id):
 def get_patient_tracking(patient_id):
     """Get all medication tracking records for a specific patient"""
     try:
-        tracking = thingspeak_service.get_patient_tracking(patient_id)
+        tracking = hybrid_service.get_patient_tracking(patient_id)
         return success_response(data=tracking)
-    except ThingSpeakError as e:
+    except HybridDataServiceError as e:
         return error_response(str(e), 500)
 
 
@@ -84,9 +84,9 @@ def get_patient_tracking(patient_id):
 def check_patient(patient_id):
     """Check if a patient exists by Patient ID."""
     try:
-        exists = thingspeak_service.patient_exists(patient_id)
+        exists = hybrid_service.patient_exists(patient_id)
         from flask import jsonify
         return jsonify({"exists": exists})
-    except Exception as e:
+    except HybridDataServiceError as e:
         from flask import jsonify
         return jsonify({"exists": False, "error": str(e)}), 500
