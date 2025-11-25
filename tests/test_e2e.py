@@ -304,56 +304,64 @@ class TestNurseWorkflow:
         )
         assert track_resp.status_code == 200, track_resp.text
 
-        # Back to duty dashboard to confirm status shows complete/green
-        page.click("label.burger-icon")
-        page.wait_for_timeout(300)
-        page.click("button:has-text('Duty Dashboard')")
-        page.wait_for_timeout(500)
-        page.click("button.tab-button:has-text('Search by Patient')")
-        page.wait_for_timeout(300)
-        page.fill("#patientSearchInput", test_patient_id)
-        page.click("#byPatient button.btn-primary")
-        page.wait_for_timeout(3000)
-        status_container = page.locator("#patientMedsResult")
-        status_container.scroll_into_view_if_needed()
-        expect(status_container).not_to_be_empty(timeout=10000)
+        # Poll API until complete status is recorded
+        def _has_complete():
+            resp = requests.get(f"{app_url}/api/medication-tracking")
+            if resp.status_code != 200:
+                return False
+            payload = resp.json()
+            data = payload.get("data") if isinstance(payload, dict) else payload
+            if not data:
+                return False
+            for entry in data:
+                pid = entry.get("patient_id") or entry.get("patientId")
+                status_val = (entry.get("status") or entry.get("Status") or "").lower()
+                if pid == test_patient_id and status_val == "complete":
+                    return True
+            return False
 
-        text = status_container.inner_text()
-        if "Complete" not in text:
-            # Retry once after reload/search
-            page.reload()
+        deadline = time.time() + 12
+        while time.time() < deadline:
+            if _has_complete():
+                break
+            time.sleep(1)
+        assert _has_complete(), "Expected at least one complete tracking entry for patient"
+
+        # Back to duty dashboard to confirm status shows complete/green in UI
+        has_complete_ui = False
+        for attempt in range(2):
             page.click("label.burger-icon")
             page.wait_for_timeout(300)
             page.click("button:has-text('Duty Dashboard')")
             page.wait_for_timeout(500)
+            # Switch to search tab and refresh results
             page.click("button.tab-button:has-text('Search by Patient')")
             page.wait_for_timeout(300)
             page.fill("#patientSearchInput", test_patient_id)
             page.click("#byPatient button.btn-primary")
-            page.wait_for_timeout(3000)
-            text = page.locator("#patientMedsResult").inner_text()
+            page.wait_for_timeout(2000)
 
-        if "Complete" in text:
-            page.wait_for_timeout(1500)  # pause to keep status visible in video
-        else:
-            # Fallback: show tracking data directly in the browser so video captures it
-            page.goto(f"{app_url}/api/patient/{test_patient_id}/tracking")
-            page.wait_for_timeout(1500)
+            # Nudge view to the timeline area without waiting on visibility
+            try:
+                page.evaluate("document.getElementById('timeline-tables')?.scrollIntoView({behavior:'instant',block:'center'});")
+            except Exception:
+                pass
+            page.wait_for_timeout(1000)
 
-        # Verify status via API for determinism
-        tracking_resp = requests.get(f"{app_url}/api/medication-tracking")
-        assert tracking_resp.status_code == 200, tracking_resp.text
-        payload = tracking_resp.json()
-        tracking_data = payload.get("data") if isinstance(payload, dict) else payload
-        assert tracking_data, "Tracking data should not be empty"
-        has_complete = False
-        for entry in tracking_data:
-            pid = entry.get("patient_id") or entry.get("patientId")
-            status_val = (entry.get("status") or entry.get("Status") or "").lower()
-            if pid == test_patient_id and status_val == "complete":
-                has_complete = True
+            status_container = page.locator("#patientMedsResult")
+            status_container.scroll_into_view_if_needed()
+            expect(status_container).not_to_be_empty(timeout=15000)
+            text = status_container.inner_text()
+            if "Complete" in text:
+                has_complete_ui = True
                 break
-        assert has_complete, "Expected at least one complete tracking entry for patient"
+
+        if not has_complete_ui:
+            # Final fallback: show tracking data directly so the video captures it
+            page.goto(f"{app_url}/api/patient/{test_patient_id}/tracking")
+            page.wait_for_timeout(2500)
+        else:
+            page.wait_for_timeout(2500)  # pause on dashboard/timeline view for demo
 
 
 class TestManagementWorkflow:
