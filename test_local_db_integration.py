@@ -88,13 +88,13 @@ def test_local_database_operations():
             shutil.rmtree(test_db_path)
         
         print("\n✅ All local database tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_sync_queue_operations():
@@ -141,13 +141,13 @@ def test_sync_queue_operations():
             os.remove(test_queue_path)
         
         print("\n✅ All sync queue tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_hybrid_service():
@@ -194,13 +194,13 @@ def test_hybrid_service():
         print(f"✓ PASS: Patient existence check working")
         
         print("\n✅ All hybrid service tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_bulk_write_format():
@@ -257,13 +257,13 @@ def test_bulk_write_format():
         print(f"✓ PASS: Large batch handling working correctly")
         
         print("\n✅ All bulk write format tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def main():

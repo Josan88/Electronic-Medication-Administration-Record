@@ -219,8 +219,78 @@ class TestNurseWorkflow:
         result = page.locator("#patientMedsResult")
         expect(result).not_to_be_empty(timeout=10000)
 
+    def test_full_nurse_workflow_single_video(
+        self,
+        page: Page,
+        app_url: str,
+        test_patient_id: str,
+        today_date: str,
+        tomorrow_date: str,
+    ):
+        """Run the full nurse workflow in one pass to produce a single video."""
+        # Login as nurse
+        page.goto(f"{app_url}/nurse-login")
+        page.fill("#username", "nurse")
+        page.fill("#password", "nurse123")
+        page.click("button.btn-login")
+        page.wait_for_url("**/dashboard?role=nurse")
+
+        # Navigate to Patient Management
+        page.click("label.burger-icon")
+        page.wait_for_timeout(300)
+        page.click("button:has-text('Nurse Dashboard')")
+        page.wait_for_timeout(500)
+        expect(page.locator("#patients")).to_be_visible()
+
+        # Add patient
+        page.fill("#patient_id", test_patient_id)
+        page.fill("#name", "Workflow Patient")
+        page.select_option("#floor", "1")
+        page.fill("#room", "201")
+        page.select_option("#bed", "B")
+        page.fill("#age", "32")
+        page.select_option("#gender", "Female")
+        page.fill("#notes", "Full workflow test")
+        page.click("#patientForm button[type='submit']")
+        expect(page.locator(".toast.success")).to_be_visible(timeout=10000)
+
+        # Switch to prescriptions tab and add prescription
+        page.click("button.tab-button:has-text('Prescriptions')")
+        page.wait_for_timeout(300)
+        page.fill("#presc_patient_id", test_patient_id)
+        page.click("button:has-text('Add Another Medicine')")
+        page.wait_for_timeout(200)
+        medicine_group = page.locator(".medicine-group").first
+        medicine_group.locator("input[name='medicine_name']").fill("Workflow Med")
+        medicine_group.locator("input[name='dosage']").fill("250mg")
+        medicine_group.locator("input[name='frequency']").fill("1")
+        medicine_group.locator("input[name='start_date']").fill(today_date)
+        medicine_group.locator("input[name='end_date']").fill(tomorrow_date)
+        medicine_group.locator("button:has-text('Add Time')").click()
+        page.wait_for_timeout(200)
+        medicine_group.locator("select[name='time_slots[]']").select_option("09:00")
+        page.click("button:has-text('Submit All Prescriptions')")
+        expect(page.locator("#confirmPrescriptionModal")).to_be_visible()
+        page.click("#confirmSubmissionBtn")
+        expect(page.locator(".toast.success")).to_be_visible(timeout=10000)
+
+        # Switch to duty dashboard and search for patient
+        page.click("label.burger-icon")
+        page.wait_for_timeout(300)
+        page.click("button:has-text('Duty Dashboard')")
+        page.wait_for_timeout(500)
+        expect(page.locator("#dutyDashboard")).to_be_visible()
+        page.click("button.tab-button:has-text('Search by Patient')")
+        page.wait_for_timeout(300)
+        expect(page.locator("#byPatient")).to_be_visible()
+        page.fill("#patientSearchInput", test_patient_id)
+        page.click("#byPatient button.btn-primary")
+        page.wait_for_timeout(2000)
+        expect(page.locator("#patientMedsResult")).not_to_be_empty(timeout=10000)
+
 
 class TestManagementWorkflow:
+
     """
     Test the management dashboard workflow.
     

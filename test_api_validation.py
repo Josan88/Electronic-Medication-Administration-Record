@@ -17,7 +17,9 @@ import threading
 from datetime import datetime
 from typing import Optional
 
+import pytest
 from werkzeug.serving import make_server
+
 
 
 SERVER_HOST = "127.0.0.1"
@@ -77,8 +79,19 @@ def stop_embedded_server():
 atexit.register(stop_embedded_server)
 
 
+@pytest.fixture(scope="module", autouse=True)
+def api_server():
+    """Ensure the Flask API server is running for integration tests."""
+    server_started = start_embedded_server()
+    assert wait_for_server(), "Flask server failed to start"
+    yield
+    if server_started:
+        stop_embedded_server()
+
+
 def wait_for_server(timeout=30):
     """Wait for Flask server to be ready"""
+
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
@@ -98,19 +111,12 @@ def test_health_check():
     print("\n" + "="*60)
     print("HEALTH CHECK")
     print("="*60)
-    
-    try:
-        response = requests.get(f"{BASE_URL}/api/health")
-        if response.status_code == 200:
-            data = response.json()
-            print(f"✓ Health check passed: {data.get('message')}")
-            return True
-        else:
-            print(f"✗ Health check failed: {response.status_code}")
-            return False
-    except Exception as e:
-        print(f"✗ Health check error: {e}")
-        return False
+
+    response = requests.get(f"{BASE_URL}/api/health")
+    assert response.status_code == 200, f"Health check failed: {response.status_code}"
+    data = response.json()
+    print(f"✓ Health check passed: {data.get('message')}")
+
 
 
 def test_patient_api_validation():
@@ -250,7 +256,10 @@ def test_patient_api_validation():
         print(f"✗ FAIL: {e}")
     
     print(f"\nPatient API: {tests_passed}/{tests_total} tests passed")
-    return tests_passed, tests_total
+    assert tests_passed == tests_total, (
+        f"Patient API validation passed {tests_passed}/{tests_total} checks"
+    )
+
 
 
 def test_prescription_api_validation():
@@ -261,9 +270,26 @@ def test_prescription_api_validation():
     
     tests_passed = 0
     tests_total = 0
+
+    # Ensure base patient exists for validation checks
+    requests.post(
+        f"{BASE_URL}/api/patients",
+        json={
+            "patient_id": "P001",
+            "name": "Test Patient",
+            "floor": "1",
+            "room": "101",
+            "bed": "A",
+            "age": "45",
+            "gender": "Male",
+            "notes": "Seed patient for prescription tests",
+        },
+        headers={"Content-Type": "application/json"},
+    )
     
     # Test 1: Valid prescription data (without patient check)
     tests_total += 1
+
     print("\nTest 1: POST valid prescription data")
     try:
         prescription_data = {
@@ -356,7 +382,10 @@ def test_prescription_api_validation():
         print(f"✗ FAIL: {e}")
     
     print(f"\nPrescription API: {tests_passed}/{tests_total} tests passed")
-    return tests_passed, tests_total
+    assert tests_passed == tests_total, (
+        f"Prescription API validation passed {tests_passed}/{tests_total} checks"
+    )
+
 
 
 def test_tracking_api_validation():
@@ -435,7 +464,10 @@ def test_tracking_api_validation():
         print(f"✗ FAIL: {e}")
     
     print(f"\nTracking API: {tests_passed}/{tests_total} tests passed")
-    return tests_passed, tests_total
+    assert tests_passed == tests_total, (
+        f"Tracking API validation passed {tests_passed}/{tests_total} checks"
+    )
+
 
 
 def main():

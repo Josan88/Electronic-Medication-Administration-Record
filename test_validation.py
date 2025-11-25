@@ -188,7 +188,10 @@ def test_patient_validation():
         print(f"✗ FAIL: {e}")
     
     print(f"\nPatient Validation: {tests_passed}/{tests_total} tests passed")
-    return tests_passed, tests_total
+    assert tests_passed == tests_total, (
+        f"Patient validation passed {tests_passed}/{tests_total} checks"
+    )
+
 
 
 def test_prescription_validation():
@@ -317,7 +320,10 @@ def test_prescription_validation():
         print(f"✗ FAIL: {e}")
     
     print(f"\nPrescription Validation: {tests_passed}/{tests_total} tests passed")
-    return tests_passed, tests_total
+    assert tests_passed == tests_total, (
+        f"Prescription validation passed {tests_passed}/{tests_total} checks"
+    )
+
 
 
 def test_tracking_validation():
@@ -400,7 +406,10 @@ def test_tracking_validation():
         tests_passed += 1
     
     print(f"\nTracking Validation: {tests_passed}/{tests_total} tests passed")
-    return tests_passed, tests_total
+    assert tests_passed == tests_total, (
+        f"Tracking validation passed {tests_passed}/{tests_total} checks"
+    )
+
 
 
 def main():

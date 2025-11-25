@@ -103,13 +103,13 @@ def test_tracking_status_calculation():
             print(f"  Error: {str(e)}")
             failed += 1
             print(f"  Error: {str(e)}")
-            failed += 1
     
     print(f"\n{'='*60}")
     print(f"Integration tests: {passed} passed, {failed} failed")
     print("="*60)
     
-    return failed == 0
+    assert failed == 0, f"Tracking status integration had {failed} failures"
+
 
 
 def main():

@@ -9,15 +9,19 @@ This module provides:
 """
 
 import os
+import re
 import sys
 import time
 import threading
 import socket
 from datetime import datetime
+from pathlib import Path
 from contextlib import closing
 
 import pytest
 from playwright.sync_api import sync_playwright, Playwright
+
+
 
 # Add parent directory to path to import app
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -122,28 +126,58 @@ def context(browser, tmp_path_factory):
     Create a new browser context for each test with video recording.
     Videos are saved to test-results/videos directory.
     """
-    # Create video directory
-    video_dir = tmp_path_factory.mktemp("videos")
-    
+    # Create video directory under repository for easier access
+    video_dir = Path(__file__).resolve().parent.parent / "test-results" / "videos"
+    video_dir.mkdir(parents=True, exist_ok=True)
+
     context = browser.new_context(
         record_video_dir=str(video_dir),
         record_video_size={"width": 1280, "height": 720},
         viewport={"width": 1280, "height": 720}
     )
-    
+    # Stash for downstream fixtures
+    context._video_dir = video_dir  # type: ignore[attr-defined]
+
     yield context
     
     # Close context to finalize video recording
     context.close()
 
 
+
+
+
+def _safe_video_name(nodeid: str) -> str:
+    """Convert a pytest nodeid into a filesystem-safe video filename."""
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", nodeid)
+    safe = safe.strip("_")
+    return safe[:180] or "video"
+
+
 @pytest.fixture(scope="function")
-def page(context, flask_server):
-    """Create a new page for each test."""
+def page(context, flask_server, request):
+    """Create a new page for each test and rename video to match test name."""
     page = context.new_page()
     page.set_default_timeout(30000)  # 30 seconds timeout
     yield page
+
+    video = page.video
     page.close()
+
+    if video:
+        target = context._video_dir / f"{_safe_video_name(request.node.nodeid)}.webm"  # type: ignore[attr-defined]
+        try:
+            # Prefer save_as (copies) then remove the original to avoid clutter
+            video.save_as(str(target))
+            original = Path(video.path())
+            if original.exists() and original != target:
+                try:
+                    original.unlink()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
 
 
 @pytest.fixture(scope="session")

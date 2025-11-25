@@ -82,16 +82,11 @@ def test_single_slot_prescription():
     result = is_served_python(prescription, tracking)
     expected = True
     
-    if result == expected:
-        print(f"✓ Single slot prescription correctly matched")
-        print(f"  Prescription slot: {prescription['time_slot']}")
-        print(f"  Tracking slot: {tracking[0]['time_slot']}")
-        print(f"  Result: {result}")
-        return True
-    else:
-        print(f"✗ Single slot prescription failed")
-        print(f"  Expected: {expected}, Got: {result}")
-        return False
+    print(f"  Prescription slot: {prescription['time_slot']}")
+    print(f"  Tracking slot: {tracking[0]['time_slot']}")
+    print(f"  Result: {result}")
+    assert result == expected, f"Single slot prescription expected {expected}, got {result}"
+
 
 
 def test_multiple_slot_prescription_first_slot():
@@ -129,27 +124,16 @@ def test_multiple_slot_prescription_first_slot():
     result_13 = is_served_python(prescription, tracking, "13:00")
     expected_13 = False
     
-    passed = True
-    
-    if result_any == expected_any:
-        print(f"✓ Any slot check: {result_any}")
-    else:
-        print(f"✗ Any slot check failed: Expected {expected_any}, Got {result_any}")
-        passed = False
-    
-    if result_09 == expected_09:
-        print(f"✓ Specific slot 09:00 check: {result_09}")
-    else:
-        print(f"✗ Specific slot 09:00 check failed: Expected {expected_09}, Got {result_09}")
-        passed = False
-    
-    if result_13 == expected_13:
-        print(f"✓ Specific slot 13:00 check: {result_13}")
-    else:
-        print(f"✗ Specific slot 13:00 check failed: Expected {expected_13}, Got {result_13}")
-        passed = False
-    
-    return passed
+    assert result_any == expected_any, (
+        f"Any slot check expected {expected_any}, got {result_any}"
+    )
+    assert result_09 == expected_09, (
+        f"Specific slot 09:00 expected {expected_09}, got {result_09}"
+    )
+    assert result_13 == expected_13, (
+        f"Specific slot 13:00 expected {expected_13}, got {result_13}"
+    )
+
 
 
 def test_multiple_slot_prescription_middle_slot():
@@ -187,27 +171,16 @@ def test_multiple_slot_prescription_middle_slot():
     result_17 = is_served_python(prescription, tracking, "17:00")
     expected_17 = False
     
-    passed = True
-    
-    if result_09 == expected_09:
-        print(f"✓ Slot 09:00 check: {result_09}")
-    else:
-        print(f"✗ Slot 09:00 check failed: Expected {expected_09}, Got {result_09}")
-        passed = False
-    
-    if result_13 == expected_13:
-        print(f"✓ Slot 13:00 check: {result_13}")
-    else:
-        print(f"✗ Slot 13:00 check failed: Expected {expected_13}, Got {result_13}")
-        passed = False
-    
-    if result_17 == expected_17:
-        print(f"✓ Slot 17:00 check: {result_17}")
-    else:
-        print(f"✗ Slot 17:00 check failed: Expected {expected_17}, Got {result_17}")
-        passed = False
-    
-    return passed
+    assert result_09 == expected_09, (
+        f"Slot 09:00 expected {expected_09}, got {result_09}"
+    )
+    assert result_13 == expected_13, (
+        f"Slot 13:00 expected {expected_13}, got {result_13}"
+    )
+    assert result_17 == expected_17, (
+        f"Slot 17:00 expected {expected_17}, got {result_17}"
+    )
+
 
 
 def test_different_patient_no_match():
@@ -236,12 +209,10 @@ def test_different_patient_no_match():
     result = is_served_python(prescription, tracking)
     expected = False
     
-    if result == expected:
-        print(f"✓ Different patient correctly not matched")
-        return True
-    else:
-        print(f"✗ Different patient check failed: Expected {expected}, Got {result}")
-        return False
+    assert result == expected, (
+        f"Different patient check expected {expected}, got {result}"
+    )
+
 
 
 def test_different_medicine_no_match():
@@ -270,12 +241,10 @@ def test_different_medicine_no_match():
     result = is_served_python(prescription, tracking)
     expected = False
     
-    if result == expected:
-        print(f"✓ Different medicine correctly not matched")
-        return True
-    else:
-        print(f"✗ Different medicine check failed: Expected {expected}, Got {result}")
-        return False
+    assert result == expected, (
+        f"Different medicine check expected {expected}, got {result}"
+    )
+
 
 
 def test_different_date_no_match():
@@ -305,13 +274,11 @@ def test_different_date_no_match():
     result = is_served_python(prescription, tracking)
     expected = False
     
-    if result == expected:
-        print(f"✓ Different date correctly not matched")
-        print(f"  Today: {today}, Tracking date: {yesterday}")
-        return True
-    else:
-        print(f"✗ Different date check failed: Expected {expected}, Got {result}")
-        return False
+    print(f"  Today: {today}, Tracking date: {yesterday}")
+    assert result == expected, (
+        f"Different date check expected {expected}, got {result}"
+    )
+
 
 
 def test_tracking_with_multiple_slots():
@@ -350,29 +317,18 @@ def test_tracking_with_multiple_slots():
     result_13 = is_served_python(prescription, tracking, "13:00")
     expected_13 = False
     
-    passed = True
-    
-    if result_any == expected_any:
-        print(f"✓ Any slot check with malformed tracking: {result_any}")
-    else:
-        print(f"✗ Any slot check failed: Expected {expected_any}, Got {result_any}")
-        passed = False
-    
-    if result_09 == expected_09:
-        print(f"✓ Slot 09:00 check with malformed tracking: {result_09}")
-    else:
-        print(f"✗ Slot 09:00 check failed: Expected {expected_09}, Got {result_09}")
-        passed = False
-    
-    if result_13 == expected_13:
-        print(f"✓ Slot 13:00 check with malformed tracking: {result_13} (only first slot is used)")
-    else:
-        print(f"✗ Slot 13:00 check failed: Expected {expected_13}, Got {result_13}")
-        passed = False
-    
+    assert result_any == expected_any, (
+        f"Any slot check expected {expected_any}, got {result_any}"
+    )
+    assert result_09 == expected_09, (
+        f"Slot 09:00 check expected {expected_09}, got {result_09}"
+    )
+    assert result_13 == expected_13, (
+        f"Slot 13:00 check expected {expected_13}, got {result_13}"
+    )
+
     print(f"  Note: Malformed tracking data only uses first slot to prevent incorrect matches")
-    
-    return passed
+
 
 
 def run_all_tests():

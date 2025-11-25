@@ -43,7 +43,8 @@ def test_parse_time_from_string():
             failed += 1
     
     print(f"\nParsing tests: {passed} passed, {failed} failed")
-    return failed == 0
+    assert failed == 0, f"Parsing tests had {failed} failures"
+
 
 
 def test_is_time_within_slot():
@@ -78,7 +79,8 @@ def test_is_time_within_slot():
             failed += 1
     
     print(f"\nMatching tests: {passed} passed, {failed} failed")
-    return failed == 0
+    assert failed == 0, f"Matching tests had {failed} failures"
+
 
 
 def test_calculate_status():
@@ -113,7 +115,8 @@ def test_calculate_status():
             failed += 1
     
     print(f"\nStatus tests: {passed} passed, {failed} failed")
-    return failed == 0
+    assert failed == 0, f"Status tests had {failed} failures"
+
 
 
 def run_all_tests():
