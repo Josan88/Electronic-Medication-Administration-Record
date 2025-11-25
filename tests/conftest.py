@@ -147,11 +147,24 @@ def context(browser, tmp_path_factory):
 
 
 
-def _safe_video_name(nodeid: str) -> str:
-    """Convert a pytest nodeid into a filesystem-safe video filename."""
-    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", nodeid)
-    safe = safe.strip("_")
-    return safe[:180] or "video"
+def _safe_video_name(node) -> str:
+    """Create a short, filesystem-safe video filename for a pytest node."""
+    parts = []
+    try:
+        fspath = getattr(node, "fspath", None)
+        if fspath:
+            parts.append(Path(fspath).stem)
+    except Exception:
+        pass
+    try:
+        name = getattr(node, "name", None)
+        if name:
+            parts.append(name)
+    except Exception:
+        pass
+    raw = "__".join(filter(None, parts)) or "video"
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", raw).strip("_")
+    return safe[:80] or "video"
 
 
 @pytest.fixture(scope="function")
@@ -159,13 +172,26 @@ def page(context, flask_server, request):
     """Create a new page for each test and rename video to match test name."""
     page = context.new_page()
     page.set_default_timeout(30000)  # 30 seconds timeout
+
+    # Start Playwright tracing for HTML-like trace viewer
+    trace_dir = context._video_dir.parent / "traces"  # type: ignore[attr-defined]
+    trace_dir.mkdir(parents=True, exist_ok=True)
+    context.tracing.start(screenshots=True, snapshots=True, sources=True)
+
     yield page
 
     video = page.video
+    # Stop tracing and save trace to a zip that can be viewed via Playwright
+    trace_path = trace_dir / f"{_safe_video_name(request.node)}.zip"
+    try:
+        context.tracing.stop(path=str(trace_path))
+    except Exception:
+        pass
+
     page.close()
 
     if video:
-        target = context._video_dir / f"{_safe_video_name(request.node.nodeid)}.webm"  # type: ignore[attr-defined]
+        target = context._video_dir / f"{_safe_video_name(request.node)}.webm"  # type: ignore[attr-defined]
         try:
             # Prefer save_as (copies) then remove the original to avoid clutter
             video.save_as(str(target))

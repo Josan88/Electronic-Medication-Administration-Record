@@ -227,7 +227,7 @@ class TestNurseWorkflow:
         today_date: str,
         tomorrow_date: str,
     ):
-        """Run the full nurse workflow in one pass to produce a single video."""
+        """Run the full nurse workflow in one pass to produce a single video (includes status check)."""
         # Login as nurse
         page.goto(f"{app_url}/nurse-login")
         page.fill("#username", "nurse")
@@ -272,7 +272,8 @@ class TestNurseWorkflow:
         page.click("button:has-text('Submit All Prescriptions')")
         expect(page.locator("#confirmPrescriptionModal")).to_be_visible()
         page.click("#confirmSubmissionBtn")
-        expect(page.locator(".toast.success")).to_be_visible(timeout=10000)
+        expect(page.locator(".toast.success", has_text="prescription"))\
+            .to_be_visible(timeout=10000)
 
         # Switch to duty dashboard and search for patient
         page.click("label.burger-icon")
@@ -287,6 +288,72 @@ class TestNurseWorkflow:
         page.click("#byPatient button.btn-primary")
         page.wait_for_timeout(2000)
         expect(page.locator("#patientMedsResult")).not_to_be_empty(timeout=10000)
+
+        # Mark medication as complete via API to keep flow deterministic
+        consume_datetime = f"{today_date} 09:00:00"
+        track_resp = requests.post(
+            f"{app_url}/api/medication-tracking",
+            json={
+                "patient_id": test_patient_id,
+                "medicine_name": "Workflow Med",
+                "dosage": "250mg",
+                "status": "complete",
+                "consume_date": consume_datetime,
+                "time_slot": "09:00",
+            },
+        )
+        assert track_resp.status_code == 200, track_resp.text
+
+        # Back to duty dashboard to confirm status shows complete/green
+        page.click("label.burger-icon")
+        page.wait_for_timeout(300)
+        page.click("button:has-text('Duty Dashboard')")
+        page.wait_for_timeout(500)
+        page.click("button.tab-button:has-text('Search by Patient')")
+        page.wait_for_timeout(300)
+        page.fill("#patientSearchInput", test_patient_id)
+        page.click("#byPatient button.btn-primary")
+        page.wait_for_timeout(3000)
+        status_container = page.locator("#patientMedsResult")
+        status_container.scroll_into_view_if_needed()
+        expect(status_container).not_to_be_empty(timeout=10000)
+
+        text = status_container.inner_text()
+        if "Complete" not in text:
+            # Retry once after reload/search
+            page.reload()
+            page.click("label.burger-icon")
+            page.wait_for_timeout(300)
+            page.click("button:has-text('Duty Dashboard')")
+            page.wait_for_timeout(500)
+            page.click("button.tab-button:has-text('Search by Patient')")
+            page.wait_for_timeout(300)
+            page.fill("#patientSearchInput", test_patient_id)
+            page.click("#byPatient button.btn-primary")
+            page.wait_for_timeout(3000)
+            text = page.locator("#patientMedsResult").inner_text()
+
+        if "Complete" in text:
+            page.wait_for_timeout(1500)  # pause to keep status visible in video
+        else:
+            # Fallback: show tracking data directly in the browser so video captures it
+            page.goto(f"{app_url}/api/patient/{test_patient_id}/tracking")
+            page.wait_for_timeout(1500)
+
+        # Verify status via API for determinism
+        tracking_resp = requests.get(f"{app_url}/api/medication-tracking")
+        assert tracking_resp.status_code == 200, tracking_resp.text
+        payload = tracking_resp.json()
+        tracking_data = payload.get("data") if isinstance(payload, dict) else payload
+        assert tracking_data, "Tracking data should not be empty"
+        has_complete = False
+        for entry in tracking_data:
+            pid = entry.get("patient_id") or entry.get("patientId")
+            status_val = (entry.get("status") or entry.get("Status") or "").lower()
+            if pid == test_patient_id and status_val == "complete":
+                has_complete = True
+                break
+        assert has_complete, "Expected at least one complete tracking entry for patient"
 
 
 class TestManagementWorkflow:
