@@ -1,12 +1,14 @@
 # Electronic Medication Administration Record (eMAR)
 
-A comprehensive web-based Electronic Medication Administration Record system that integrates with ThingSpeak IoT platform for real-time data storage and retrieval.
+A comprehensive web-based Electronic Medication Administration Record system with local database storage and ThingSpeak IoT platform backup for resilient data management.
 
 ## 📚 Documentation
 
 - **[API Documentation (Swagger UI)](http://localhost:5000/api/docs)** - Interactive API reference
 - **[API Usage Examples](docs/API_EXAMPLES.md)** - Practical examples with curl, PowerShell, Python, and JavaScript
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - System architecture, data flow diagrams, and design decisions
+- **[Local Database Guide](docs/LOCAL_DATABASE.md)** - Local database architecture and ThingSpeak sync (NEW!)
+- **[Bulk Write Examples](docs/BULK_WRITE_EXAMPLES.md)** - ThingSpeak Bulk Write API examples (NEW!)
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete deployment instructions for development and production
 - **[Contributing Guide](CONTRIBUTING.md)** - Guidelines for contributing to the project
 
@@ -16,10 +18,13 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 - **Medicine Prescriptions**: Track prescribed medications with dosage, frequency, and duration
 - **Medication Tracking**: Record and monitor medication administration in real-time
 - **Dashboard**: Quick lookup for patient information with complete medication history
-- **Real-time Sync**: Data stored on ThingSpeak cloud platform for accessibility anywhere
+- **Local Database**: Fast, real-time data storage with no rate limits (new!)
+- **ThingSpeak Backup**: Automatic periodic sync to ThingSpeak using Bulk Write API (new!)
+- **Queue Management**: Persistent prescription queue with automatic retry and monitoring
+- **Resilient Sync**: Retry logic with exponential backoff for ThingSpeak backup (new!)
 - **Statistics**: Visual overview of total patients, prescriptions, and daily administrations
 - **API Documentation**: Interactive Swagger UI for API exploration and testing
-- **Queue Management**: Persistent prescription queue with automatic retry and monitoring
+- **Monitoring**: Sync status endpoints for operational monitoring (new!)
 
 ## 🚀 Quick Start
 
@@ -105,13 +110,32 @@ A comprehensive web-based Electronic Medication Administration Record system tha
 
 - **Backend**: Flask 3.0.0 (Python)
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla ES6+)
-- **Data Storage**: ThingSpeak IoT Platform (Cloud-based, no local database)
+- **Data Storage**: 
+  - **Primary**: Local JSON database (fast, no rate limits)
+  - **Backup**: ThingSpeak IoT Platform (cloud-based, periodic sync)
 - **API**: RESTful API design
-- **Concurrency**: Threading module for background queue processing
+- **Concurrency**: Threading module for background queue processing and sync workers
+- **Sync**: ThingSpeak Bulk Write API for efficient batch updates
+
+## Data Architecture
+
+The system uses a dual-storage architecture for optimal performance and resilience:
+
+### Primary Storage: Local JSON Database
+- **Location**: `/tmp/emar_local_db/` (configurable)
+- **Performance**: Instant writes, no rate limits
+- **Format**: JSON files with ThingSpeak-compatible schema
+- **Channels**: 3 files (patient_info, medicine_prescription, medicine_track)
+
+### Backup Storage: ThingSpeak Cloud
+- **Sync Frequency**: Every 5 minutes (configurable)
+- **Sync Method**: Bulk Write API (up to 100 records/batch)
+- **Resilience**: Retry logic with exponential backoff
+- **Monitoring**: Sync status API endpoints
 
 ## ThingSpeak Integration
 
-The system uses three ThingSpeak channels:
+The system uses three ThingSpeak channels for cloud backup:
 
 ### 1. Patient Information Channel (ID: 3124887)
 

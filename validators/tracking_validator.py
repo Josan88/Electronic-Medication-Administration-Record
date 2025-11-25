@@ -229,8 +229,8 @@ def validate_tracking_data(data: Dict[str, Any], check_patient: bool = False) ->
     
     # Check patient exists if requested
     if check_patient:
-        from services.thingspeak_service import thingspeak_service
-        if not thingspeak_service.patient_exists(patient_id):
+        from services.hybrid_service import hybrid_service
+        if not hybrid_service.patient_exists(patient_id):
             raise ValidationError(f"Patient with ID '{patient_id}' does not exist")
     
     validated_data = {

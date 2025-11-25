@@ -9,7 +9,7 @@ blocking the UI due to ThingSpeak rate limits.
 """
 
 from flask import Blueprint, request, jsonify
-from services.thingspeak_service import thingspeak_service, ThingSpeakError
+from services.hybrid_service import hybrid_service, HybridDataServiceError
 from utils.errors import error_response, success_response, ValidationError
 from validators import validate_prescription_data
 
@@ -26,11 +26,11 @@ def init_prescription_routes(queue):
     
     @prescriptions_bp.route("/prescriptions", methods=["GET"])
     def get_prescriptions():
-        """Get all medicine prescriptions from ThingSpeak"""
+        """Get all medicine prescriptions from local database (with ThingSpeak fallback)"""
         try:
-            prescriptions = thingspeak_service.read_channel("medicine_prescription")
+            prescriptions = hybrid_service.read_channel("medicine_prescription")
             return success_response(data=prescriptions)
-        except ThingSpeakError as e:
+        except HybridDataServiceError as e:
             return error_response(str(e), 500)
 
     @prescriptions_bp.route("/prescriptions", methods=["POST"])
