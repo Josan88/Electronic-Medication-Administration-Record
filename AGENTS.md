@@ -1,21 +1,23 @@
 # Agent Guidelines for eMAR
 
 ## Build & Test
-- **Run all tests:** `python -m pytest`
-- **Run single test file:** `python -m pytest tests/test_validation.py`
-- **Run single test case:** `python -m pytest tests/test_validation.py::TestClassName::test_method_name`
-- **Install deps:** `pip install -r requirements.txt`
-- **Start app:** `python app.py`
 
-## Code Style & Conventions
-- **Python:** PEP 8, 4 spaces indent, max 88 chars. Docstrings (triple quotes) required for all funcs/classes.
-- **JavaScript:** 2 spaces indent, camelCase, consistent semicolons.
-- **Imports:** Group standard, third-party, local.
-- **Error Handling:** Use `utils.errors` (e.g., `error_response`, `ValidationError`). Catch specific exceptions.
-- **Logging:** Use `utils.logging_config.logger` (debug, info, warning, error).
-- **Architecture:** Routes -> Validators -> Services -> Utils. Keep business logic in Services.
-- **Docs:** Update `swagger.yaml` for API changes.
+- **Test All:** `python -m pytest` (Note: `pytest.ini` has headed/video opts)
+- **Test Single:** `python -m pytest tests/test_validation.py` or `::TestClass::test_method`
+- **Run App:** `python app.py` (http://localhost:5000)
+- **Deps:** `pip install -r requirements.txt` (Ensure pytest/requests installed)
 
-## Specific Constraints
-- **ThingSpeak:** Respect 15s rate limit per channel. Use Queue service for Prescriptions.
-- **Paths:** Always use absolute paths in tool calls.
+## Code Style & Architecture
+
+- **Stack:** Flask (Python), Vanilla JS. **Pattern:** Routes → Validators → Services → Utils.
+- **Style:** PEP 8 (Py), 2-space (JS). Docstrings required. **Imports:** Standard, 3rd-party, Local.
+- **Logging/Errors:** Use `utils.logging_config.logger` & `utils.errors` (e.g. `ValidationError`).
+- **Data:** Local JSON (Primary/Thread-safe) → ThingSpeak (Backup/Async).
+- **Constraints:** **Strict 15s** ThingSpeak rate limit. Use `queue_service` & `thingspeak_bulk_service`.
+- **Paths:** ALWAYS use **absolute paths** (resolve against root).
+
+## Rules
+
+- **Validation:** Validate in `validators/` before Services. Sanitize inputs.
+- **Sync:** Dual-write to local DB and Queue. Do not block on external API.
+- **Docs:** Update `swagger.yaml` on route changes.
