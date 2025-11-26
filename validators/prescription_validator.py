@@ -251,6 +251,11 @@ def validate_time_slot(time_slot: str) -> str:
             "Time slot must contain only letters, numbers, spaces, and basic punctuation (, : . -)"
         )
     
+    # Check for duplicate time slots
+    slots = [s.strip() for s in time_slot.split(',')]
+    if len(slots) != len(set(slots)):
+        raise ValidationError("Duplicate time slots are not allowed")
+    
     return time_slot
 
 

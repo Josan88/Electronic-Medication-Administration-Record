@@ -245,12 +245,13 @@ def validate_notes(notes: str) -> str:
     return notes
 
 
-def validate_patient_data(data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_patient_data(data: Dict[str, Any], check_duplicate: bool = False) -> Dict[str, Any]:
     """
     Validate all patient data fields.
     
     Args:
         data: Dictionary containing patient data
+        check_duplicate: Whether to check if patient ID already exists
     
     Returns:
         Dictionary with validated and sanitized data
@@ -262,8 +263,16 @@ def validate_patient_data(data: Dict[str, Any]) -> Dict[str, Any]:
         raise ValidationError("Patient data must be a valid JSON object")
     
     # Validate required fields
+    patient_id = validate_patient_id(data.get('patient_id', ''))
+    
+    # Check for duplicate patient ID if requested
+    if check_duplicate:
+        from services.hybrid_service import hybrid_service
+        if hybrid_service.patient_exists(patient_id):
+            raise ValidationError(f"Patient with ID '{patient_id}' already exists")
+    
     validated_data = {
-        'patient_id': validate_patient_id(data.get('patient_id', '')),
+        'patient_id': patient_id,
         'name': validate_name(data.get('name', '')),
         'floor': validate_floor(data.get('floor', '')),
         'room': validate_room(data.get('room', '')),

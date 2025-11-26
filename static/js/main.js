@@ -262,8 +262,71 @@ function addMedicineField() {
     startDateInput.value = getLocalDateString();
   }
 
+  // Add frequency change listener for auto-population
+  const frequencyInput = newGroup.querySelector('input[name="frequency"]');
+  if (frequencyInput) {
+    frequencyInput.addEventListener('blur', function() {
+      autoPopulateTimeSlotsIfNeeded(newGroup);
+    });
+  }
+
   // Append the new group
   container.appendChild(newGroup);
+}
+
+// Auto-populate time slots if frequency is 4
+function autoPopulateTimeSlotsIfNeeded(medicineGroup) {
+  const frequencyInput = medicineGroup.querySelector('[name="frequency"]');
+  const container = medicineGroup.querySelector('.time-slots-container');
+  
+  if (!frequencyInput || !container) return;
+  
+  const frequencyValue = parseInt(frequencyInput.value);
+  
+  // Only auto-populate if frequency is exactly 4 and no time slots exist yet
+  if (frequencyValue === 4 && container.children.length === 0) {
+    // Add all 4 standard time slots
+    FIXED_TIME_SLOTS.forEach((timeSlot, index) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "time-slot-wrapper";
+
+      const selectField = document.createElement("select");
+      selectField.name = "time_slots[]";
+      selectField.required = true;
+      selectField.className = "form-control time-slot-select";
+      selectField.style.marginRight = "10px";
+      selectField.style.marginBottom = "5px";
+
+      FIXED_TIME_SLOTS.forEach((opt) => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.label;
+        selectField.appendChild(option);
+      });
+      
+      // Pre-select the appropriate time slot
+      selectField.value = timeSlot.value;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "btn btn-danger btn-sm remove-time";
+      removeButton.innerHTML = "✕";
+      removeButton.onclick = function () {
+        this.parentElement.remove();
+      };
+
+      wrapper.appendChild(selectField);
+      wrapper.appendChild(removeButton);
+      container.appendChild(wrapper);
+      
+      // Add validation on change
+      selectField.addEventListener('change', function() {
+        validateTimeSlots(medicineGroup);
+      });
+    });
+    
+    showMessage("info", "Time slots auto-populated for 4 times daily frequency (9AM, 1PM, 5PM, 9PM)");
+  }
 }
 
 function removeMedicineField(button) {
@@ -324,6 +387,40 @@ function addTimeField(button) {
   wrapper.appendChild(selectField);
   wrapper.appendChild(removeButton);
   container.appendChild(wrapper);
+  
+  // Add validation on change to prevent duplicates
+  selectField.addEventListener('change', function() {
+    validateTimeSlots(medicineGroup);
+  });
+}
+
+// Helper function to validate time slots for duplicates
+function validateTimeSlots(medicineGroup) {
+  const container = medicineGroup.querySelector('.time-slots-container');
+  const selects = Array.from(container.querySelectorAll('select[name="time_slots[]"]'));
+  const values = selects.map(s => s.value);
+  
+  // Check for duplicates
+  const duplicates = values.filter((item, index) => values.indexOf(item) !== index);
+  
+  if (duplicates.length > 0) {
+    showMessage('error', 'Duplicate time slots detected. Please select different times.');
+    // Highlight duplicate selects
+    selects.forEach(select => {
+      if (duplicates.includes(select.value)) {
+        select.style.borderColor = 'red';
+      } else {
+        select.style.borderColor = '';
+      }
+    });
+    return false;
+  } else {
+    // Clear any previous error highlighting
+    selects.forEach(select => {
+      select.style.borderColor = '';
+    });
+    return true;
+  }
 }
 
 async function addPrescription() {
@@ -364,6 +461,12 @@ async function addPrescription() {
 
   // Loop through each dynamic medicine group
   for (const group of medicineGroups) {
+    // Validate time slots for duplicates
+    if (!validateTimeSlots(group)) {
+      showMessage("error", "Please fix duplicate time slots before submitting.");
+      return;
+    }
+    
     // Extract data from the current medicine group using its 'name' attributes
     const prescriptionData = {
       patient_id: patientId,
@@ -411,31 +514,38 @@ async function addPrescription() {
       } else {
         failureCount++;
         console.error("API Error during submission:", result.error);
+        showMessage("error", "Error: " + result.error);
       }
     } catch (error) {
       failureCount++;
       console.error("Error adding prescription entry:", error.message);
+      showMessage("error", "Error adding prescription: " + error.message);
     }
   }
 
-  // Show final status and reset form
-  if (successCount > 0) {
+  // Show final status and reset form only if all succeeded
+  if (successCount > 0 && failureCount === 0) {
     showMessage(
       "success",
-      `${successCount} prescription(s) added successfully! (${failureCount} failed)`
+      `${successCount} prescription(s) added successfully!`
     );
+    // Reset form and dynamic fields
+    document.getElementById("prescriptionForm").reset();
+    document.getElementById("medicineFieldsContainer").innerHTML = ""; // Clear all dynamic fields
+    addMedicineField(); // Add one fresh field
+    setTimeout(() => loadPrescriptions(), 2000);
+  } else if (successCount > 0) {
+    showMessage(
+      "success",
+      `${successCount} prescription(s) added successfully! (${failureCount} failed - form data preserved)`
+    );
+    setTimeout(() => loadPrescriptions(), 2000);
   } else {
     showMessage(
       "error",
-      `Failed to add any prescriptions. ${failureCount} attempt(s) failed.`
+      `Failed to add any prescriptions. ${failureCount} attempt(s) failed. Form data preserved.`
     );
   }
-
-  // Reset form and dynamic fields
-  document.getElementById("prescriptionForm").reset();
-  document.getElementById("medicineFieldsContainer").innerHTML = ""; // Clear all dynamic fields
-  addMedicineField(); // Add one fresh field
-  setTimeout(() => loadPrescriptions(), 2000);
 }
 
 // Utility Functions
@@ -591,11 +701,17 @@ async function loadPatientActiveMeds() {
         patient = pj.data || pj || null;
       }
     } catch (e) {
-      // ignore, we'll still attempt to show meds
+      // Patient not found
+      patient = null;
     }
 
-    const infoHtml = patient
-      ? `
+    // If patient doesn't exist, show error and stop
+    if (!patient) {
+      resultContainer.innerHTML = `<div class="message error">Patient ID '${patientId}' not found. Please check the ID and try again.</div>`;
+      return;
+    }
+
+    const infoHtml = `
       <div class="card patient-info-card" style="margin-top: 1rem;">
         <h4 style="margin-bottom: 1rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 0.75rem;">Patient Information</h4>
         <div class="patient-info-grid">
@@ -620,8 +736,7 @@ async function loadPatientActiveMeds() {
             <span class="info-value">${patient.bed || "N/A"}</span>
           </div>
         </div>
-      </div>`
-      : `<div class="card patient-info-card" style="margin-top: 2rem;"><h4>Patient: ${patientId}</h4></div>`;
+      </div>`;
 
     // Show patient card immediately with a static loading message
     resultContainer.innerHTML =
@@ -654,17 +769,18 @@ async function loadPatientActiveMeds() {
       return true;
     });
 
-    // render meds below the patient card
+    // render meds below the patient card with improved format
     let medsHtml = "";
     if (activeMeds.length > 0) {
       medsHtml = activeMeds
         .map(
           (med) => `
         <div class="data-item">
-          <strong>${med.medicine_name || "N/A"}</strong> - ${
-            med.dosage || "N/A"
-          } - ${med.frequency || "N/A"}<br>
-          <small>From: ${med.start_date || "N/A"} To: ${
+          <strong>${med.medicine_name || "N/A"}</strong><br>
+          <span style="margin-left: 1rem;">Dosage: ${med.dosage || "N/A"}</span><br>
+          <span style="margin-left: 1rem;">Frequency: ${med.frequency || "N/A"} times daily</span><br>
+          <span style="margin-left: 1rem;">Times: ${med.time_slot || "N/A"}</span><br>
+          <small style="margin-left: 1rem;">Period: ${med.start_date || "N/A"} to ${
             med.end_date || "Ongoing"
           }</small>
         </div>`
