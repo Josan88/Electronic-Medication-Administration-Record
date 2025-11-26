@@ -11,8 +11,14 @@ import json
 from flask import Flask
 from flask.testing import FlaskClient
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 def test_queue_status_endpoint():
+
     """Test the queue status endpoint"""
     print("\n" + "="*60)
     print("QUEUE STATUS ENDPOINT TEST")
@@ -266,9 +272,13 @@ def main():
     total = len(tests)
     
     for test_func in tests:
-        if test_func():
+        result = test_func()
+        if result is False:
+            print(f"✗ {test_func.__name__} reported failure")
+        else:
             passed += 1
         time.sleep(0.3)
+
     
     print("\n" + "="*60)
     print("TEST SUMMARY")

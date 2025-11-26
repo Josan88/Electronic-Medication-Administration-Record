@@ -16,6 +16,12 @@ import os
 import tempfile
 from services.queue_service import PersistentQueue, QueueItem
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 
 def test_queue_item_serialization():
     """Test QueueItem to_dict and from_dict methods"""
@@ -379,9 +385,13 @@ def main():
     total = len(tests)
     
     for test_func in tests:
-        if test_func():
+        result = test_func()
+        if result is False:
+            print(f"✗ {test_func.__name__} reported failure")
+        else:
             passed += 1
         time.sleep(0.3)
+
     
     print("\n" + "="*60)
     print("TEST SUMMARY")
