@@ -14,8 +14,14 @@ from services.thingspeak_bulk_service import thingspeak_bulk_service, ThingSpeak
 from services.sync_service import SyncQueue
 from services.hybrid_service import hybrid_service
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 def test_local_database_operations():
+
     """Test local database CRUD operations"""
     print("\n" + "="*60)
     print("LOCAL DATABASE OPERATIONS TEST")
@@ -88,13 +94,13 @@ def test_local_database_operations():
             shutil.rmtree(test_db_path)
         
         print("\n✅ All local database tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_sync_queue_operations():
@@ -141,13 +147,13 @@ def test_sync_queue_operations():
             os.remove(test_queue_path)
         
         print("\n✅ All sync queue tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_hybrid_service():
@@ -194,13 +200,13 @@ def test_hybrid_service():
         print(f"✓ PASS: Patient existence check working")
         
         print("\n✅ All hybrid service tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_bulk_write_format():
@@ -257,13 +263,13 @@ def test_bulk_write_format():
         print(f"✓ PASS: Large batch handling working correctly")
         
         print("\n✅ All bulk write format tests passed!")
-        return True
-        
+
     except Exception as e:
         print(f"\n✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def main():
@@ -285,12 +291,16 @@ def main():
     
     for test_name, test_func in tests:
         try:
-            if test_func():
+            result = test_func()
+            if result is False:
+                print(f"\n❌ {test_name} reported failure")
+            else:
                 passed += 1
         except Exception as e:
             print(f"\n✗ FAIL: {test_name} - {e}")
             import traceback
             traceback.print_exc()
+
     
     print("\n" + "="*60)
     print("TEST SUMMARY")

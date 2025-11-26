@@ -51,3 +51,16 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Test artifacts
+test-results/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+
+# Playwright
+playwright-report/
+test-results/videos/

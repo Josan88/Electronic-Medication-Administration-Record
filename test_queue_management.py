@@ -16,6 +16,12 @@ import os
 import tempfile
 from services.queue_service import PersistentQueue, QueueItem
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 
 def test_queue_item_serialization():
     """Test QueueItem to_dict and from_dict methods"""
@@ -46,14 +52,13 @@ def test_queue_item_serialization():
         assert new_item.item_id == item.item_id, "Item ID mismatch"
         assert new_item.attempts == 0, "Attempts should be 0"
         print("✓ QueueItem.from_dict() works correctly")
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_queue_persistence():
@@ -92,14 +97,13 @@ def test_queue_persistence():
         # Cleanup
         os.unlink(temp_path)
         print("✓ Test cleanup completed")
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_queue_operations():
@@ -142,14 +146,12 @@ def test_queue_operations():
         
         # Cleanup
         os.unlink(temp_path)
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
 
 
 def test_queue_size_limit():
@@ -177,21 +179,20 @@ def test_queue_size_limit():
         try:
             queue.add({'patient_id': 'P004', 'medicine_name': 'Med4'})
             print("✗ FAIL: Should have raised ValueError for full queue")
-            return False
+            raise AssertionError("Queue should raise ValueError when full")
         except ValueError as e:
             assert "full" in str(e).lower(), "Error message should mention queue is full"
             print("✓ Correctly rejected item when queue is full")
-        
+
         # Cleanup
         os.unlink(temp_path)
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_retry_logic():
@@ -229,17 +230,16 @@ def test_retry_logic():
         assert status['failed_count'] == 1, "Should have 1 failed item"
         assert len(status['failed_items']) == 1, "Failed items list should have 1 item"
         print("✓ Failed item correctly tracked")
-        
+
         # Cleanup
         os.unlink(temp_path)
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_queue_status():
@@ -276,17 +276,16 @@ def test_queue_status():
         # Check stats
         assert status['stats']['total_added'] == 2, "Should show 2 items added"
         print("✓ Statistics tracked correctly")
-        
+
         # Cleanup
         os.unlink(temp_path)
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_clear_failed_items():
@@ -328,13 +327,12 @@ def test_clear_failed_items():
         # Cleanup
         os.unlink(temp_path)
         
-        return True
-        
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_queue_api_endpoints():
@@ -358,13 +356,12 @@ def test_queue_api_endpoints():
         print("  - /api/queue/status")
         print("  - /api/queue/clear-failed")
         
-        return True
-        
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def main():
@@ -388,9 +385,13 @@ def main():
     total = len(tests)
     
     for test_func in tests:
-        if test_func():
+        result = test_func()
+        if result is False:
+            print(f"✗ {test_func.__name__} reported failure")
+        else:
             passed += 1
         time.sleep(0.3)
+
     
     print("\n" + "="*60)
     print("TEST SUMMARY")

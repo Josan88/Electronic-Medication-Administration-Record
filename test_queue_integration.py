@@ -11,8 +11,14 @@ import json
 from flask import Flask
 from flask.testing import FlaskClient
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 def test_queue_status_endpoint():
+
     """Test the queue status endpoint"""
     print("\n" + "="*60)
     print("QUEUE STATUS ENDPOINT TEST")
@@ -43,14 +49,13 @@ def test_queue_status_endpoint():
             print(f"  - Failed count: {queue_status['failed_count']}")
             print(f"  - Max size: {queue_status['max_size']}")
             print(f"  - Is full: {queue_status['is_full']}")
-            
-            return True
-            
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_queue_clear_failed_endpoint():
@@ -75,14 +80,13 @@ def test_queue_clear_failed_endpoint():
             
             print(f"✓ Clear failed endpoint returned successfully")
             print(f"  - Cleared count: {data['data']['cleared_count']}")
-            
-            return True
-            
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_prescription_queue_overflow():
@@ -114,26 +118,25 @@ def test_prescription_queue_overflow():
             test_queue.add({'patient_id': 'P003', 'medicine_name': 'Med3'})
             print("✗ FAIL: Should have raised ValueError for full queue")
             os.unlink(temp_path)
-            return False
+            raise AssertionError("Queue should raise ValueError for full queue")
         except ValueError as e:
             assert "full" in str(e).lower(), "Error should mention queue is full"
             print("✓ Queue correctly rejected item when full")
-        
+
         # Check that status reflects full state
         status = test_queue.get_status()
         assert status['is_full'] == True, "Status should show queue is full"
         print("✓ Queue status correctly shows is_full=True")
-        
+
         # Cleanup
         os.unlink(temp_path)
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_prescription_endpoint_with_queue():
@@ -186,18 +189,16 @@ def test_prescription_endpoint_with_queue():
                 data = json.loads(response.data)
                 print(f"✓ Prescription validation works (patient check)")
                 print(f"  - Validation error: {data.get('error', 'Unknown')}")
-                
+
             else:
-                print(f"✗ Unexpected status code: {response.status_code}")
-                return False
-            
-            return True
-            
+                raise AssertionError(f"Unexpected status code: {response.status_code}")
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def test_queue_persistence_across_restarts():
@@ -244,14 +245,13 @@ def test_queue_persistence_across_restarts():
         
         # Cleanup
         os.unlink(temp_path)
-        
-        return True
-        
+
     except Exception as e:
         print(f"✗ FAIL: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
+
 
 
 def main():
@@ -272,9 +272,13 @@ def main():
     total = len(tests)
     
     for test_func in tests:
-        if test_func():
+        result = test_func()
+        if result is False:
+            print(f"✗ {test_func.__name__} reported failure")
+        else:
             passed += 1
         time.sleep(0.3)
+
     
     print("\n" + "="*60)
     print("TEST SUMMARY")

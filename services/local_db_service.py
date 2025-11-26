@@ -10,7 +10,8 @@ import os
 import time
 from typing import Dict, List, Optional, Any
 from threading import Lock
-from datetime import datetime
+from datetime import datetime, timezone
+
 from utils.logging_config import logger
 
 
@@ -98,10 +99,11 @@ class LocalDatabase:
                         'channel': channel_name,
                         'feeds': [],
                         'metadata': {
-                            'created_at': datetime.utcnow().isoformat() + 'Z',
-                            'last_updated': datetime.utcnow().isoformat() + 'Z',
+                            'created_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                            'last_updated': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                             'entry_count': 0
                         }
+
                     }
                     self._write_channel_file(file_path, initial_data)
                     logger.info(f"Initialized local database channel: {channel_name}")
@@ -237,12 +239,13 @@ class LocalDatabase:
                 # Create feed entry
                 feed_entry = self._map_data_to_feed(data, channel_name)
                 feed_entry['entry_id'] = entry_id
-                feed_entry['created_at'] = datetime.utcnow().isoformat() + 'Z'
+                feed_entry['created_at'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
                 
                 # Add to feeds
                 channel_data['feeds'].append(feed_entry)
                 channel_data['metadata']['entry_count'] = entry_id
-                channel_data['metadata']['last_updated'] = datetime.utcnow().isoformat() + 'Z'
+                channel_data['metadata']['last_updated'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+
                 
                 # Save to disk
                 self._write_channel_file(file_path, channel_data)
