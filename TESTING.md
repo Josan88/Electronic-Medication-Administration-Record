@@ -93,3 +93,84 @@ The test suite includes:
 - **E2E Tests**: `tests/test_e2e.py`
 
 All tests use a local file-based database (`patient_data.json`) and temporary files to ensure isolation and no dependency on external services (like ThingSpeak) during testing.
+
+## Writing New Tests
+
+The project follows two distinct patterns for testing:
+
+### 1. Unit & Integration Tests (Hybrid Pattern)
+
+Tests located in the root directory (e.g., `test_validation.py`, `test_queue_integration.py`) follow a hybrid pattern. They can be run as standalone Python scripts or discovered by `pytest`.
+
+**Template:**
+
+```python
+import sys
+from utils.errors import ValidationError
+
+def test_my_new_feature():
+    """Test description"""
+    print("\n" + "="*60)
+    print("MY NEW FEATURE TEST")
+    print("="*60)
+    
+    tests_passed = 0
+    
+    # Test Case 1
+    print("\nTest 1: Verify basic functionality")
+    try:
+        # Setup & Act
+        result = my_function(input_data)
+        
+        # Assert
+        assert result == expected_value
+        print(f"✓ PASS: Result matched expected value")
+        tests_passed += 1
+    except Exception as e:
+        print(f"✗ FAIL: {e}")
+        raise  # Re-raise to ensure pytest marks it as failed
+
+    return tests_passed
+
+def main():
+    # Run all tests in this file
+    try:
+        test_my_new_feature()
+        print("\n✓ ALL TESTS PASSED")
+        return 0
+    except:
+        print("\n✗ SOME TESTS FAILED")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+### 2. End-to-End Tests (Playwright Pattern)
+
+Tests located in the `tests/` directory (e.g., `test_e2e.py`) use standard `pytest` classes and fixtures with Playwright.
+
+**Template:**
+
+```python
+import pytest
+from playwright.sync_api import Page, expect
+
+class TestMyFeatureWorkflow:
+    """
+    Test the user workflow for My Feature.
+    """
+
+    def test_user_can_perform_action(self, page: Page, app_url: str):
+        """Test that a user can perform X action."""
+        # 1. Navigate
+        page.goto(f"{app_url}/dashboard")
+
+        # 2. Interact
+        page.click("#my-button")
+        page.fill("#input-field", "test value")
+        
+        # 3. Verify
+        expect(page.locator(".success-message")).to_be_visible()
+        expect(page.locator("#result")).to_contain_text("test value")
+```

@@ -1,23 +1,22 @@
-# Agent Guidelines for eMAR
+# eMAR Agent Guidelines
 
 ## Build & Test
 
-- **Test All:** `python -m pytest` (Note: `pytest.ini` has headed/video opts)
-- **Test Single:** `python -m pytest tests/test_validation.py` or `::TestClass::test_method`
 - **Run App:** `python app.py` (http://localhost:5000)
-- **Deps:** `pip install -r requirements.txt` (Ensure pytest/requests installed)
+- **Test All:** `python -m pytest` (Defaults to headed w/ video; see `pytest.ini`)
+- **Test Single:** `python -m pytest tests/test_validation.py` or `::TestClass::test_method`
+- **Dependencies:** `pip install -r requirements.txt`
 
 ## Code Style & Architecture
 
 - **Stack:** Flask (Python), Vanilla JS. **Pattern:** Routes → Validators → Services → Utils.
-- **Style:** PEP 8 (Py), 2-space (JS). Docstrings required. **Imports:** Standard, 3rd-party, Local.
-- **Logging/Errors:** Use `utils.logging_config.logger` & `utils.errors` (e.g. `ValidationError`).
-- **Data:** Local JSON (Primary/Thread-safe) → ThingSpeak (Backup/Async).
-- **Constraints:** **Strict 15s** ThingSpeak rate limit. Use `queue_service` & `thingspeak_bulk_service`.
-- **Paths:** ALWAYS use **absolute paths** (resolve against root).
+- **Style:** PEP 8 (Py), 2-space (JS). Docstrings on all public methods. **Imports:** Std → 3rd → Local.
+- **Logging:** Use `utils.logging_config.logger` (NO `print`). Handle `utils.errors.ValidationError`.
+- **Pathing:** ALWAYS use **absolute paths** (resolve against project root).
 
-## Rules
+## Critical Rules (Hybrid Data)
 
-- **Validation:** Validate in `validators/` before Services. Sanitize inputs.
-- **Sync:** Dual-write to local DB and Queue. Do not block on external API.
-- **Docs:** Update `swagger.yaml` on route changes.
+- **Write Flow:** Routes → `validators` → `hybrid_service` (Dual-write: Local DB + Sync Queue).
+- **ThingSpeak:** NEVER write directly from routes. STRICT 15s rate limit handled by `sync_service`.
+- **Data:** Local JSON is primary/thread-safe. `process_thingspeak_sync` worker handles cloud sync.
+- **Docs:** Update `swagger.yaml` for route changes. Sanitize inputs with `html.escape()`.

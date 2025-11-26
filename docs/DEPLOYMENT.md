@@ -135,7 +135,31 @@ Before configuring the application, you need to set up three ThingSpeak channels
 
 ### Environment Variables
 
-Create a `.env` file in the project root with the following variables:
+Create a `.env` file in the project root.
+
+#### Required Variables
+
+| Variable | Description |
+|----------|-------------|
+| `SECRET_KEY` | Flask secret key for session management |
+| `PATIENT_CHANNEL_ID` | ThingSpeak Channel ID for patient data |
+| `PATIENT_WRITE_KEY` | ThingSpeak Write API Key for patient data |
+| `PATIENT_READ_KEY` | ThingSpeak Read API Key for patient data |
+| `PRESCRIPTION_CHANNEL_ID` | ThingSpeak Channel ID for prescription data |
+| `PRESCRIPTION_WRITE_KEY` | ThingSpeak Write API Key for prescription data |
+| `PRESCRIPTION_READ_KEY` | ThingSpeak Read API Key for prescription data |
+| `TRACKING_CHANNEL_ID` | ThingSpeak Channel ID for tracking data |
+| `TRACKING_WRITE_KEY` | ThingSpeak Write API Key for tracking data |
+| `TRACKING_READ_KEY` | ThingSpeak Read API Key for tracking data |
+
+#### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LOCAL_DB_PATH` | Directory path for local JSON database storage | `/tmp/emar_local_db` |
+| `SYNC_INTERVAL_SECONDS` | Interval (in seconds) for syncing to ThingSpeak | `300` |
+
+Example `.env` file content:
 
 ```bash
 # Flask Configuration
@@ -155,6 +179,10 @@ PRESCRIPTION_READ_KEY=your_prescription_read_key
 TRACKING_CHANNEL_ID=your_tracking_channel_id
 TRACKING_WRITE_KEY=your_tracking_write_key
 TRACKING_READ_KEY=your_tracking_read_key
+
+# Local Database Configuration (Optional)
+# LOCAL_DB_PATH=/tmp/emar_local_db
+# SYNC_INTERVAL_SECONDS=300
 ```
 
 ### Generating a Secret Key

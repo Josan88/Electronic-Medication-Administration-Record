@@ -148,6 +148,27 @@ graph TB
     JS -->|AJAX Calls| API[Flask REST API]
 ```
 
+#### Frontend Logic & Patterns
+
+While the system is backend-focused, the frontend implements several key patterns to support the architecture:
+
+1.  **Dual-Mode Interaction**:
+    - **Blocking Operations**: For Patient and Tracking updates, the frontend awaits the HTTP response (which may take 15s due to backend rate limiting).
+    - **Non-Blocking Operations**: For Prescriptions, the frontend accepts an HTTP 202 immediately and refreshes the list asynchronously after a short delay, relying on the backend queue.
+
+2.  **Client-Side Status Calculation**:
+    - The Duty Dashboard (`renderTimelineTable` in `main.js`) replicates the backend's status calculation logic (`isServed`).
+    - This allows for real-time visual updates of the timeline without constant round-trips for status computation.
+    - **Logic Mirroring**: The frontend validates time windows (e.g., ensuring a medication consumed at 09:15 falls within the 09:00 slot) exactly as the backend `status_calculator.py` does.
+
+3.  **Role-Based Visibility**:
+    - Uses `localStorage` ("userRole") to toggle visibility of UI elements (`.nurse-only`, `.management-only`).
+    - **Note**: This is a UX feature only; strict security is enforced at the backend API level (if authentication were fully implemented).
+
+4.  **Dashboard Refresh Strategy**:
+    - **Management Dashboard**: Uses a timer (`setInterval`) to poll for statistics updates every minute.
+    - **Duty Dashboard**: Refreshes on load and upon specific actions (e.g., recording a medication).
+
 ---
 
 ## Data Flow Diagrams

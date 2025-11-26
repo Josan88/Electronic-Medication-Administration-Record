@@ -354,20 +354,33 @@ Create a `.env` file by copying the example template:
 cp .env.example .env
 ```
 
-Then edit `.env` with your ThingSpeak API keys:
+Then edit `.env` with your configuration.
 
-```
-SECRET_KEY=your-flask-secret-key
-PATIENT_CHANNEL_ID=3124887
-PATIENT_WRITE_KEY=your-patient-write-key
-PATIENT_READ_KEY=your-patient-read-key
-PRESCRIPTION_CHANNEL_ID=3124898
-PRESCRIPTION_WRITE_KEY=your-prescription-write-key
-PRESCRIPTION_READ_KEY=your-prescription-read-key
-TRACKING_CHANNEL_ID=3131200
-TRACKING_WRITE_KEY=your-tracking-write-key
-TRACKING_READ_KEY=your-tracking-read-key
-```
+#### Required Variables
+
+These variables must be set for the application to function:
+
+| Variable | Description |
+|----------|-------------|
+| `SECRET_KEY` | Flask secret key for session management and security |
+| `PATIENT_CHANNEL_ID` | ThingSpeak Channel ID for patient data |
+| `PATIENT_WRITE_KEY` | ThingSpeak Write API Key for patient data |
+| `PATIENT_READ_KEY` | ThingSpeak Read API Key for patient data |
+| `PRESCRIPTION_CHANNEL_ID` | ThingSpeak Channel ID for prescription data |
+| `PRESCRIPTION_WRITE_KEY` | ThingSpeak Write API Key for prescription data |
+| `PRESCRIPTION_READ_KEY` | ThingSpeak Read API Key for prescription data |
+| `TRACKING_CHANNEL_ID` | ThingSpeak Channel ID for tracking data |
+| `TRACKING_WRITE_KEY` | ThingSpeak Write API Key for tracking data |
+| `TRACKING_READ_KEY` | ThingSpeak Read API Key for tracking data |
+
+#### Optional Variables
+
+These variables have default values but can be customized:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LOCAL_DB_PATH` | Directory path for local JSON database storage | `/tmp/emar_local_db` |
+| `SYNC_INTERVAL_SECONDS` | Interval (in seconds) for syncing local data to ThingSpeak | `300` (5 minutes) |
 
 **Note:** The `.env.example` file is provided as a template. Never commit your actual `.env` file with real API keys to version control.
 
@@ -509,6 +522,25 @@ app.run(debug=True, host="0.0.0.0", port=5001)
 3. Wait 15 seconds between patient/tracking requests (rate limit per channel)
 4. Check terminal for background worker messages: `"Successfully posted entry"`
 5. Look for `response.raise_for_status()` exceptions in logs
+
+## 🚀 Deployment
+
+The system supports multiple deployment strategies. For detailed instructions, see the **[Deployment Guide](docs/DEPLOYMENT.md)**.
+
+### 1. Local Development
+Suitable for testing and development. Uses the built-in Flask server.
+```bash
+python app.py
+```
+
+### 2. Docker
+Containerized deployment with pre-configured environment. See the [Docker section](docs/DEPLOYMENT.md#docker-deployment) in the Deployment Guide for the Dockerfile and docker-compose configuration.
+
+### 3. Production
+For production environments, use a WSGI server (like Gunicorn) and a reverse proxy (like Nginx) for better performance and security.
+```bash
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
 
 ## 🔐 Security Considerations
 
