@@ -761,13 +761,14 @@ async function loadPatientActiveMeds() {
     }
 
     // determine active meds
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     const activeMeds = (prescs || []).filter((m) => {
       if (!m.start_date) return false;
       if (String(m.start_date).split("T")[0] > today) return false;
       if (m.end_date && String(m.end_date).split("T")[0] < today) return false;
       return true;
     });
+
 
     // render meds below the patient card with improved format
     let medsHtml = "";
@@ -876,10 +877,11 @@ async function updateStats() {
     const activePrescriptions = prescriptions.length;
 
     // Count completed today
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     const completedToday = tracking.filter((r) =>
       (r.consume_date || "").startsWith(today)
     ).length;
+
 
     document.getElementById("totalPatients").textContent = totalPatients;
     document.getElementById("totalPrescriptions").textContent =
@@ -1020,7 +1022,8 @@ async function showDutyDashboard() {
     const tracking = trackResult.data || [];
 
     // Get today's date for filtering active prescriptions
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
+
 
     // Filter prescriptions to only include active ones (today is within start_date and end_date)
     const activePrescriptions = prescriptions.filter((p) => {
@@ -1069,7 +1072,7 @@ async function showDutyDashboard() {
 }
 
 function isServed(prescription, tracking, specificSlot = null) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
 
   // Parse prescription time slots (may be comma-separated)
   const prescriptionSlots = (prescription.time_slot || "")
@@ -1094,11 +1097,11 @@ function isServed(prescription, tracking, specificSlot = null) {
       return false;
     }
 
-    // For tracking records, the time_slot should be a single slot
-    // If it's comma-separated (malformed data), only use the first slot
-    // This represents the actual time the medication was administered
-    const trackSlotRaw = String(t.time_slot || "").trim();
-    const trackSlot = trackSlotRaw.split(",")[0].trim();
+    // Map tracking record to the relevant slot (handles comma-separated schedules)
+    const trackSlot = resolveTrackingSlot(t);
+    if (!trackSlot) {
+      return false;
+    }
 
     // Check if the tracking slot matches any of the slots to check
     if (!slotsToCheck.includes(trackSlot)) {
@@ -1155,6 +1158,64 @@ function isServed(prescription, tracking, specificSlot = null) {
   });
 }
 
+// Determine which slot a tracking record corresponds to (handles comma-separated schedules)
+function resolveTrackingSlot(record) {
+  const slotRaw = String(record.time_slot || "");
+  const slots = slotRaw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (slots.length === 0) return "";
+
+  const consumeRaw = String(record.consume_date || record.consume_datetime || "");
+  if (!consumeRaw) return slots[0];
+
+  const timePart = consumeRaw.includes("T")
+    ? consumeRaw.split("T")[1]
+    : consumeRaw.split(" ")[1];
+
+  if (!timePart) return slots[0];
+
+  const [consumeHourStr, consumeMinuteStr] = timePart.split(":");
+  const consumeHour = Number(consumeHourStr);
+  const consumeMinute = Number(consumeMinuteStr || "0");
+
+  if (Number.isNaN(consumeHour) || Number.isNaN(consumeMinute)) return slots[0];
+
+  const consumeMinutes = consumeHour * 60 + consumeMinute;
+
+  const slotMinutes = slots
+    .map((s) => {
+      const [hStr, mStr] = s.split(":");
+      const h = Number(hStr);
+      const m = Number(mStr || "0");
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return { slot: s, minutes: h * 60 + m };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.minutes - b.minutes);
+
+  if (slotMinutes.length === 0) return slots[0];
+
+  const first = slotMinutes[0];
+  const last = slotMinutes[slotMinutes.length - 1];
+
+  if (consumeMinutes < first.minutes || consumeMinutes >= last.minutes) {
+    return last.slot;
+  }
+
+  for (let i = 0; i < slotMinutes.length - 1; i++) {
+    const current = slotMinutes[i];
+    const next = slotMinutes[i + 1];
+    if (consumeMinutes >= current.minutes && consumeMinutes < next.minutes) {
+      return current.slot;
+    }
+  }
+
+  return slots[0];
+}
+
 async function updateDutyTimetableStatus() {
   try {
     const response = await fetch("/api/medication-tracking");
@@ -1170,12 +1231,11 @@ async function updateDutyTimetableStatus() {
       const timeSlot = cell.getAttribute("data-timeslot");
       const medName = cell.getAttribute("data-medicine");
 
-      const recordFound = trackingRecords.some(
-        (r) =>
-          r.patient_id === patientId &&
-          r.time_slot === timeSlot &&
-          r.medicine_name === medName
-      );
+      const recordFound = trackingRecords.some((r) => {
+        if (r.patient_id !== patientId || r.medicine_name !== medName) return false;
+        const resolvedSlot = resolveTrackingSlot(r);
+        return resolvedSlot === timeSlot;
+      });
 
       if (recordFound) {
         cell.classList.add("completed"); // Mark visually completed
@@ -1187,6 +1247,7 @@ async function updateDutyTimetableStatus() {
   }
 }
 
+
 function renderTimelineTable(grouped) {
   const container = document.querySelector("#timeline-tables");
   if (!container) {
@@ -1195,8 +1256,9 @@ function renderTimelineTable(grouped) {
   }
 
   container.innerHTML = "";
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const currentHour = new Date().getHours();
+
 
   // Define time ranges for auto-expansion
   const shouldExpand = {
@@ -1309,13 +1371,13 @@ function initManagementChart() {
         {
           label: "Completed",
           backgroundColor: "#28a745",
-          data: [0, 0, 0],
+          data: FIXED_TIME_SLOTS.map(() => 0),
           stack: "Stack 0",
         },
         {
           label: "Pending",
           backgroundColor: "#ffc107",
-          data: [0, 0, 0],
+          data: FIXED_TIME_SLOTS.map(() => 0),
           stack: "Stack 0",
         },
       ],
@@ -1340,6 +1402,28 @@ function initManagementChart() {
   scheduleRoundRefresh();
 }
 
+function normalizeTimeSlot(slot) {
+  if (!slot) return null;
+  const firstPart = String(slot).split(",")[0].trim();
+  if (!firstPart) return null;
+
+  const lower = firstPart.toLowerCase();
+  const match = lower.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (match) {
+    let hour = parseInt(match[1], 10);
+    const minutes = match[2] ? match[2] : "00";
+    const meridiem = match[3];
+
+    if (meridiem === "pm" && hour < 12) hour += 12;
+    if (meridiem === "am" && hour === 12) hour = 0;
+
+    const hh = String(hour).padStart(2, "0");
+    return `${hh}:${minutes}`;
+  }
+
+  return firstPart;
+}
+
 async function updateManagementChart() {
   if (!managementChart) return;
 
@@ -1356,14 +1440,17 @@ async function updateManagementChart() {
     const prescriptions = prescJson.data || [];
     const tracking = trackJson.data || [];
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
 
     // Prepare counts per slot: index order matches FIXED_TIME_SLOTS
     const totals = FIXED_TIME_SLOTS.map(() => 0);
     const completed = FIXED_TIME_SLOTS.map(() => 0);
 
     function dateOnly(d) {
-      return d ? String(d).split("T")[0] : null;
+      if (!d) return null;
+      // Handle both ISO (T) and space-separated timestamps
+      const raw = String(d);
+      return raw.includes("T") ? raw.split("T")[0] : raw.split(" ")[0];
     }
 
     prescriptions.forEach((p) => {
@@ -1388,7 +1475,7 @@ async function updateManagementChart() {
       if (slots.length === 0) return;
 
       slots.forEach((rawSlot) => {
-        const norm = String(rawSlot).trim();
+        const norm = normalizeTimeSlot(rawSlot);
         const idx = FIXED_TIME_SLOTS.findIndex((s) => s.value === norm);
         if (idx === -1) return;
         totals[idx] += 1;
@@ -1396,7 +1483,7 @@ async function updateManagementChart() {
         // Check if medication was served
         const servedHere = tracking.some((t) => {
           const tDate = dateOnly(t.consume_date);
-          const tSlot = String(t.time_slot).trim();
+          const tSlot = normalizeTimeSlot(t.time_slot);
           return (
             t.patient_id === p.patient_id &&
             t.medicine_name === p.medicine_name &&
@@ -1425,6 +1512,7 @@ async function updateManagementChart() {
     console.error("updateManagementChart error:", err);
   }
 }
+
 
 function scheduleRoundRefresh() {
   if (managementRoundTimeout) {

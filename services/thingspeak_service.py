@@ -53,11 +53,17 @@ class ThingSpeakService:
         
         # Compute status for medicine_track records based on consume_date and time_slot
         if channel_name == "medicine_track":
-            consume_date = mapped_data.get("consume_date")
-            time_slot = mapped_data.get("time_slot")
+            # Accept either Consume_Date or Consume_DateTime label from ThingSpeak metadata
+            consume_date = (
+                mapped_data.get("consume_date")
+                or mapped_data.get("consume_datetime")
+                or feed.get("field4")
+            )
+            time_slot = mapped_data.get("time_slot") or feed.get("field5")
             if consume_date and time_slot:
                 from utils.status_calculator import calculate_status
                 mapped_data["status"] = calculate_status(consume_date, time_slot)
+
 
         return mapped_data
 

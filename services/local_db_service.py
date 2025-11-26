@@ -184,13 +184,13 @@ class LocalDatabase:
         
         return mapped_data
     
-    def read_channel(self, channel_name: str, limit: int = 100) -> List[Dict[str, Any]]:
+    def read_channel(self, channel_name: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
-        Read all data from a local channel.
+        Read data from a local channel.
         
         Args:
             channel_name: Name of the channel (patient_info, medicine_prescription, medicine_track)
-            limit: Maximum number of records to return
+            limit: Maximum number of records to return. If None, return all records.
             
         Returns:
             List of dictionaries with mapped field names
@@ -204,8 +204,9 @@ class LocalDatabase:
                 channel_data = self._read_channel_file(file_path)
                 feeds = channel_data.get('feeds', [])
                 
-                # Return most recent entries up to limit
-                feeds = feeds[-limit:] if len(feeds) > limit else feeds
+                # Return most recent entries up to limit (if provided)
+                if limit is not None and len(feeds) > limit:
+                    feeds = feeds[-limit:]
                 
                 # Map to user-friendly format
                 return [self._map_feed_to_data(feed, channel_name) for feed in feeds]
@@ -213,6 +214,7 @@ class LocalDatabase:
             except Exception as e:
                 logger.error(f"Failed to read from local channel {channel_name}: {e}")
                 raise LocalDatabaseError(f"Failed to read from local channel: {e}")
+
     
     def write_to_channel(self, channel_name: str, data: Dict[str, Any]) -> int:
         """

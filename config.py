@@ -69,7 +69,8 @@ class Config:
     @property
     def THINGSPEAK_RESULTS_LIMIT(self):
         """Maximum number of results to retrieve from ThingSpeak."""
-        return 100
+        return 250
+
     
     @property
     def LOCAL_DB_PATH(self):

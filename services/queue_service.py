@@ -66,8 +66,9 @@ class PersistentQueue:
     - Thread-safe operations
     """
     
-    def __init__(self, storage_path='/tmp/prescription_queue.json', 
+    def __init__(self, storage_path=None, 
                  max_size=1000, max_retry_attempts=3):
+
         """
         Initialize the persistent queue.
         
@@ -76,7 +77,9 @@ class PersistentQueue:
             max_size: Maximum queue size
             max_retry_attempts: Maximum retry attempts for failed items
         """
-        self.storage_path = storage_path
+        env_storage = os.environ.get('PRESCRIPTION_QUEUE_PATH')
+        self.storage_path = storage_path or env_storage or '/tmp/prescription_queue.json'
+
         self.max_size = max_size
         self.max_retry_attempts = max_retry_attempts
         self.queue = deque()

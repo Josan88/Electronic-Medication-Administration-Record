@@ -95,6 +95,9 @@ def process_prescription_queue():
                             f"Successfully posted prescription entry {entry_id} for patient {item.data.get('patient_id', 'unknown')} to local database"
                         )
 
+                        # Trigger sync to ThingSpeak
+                        sync_queue.add_sync_operation("medicine_prescription")
+
                         # Mark as successfully processed
                         persistent_queue.mark_success(item)
                     else:
@@ -234,8 +237,13 @@ def process_thingspeak_sync():
                             f"(since entry_id {last_synced_entry_id})"
                         )
 
-            # Sleep for a bit before checking again
-            time.sleep(10)
+                # Wait for new items or timeout (for periodic check)
+                # This replaces the sleep(10) with an event wait
+                sync_queue.wait_for_new_item(timeout=10)
+
+            # Small sleep to prevent tight loop if wait returns immediately but items aren't ready yet
+            # (e.g. due to rate limits)
+            # time.sleep(0.1) # Optional, but safe
 
         except Exception as e:
             logger.error(f"Error in ThingSpeak sync worker: {e}", exc_info=True)

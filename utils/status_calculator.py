@@ -5,7 +5,7 @@ This module provides functionality to determine medication administration status
 based on consume date/time and prescribed time slots.
 """
 
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 from typing import Optional
 
 
@@ -24,25 +24,25 @@ def parse_time_from_string(time_str: str) -> Optional[time]:
     Returns:
         datetime.time object or None if parsing fails
     """
-    time_str = time_str.strip().upper()
-    
-    # Try 24-hour format HH:MM or H:MM
-    for fmt in ['%H:%M', '%I:%M']:
+    cleaned = time_str.strip()
+    upper = cleaned.upper()
+
+    time_formats = [
+        '%H:%M',
+        '%I:%M',
+        '%H:%M:%S',
+        '%I:%M:%S',
+        '%I:%M%p',   # 09:00AM
+        '%I:%M %p',  # 09:00 AM
+        '%I%p',      # 9AM
+    ]
+
+    for fmt in time_formats:
         try:
-            dt = datetime.strptime(time_str, fmt)
-            return dt.time()
+            return datetime.strptime(upper, fmt).time()
         except ValueError:
             continue
-    
-    # Try 12-hour format with AM/PM (e.g., "9AM", "5PM")
-    if time_str.endswith('AM') or time_str.endswith('PM'):
-        try:
-            # Handle formats like "9AM" or "09AM"
-            dt = datetime.strptime(time_str, '%I%p')
-            return dt.time()
-        except ValueError:
-            pass
-    
+
     return None
 
 
@@ -130,27 +130,43 @@ def calculate_status(consume_date: str, time_slot: str) -> str:
     try:
         # Parse consume_date - try multiple formats
         consume_datetime = None
-        
+        raw_date = consume_date.strip()
+
+        # ISO-8601 support (including trailing Z and offsets)
+        iso_candidate = raw_date.replace('Z', '+00:00')
+        try:
+            consume_datetime = datetime.fromisoformat(iso_candidate)
+        except ValueError:
+            pass
+
         # Common datetime formats
-        for fmt in [
-            '%Y-%m-%d %H:%M:%S',  # "2025-11-13 17:16:27"
-            '%Y-%m-%d %H:%M',     # "2025-11-13 17:16"
-            '%Y-%m-%d',           # "2025-11-13" (assume midnight)
-            '%d/%m/%Y %H:%M:%S',  # "13/11/2025 17:16:27"
-            '%d/%m/%Y',           # "13/11/2025"
-            '%m/%d/%Y %H:%M:%S',  # "11/13/2025 17:16:27"
-            '%m/%d/%Y',           # "11/13/2025"
-        ]:
-            try:
-                consume_datetime = datetime.strptime(consume_date.strip(), fmt)
-                break
-            except ValueError:
-                continue
-        
+        if consume_datetime is None:
+            for fmt in [
+                '%Y-%m-%d %H:%M:%S',  # "2025-11-13 17:16:27"
+                '%Y-%m-%d %H:%M',     # "2025-11-13 17:16"
+                '%Y-%m-%d',           # "2025-11-13" (assume midnight)
+                '%Y-%m-%dT%H:%M:%S',
+                '%Y-%m-%dT%H:%M:%S.%f',
+                '%Y-%m-%dT%H:%M',
+                '%d/%m/%Y %H:%M:%S',  # "13/11/2025 17:16:27"
+                '%d/%m/%Y',           # "13/11/2025"
+                '%m/%d/%Y %H:%M:%S',  # "11/13/2025 17:16:27"
+                '%m/%d/%Y',           # "11/13/2025"
+            ]:
+                try:
+                    consume_datetime = datetime.strptime(raw_date, fmt)
+                    break
+                except ValueError:
+                    continue
+
         if consume_datetime is None:
             # If we can't parse the date, default to pending
             return "pending"
-        
+
+        # Normalize timezone-aware datetimes to naive UTC for slot comparison
+        if consume_datetime.tzinfo is not None and consume_datetime.tzinfo.utcoffset(consume_datetime) is not None:
+            consume_datetime = consume_datetime.astimezone(timezone.utc).replace(tzinfo=None)
+
         # Check if time is within any slot
         if is_time_within_slot(consume_datetime, time_slot):
             return "complete"
