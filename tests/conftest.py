@@ -112,12 +112,21 @@ def playwright_instance():
 @pytest.fixture(scope="session")
 def browser(playwright_instance: Playwright):
     """Launch browser for the test session."""
-    browser = playwright_instance.chromium.launch(
-        headless=True,
-        args=['--no-sandbox', '--disable-dev-shm-usage']
-    )
+    try:
+        browser = playwright_instance.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+        )
+    except Exception as exc:
+        pytest.skip(
+            "Playwright Chromium browser is not installed. "
+            "Install it with `playwright install chromium` to run E2E tests. "
+            f"Original error: {exc}"
+        )
+
     yield browser
     browser.close()
+
 
 
 @pytest.fixture(scope="function")

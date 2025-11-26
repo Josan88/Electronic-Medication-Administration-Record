@@ -26,6 +26,8 @@ To run the full test suite (excluding E2E browser tests if you wish, though curr
 python -m pytest
 ```
 
+If Playwright browsers have not been installed, the E2E suite will be skipped automatically with a message pointing to `playwright install chromium` so the default run still succeeds.
+
 Or to run specific test modules:
 
 ```bash
