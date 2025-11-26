@@ -326,7 +326,8 @@ class TestNurseWorkflow:
 
         # Back to duty dashboard to confirm status shows complete/green in UI
         has_complete_ui = False
-        for attempt in range(2):
+        last_status_text = ""
+        for attempt in range(3):
             page.click("label.burger-icon")
             page.wait_for_timeout(300)
             page.click("button:has-text('Duty Dashboard')")
@@ -335,7 +336,11 @@ class TestNurseWorkflow:
             page.wait_for_timeout(300)
             page.fill("#patientSearchInput", test_patient_id)
             page.click("#byPatient button.btn-primary")
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(1200)
+
+            # Switch back to Round Timeline view to inspect timetable status
+            page.click("button.tab-button:has-text('Round Timeline')")
+            page.wait_for_timeout(500)
 
             try:
                 page.evaluate(
@@ -343,21 +348,30 @@ class TestNurseWorkflow:
                 )
             except Exception:
                 pass
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(800)
 
-            status_container = page.locator("#patientMedsResult")
-            status_container.scroll_into_view_if_needed()
-            expect(status_container).not_to_be_empty(timeout=15000)
-            text = status_container.inner_text()
-            if "Complete" in text:
+            timeline_container = page.locator("#timeline-tables")
+            expect(timeline_container).to_be_visible(timeout=15000)
+
+            patient_row = timeline_container.locator(
+                "tr",
+                has_text=test_patient_id,
+            ).first
+            expect(patient_row).to_be_visible(timeout=15000)
+
+            last_status_text = patient_row.inner_text()
+            if "Complete" in last_status_text:
                 has_complete_ui = True
                 break
 
-        if not has_complete_ui:
-            page.goto(f"{app_url}/api/patient/{test_patient_id}/tracking")
-            page.wait_for_timeout(2500)
-        else:
-            page.wait_for_timeout(2500)
+            page.wait_for_timeout(1000)
+
+        assert has_complete_ui, (
+            "Duty Dashboard never displayed a completed medication status; "
+            f"last row text: {last_status_text}"
+        )
+
+        page.wait_for_timeout(2500)
 
 
 class TestManagementWorkflow:
@@ -582,6 +596,7 @@ class TestStatusSimulation:
         medicine_name = "Chart Test Med"
         time_slot = "13:00"
 
+        # Prepare patient and prescription data
         requests.post(
             f"{app_url}/api/patients",
             json={
@@ -610,8 +625,24 @@ class TestStatusSimulation:
 
         time.sleep(2)
 
+        # Load management dashboard and capture baseline administration count
+        page.goto(f"{app_url}/management-login")
+        page.fill("#username", "manager")
+        page.fill("#password", "manager123")
+        page.click("button.btn-login")
+        page.wait_for_url("**/dashboard?role=management")
+        page.wait_for_timeout(3000)
+        expect(page.locator("#managementChart")).to_be_visible()
+
+        baseline_text = page.locator("#todayAdministrations").inner_text()
+        assert baseline_text.isdigit(), (
+            f"Expected numeric administered count, got: {baseline_text}"
+        )
+        baseline_count = int(baseline_text)
+
+        # Record medication completion via API
         consume_datetime = f"{today_date} {time_slot}:00"
-        requests.post(
+        tracking_resp = requests.post(
             f"{app_url}/api/medication-tracking",
             json={
                 "patient_id": test_patient_id,
@@ -622,24 +653,31 @@ class TestStatusSimulation:
                 "time_slot": time_slot,
             },
         )
-
-        page.goto(f"{app_url}/management-login")
-        page.fill("#username", "manager")
-        page.fill("#password", "manager123")
-        page.click("button.btn-login")
-        page.wait_for_url("**/dashboard?role=management")
-
-        page.wait_for_timeout(3000)
-
-        expect(page.locator("#managementChart")).to_be_visible()
-
-        administered_count_text = page.locator("#todayAdministrations").inner_text()
-
-        assert administered_count_text.isdigit(), (
-            f"Expected numeric administered count, got: {administered_count_text}"
+        assert tracking_resp.status_code == 200, (
+            f"Tracking API failed: {tracking_resp.text}"
         )
 
-        administered_count = int(administered_count_text)
+        # Poll for the dashboard to reflect the new completed dose
+        expected_min = baseline_count + 1
+        final_text = baseline_text
+        final_count = baseline_count
+        deadline = time.time() + 12
+        while time.time() < deadline:
+            page.reload()
+            page.wait_for_timeout(1500)
+            final_text = page.locator("#todayAdministrations").inner_text()
+            if not final_text.isdigit():
+                time.sleep(1)
+                continue
+            final_count = int(final_text)
+            if final_count >= expected_min:
+                break
+            time.sleep(1)
+
+        assert final_count >= expected_min, (
+            "Management chart did not increase after completed dose; "
+            f"initial={baseline_count}, final_display='{final_text}'"
+        )
 
 
 class TestVideoRecording:
