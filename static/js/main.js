@@ -262,8 +262,71 @@ function addMedicineField() {
     startDateInput.value = getLocalDateString();
   }
 
+  // Add frequency change listener for auto-population
+  const frequencyInput = newGroup.querySelector('input[name="frequency"]');
+  if (frequencyInput) {
+    frequencyInput.addEventListener('blur', function() {
+      autoPopulateTimeSlotsIfNeeded(newGroup);
+    });
+  }
+
   // Append the new group
   container.appendChild(newGroup);
+}
+
+// Auto-populate time slots if frequency is 4
+function autoPopulateTimeSlotsIfNeeded(medicineGroup) {
+  const frequencyInput = medicineGroup.querySelector('[name="frequency"]');
+  const container = medicineGroup.querySelector('.time-slots-container');
+  
+  if (!frequencyInput || !container) return;
+  
+  const frequencyValue = parseInt(frequencyInput.value);
+  
+  // Only auto-populate if frequency is exactly 4 and no time slots exist yet
+  if (frequencyValue === 4 && container.children.length === 0) {
+    // Add all 4 standard time slots
+    FIXED_TIME_SLOTS.forEach((timeSlot, index) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "time-slot-wrapper";
+
+      const selectField = document.createElement("select");
+      selectField.name = "time_slots[]";
+      selectField.required = true;
+      selectField.className = "form-control time-slot-select";
+      selectField.style.marginRight = "10px";
+      selectField.style.marginBottom = "5px";
+
+      FIXED_TIME_SLOTS.forEach((opt) => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.label;
+        selectField.appendChild(option);
+      });
+      
+      // Pre-select the appropriate time slot
+      selectField.value = timeSlot.value;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "btn btn-danger btn-sm remove-time";
+      removeButton.innerHTML = "✕";
+      removeButton.onclick = function () {
+        this.parentElement.remove();
+      };
+
+      wrapper.appendChild(selectField);
+      wrapper.appendChild(removeButton);
+      container.appendChild(wrapper);
+      
+      // Add validation on change
+      selectField.addEventListener('change', function() {
+        validateTimeSlots(medicineGroup);
+      });
+    });
+    
+    showMessage("info", "Time slots auto-populated for 4 times daily frequency (9AM, 1PM, 5PM, 9PM)");
+  }
 }
 
 function removeMedicineField(button) {
@@ -324,6 +387,40 @@ function addTimeField(button) {
   wrapper.appendChild(selectField);
   wrapper.appendChild(removeButton);
   container.appendChild(wrapper);
+  
+  // Add validation on change to prevent duplicates
+  selectField.addEventListener('change', function() {
+    validateTimeSlots(medicineGroup);
+  });
+}
+
+// Helper function to validate time slots for duplicates
+function validateTimeSlots(medicineGroup) {
+  const container = medicineGroup.querySelector('.time-slots-container');
+  const selects = Array.from(container.querySelectorAll('select[name="time_slots[]"]'));
+  const values = selects.map(s => s.value);
+  
+  // Check for duplicates
+  const duplicates = values.filter((item, index) => values.indexOf(item) !== index);
+  
+  if (duplicates.length > 0) {
+    showMessage('error', 'Duplicate time slots detected. Please select different times.');
+    // Highlight duplicate selects
+    selects.forEach(select => {
+      if (duplicates.includes(select.value)) {
+        select.style.borderColor = 'red';
+      } else {
+        select.style.borderColor = '';
+      }
+    });
+    return false;
+  } else {
+    // Clear any previous error highlighting
+    selects.forEach(select => {
+      select.style.borderColor = '';
+    });
+    return true;
+  }
 }
 
 async function addPrescription() {
@@ -364,6 +461,12 @@ async function addPrescription() {
 
   // Loop through each dynamic medicine group
   for (const group of medicineGroups) {
+    // Validate time slots for duplicates
+    if (!validateTimeSlots(group)) {
+      showMessage("error", "Please fix duplicate time slots before submitting.");
+      return;
+    }
+    
     // Extract data from the current medicine group using its 'name' attributes
     const prescriptionData = {
       patient_id: patientId,
@@ -411,31 +514,38 @@ async function addPrescription() {
       } else {
         failureCount++;
         console.error("API Error during submission:", result.error);
+        showMessage("error", "Error: " + result.error);
       }
     } catch (error) {
       failureCount++;
       console.error("Error adding prescription entry:", error.message);
+      showMessage("error", "Error adding prescription: " + error.message);
     }
   }
 
-  // Show final status and reset form
-  if (successCount > 0) {
+  // Show final status and reset form only if all succeeded
+  if (successCount > 0 && failureCount === 0) {
     showMessage(
       "success",
-      `${successCount} prescription(s) added successfully! (${failureCount} failed)`
+      `${successCount} prescription(s) added successfully!`
     );
+    // Reset form and dynamic fields
+    document.getElementById("prescriptionForm").reset();
+    document.getElementById("medicineFieldsContainer").innerHTML = ""; // Clear all dynamic fields
+    addMedicineField(); // Add one fresh field
+    setTimeout(() => loadPrescriptions(), 2000);
+  } else if (successCount > 0) {
+    showMessage(
+      "success",
+      `${successCount} prescription(s) added successfully! (${failureCount} failed - form data preserved)`
+    );
+    setTimeout(() => loadPrescriptions(), 2000);
   } else {
     showMessage(
       "error",
-      `Failed to add any prescriptions. ${failureCount} attempt(s) failed.`
+      `Failed to add any prescriptions. ${failureCount} attempt(s) failed. Form data preserved.`
     );
   }
-
-  // Reset form and dynamic fields
-  document.getElementById("prescriptionForm").reset();
-  document.getElementById("medicineFieldsContainer").innerHTML = ""; // Clear all dynamic fields
-  addMedicineField(); // Add one fresh field
-  setTimeout(() => loadPrescriptions(), 2000);
 }
 
 // Utility Functions
@@ -591,11 +701,17 @@ async function loadPatientActiveMeds() {
         patient = pj.data || pj || null;
       }
     } catch (e) {
-      // ignore, we'll still attempt to show meds
+      // Patient not found
+      patient = null;
     }
 
-    const infoHtml = patient
-      ? `
+    // If patient doesn't exist, show error and stop
+    if (!patient) {
+      resultContainer.innerHTML = `<div class="message error">Patient ID '${patientId}' not found. Please check the ID and try again.</div>`;
+      return;
+    }
+
+    const infoHtml = `
       <div class="card patient-info-card" style="margin-top: 1rem;">
         <h4 style="margin-bottom: 1rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 0.75rem;">Patient Information</h4>
         <div class="patient-info-grid">
@@ -620,8 +736,7 @@ async function loadPatientActiveMeds() {
             <span class="info-value">${patient.bed || "N/A"}</span>
           </div>
         </div>
-      </div>`
-      : `<div class="card patient-info-card" style="margin-top: 2rem;"><h4>Patient: ${patientId}</h4></div>`;
+      </div>`;
 
     // Show patient card immediately with a static loading message
     resultContainer.innerHTML =
@@ -646,7 +761,7 @@ async function loadPatientActiveMeds() {
     }
 
     // determine active meds
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     const activeMeds = (prescs || []).filter((m) => {
       if (!m.start_date) return false;
       if (String(m.start_date).split("T")[0] > today) return false;
@@ -654,17 +769,19 @@ async function loadPatientActiveMeds() {
       return true;
     });
 
-    // render meds below the patient card
+
+    // render meds below the patient card with improved format
     let medsHtml = "";
     if (activeMeds.length > 0) {
       medsHtml = activeMeds
         .map(
           (med) => `
         <div class="data-item">
-          <strong>${med.medicine_name || "N/A"}</strong> - ${
-            med.dosage || "N/A"
-          } - ${med.frequency || "N/A"}<br>
-          <small>From: ${med.start_date || "N/A"} To: ${
+          <strong>${med.medicine_name || "N/A"}</strong><br>
+          <span style="margin-left: 1rem;">Dosage: ${med.dosage || "N/A"}</span><br>
+          <span style="margin-left: 1rem;">Frequency: ${med.frequency || "N/A"} times daily</span><br>
+          <span style="margin-left: 1rem;">Times: ${med.time_slot || "N/A"}</span><br>
+          <small style="margin-left: 1rem;">Period: ${med.start_date || "N/A"} to ${
             med.end_date || "Ongoing"
           }</small>
         </div>`
@@ -760,10 +877,11 @@ async function updateStats() {
     const activePrescriptions = prescriptions.length;
 
     // Count completed today
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     const completedToday = tracking.filter((r) =>
       (r.consume_date || "").startsWith(today)
     ).length;
+
 
     document.getElementById("totalPatients").textContent = totalPatients;
     document.getElementById("totalPrescriptions").textContent =
@@ -904,7 +1022,8 @@ async function showDutyDashboard() {
     const tracking = trackResult.data || [];
 
     // Get today's date for filtering active prescriptions
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
+
 
     // Filter prescriptions to only include active ones (today is within start_date and end_date)
     const activePrescriptions = prescriptions.filter((p) => {
@@ -953,7 +1072,7 @@ async function showDutyDashboard() {
 }
 
 function isServed(prescription, tracking, specificSlot = null) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
 
   // Parse prescription time slots (may be comma-separated)
   const prescriptionSlots = (prescription.time_slot || "")
@@ -964,6 +1083,11 @@ function isServed(prescription, tracking, specificSlot = null) {
   const slotsToCheck = specificSlot ? [specificSlot] : prescriptionSlots;
 
   return tracking.some((t) => {
+    // Debug logging
+    if (t.patient_id === prescription.patient_id) {
+       console.log(`Checking tracking for ${t.patient_id}: med=${t.medicine_name} vs ${prescription.medicine_name}, date=${t.consume_date}`);
+    }
+
     // Check if tracking date is today
     // Handle both "T" and space separators in date format
     const consumeDateStr = String(t.consume_date || "");
@@ -978,11 +1102,11 @@ function isServed(prescription, tracking, specificSlot = null) {
       return false;
     }
 
-    // For tracking records, the time_slot should be a single slot
-    // If it's comma-separated (malformed data), only use the first slot
-    // This represents the actual time the medication was administered
-    const trackSlotRaw = String(t.time_slot || "").trim();
-    const trackSlot = trackSlotRaw.split(",")[0].trim();
+    // Map tracking record to the relevant slot (handles comma-separated schedules)
+    const trackSlot = resolveTrackingSlot(t);
+    if (!trackSlot) {
+      return false;
+    }
 
     // Check if the tracking slot matches any of the slots to check
     if (!slotsToCheck.includes(trackSlot)) {
@@ -1039,6 +1163,64 @@ function isServed(prescription, tracking, specificSlot = null) {
   });
 }
 
+// Determine which slot a tracking record corresponds to (handles comma-separated schedules)
+function resolveTrackingSlot(record) {
+  const slotRaw = String(record.time_slot || "");
+  const slots = slotRaw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (slots.length === 0) return "";
+
+  const consumeRaw = String(record.consume_date || record.consume_datetime || "");
+  if (!consumeRaw) return slots[0];
+
+  const timePart = consumeRaw.includes("T")
+    ? consumeRaw.split("T")[1]
+    : consumeRaw.split(" ")[1];
+
+  if (!timePart) return slots[0];
+
+  const [consumeHourStr, consumeMinuteStr] = timePart.split(":");
+  const consumeHour = Number(consumeHourStr);
+  const consumeMinute = Number(consumeMinuteStr || "0");
+
+  if (Number.isNaN(consumeHour) || Number.isNaN(consumeMinute)) return slots[0];
+
+  const consumeMinutes = consumeHour * 60 + consumeMinute;
+
+  const slotMinutes = slots
+    .map((s) => {
+      const [hStr, mStr] = s.split(":");
+      const h = Number(hStr);
+      const m = Number(mStr || "0");
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return { slot: s, minutes: h * 60 + m };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.minutes - b.minutes);
+
+  if (slotMinutes.length === 0) return slots[0];
+
+  const first = slotMinutes[0];
+  const last = slotMinutes[slotMinutes.length - 1];
+
+  if (consumeMinutes < first.minutes || consumeMinutes >= last.minutes) {
+    return last.slot;
+  }
+
+  for (let i = 0; i < slotMinutes.length - 1; i++) {
+    const current = slotMinutes[i];
+    const next = slotMinutes[i + 1];
+    if (consumeMinutes >= current.minutes && consumeMinutes < next.minutes) {
+      return current.slot;
+    }
+  }
+
+  return slots[0];
+}
+
 async function updateDutyTimetableStatus() {
   try {
     const response = await fetch("/api/medication-tracking");
@@ -1054,12 +1236,11 @@ async function updateDutyTimetableStatus() {
       const timeSlot = cell.getAttribute("data-timeslot");
       const medName = cell.getAttribute("data-medicine");
 
-      const recordFound = trackingRecords.some(
-        (r) =>
-          r.patient_id === patientId &&
-          r.time_slot === timeSlot &&
-          r.medicine_name === medName
-      );
+      const recordFound = trackingRecords.some((r) => {
+        if (r.patient_id !== patientId || r.medicine_name !== medName) return false;
+        const resolvedSlot = resolveTrackingSlot(r);
+        return resolvedSlot === timeSlot;
+      });
 
       if (recordFound) {
         cell.classList.add("completed"); // Mark visually completed
@@ -1071,6 +1252,7 @@ async function updateDutyTimetableStatus() {
   }
 }
 
+
 function renderTimelineTable(grouped) {
   const container = document.querySelector("#timeline-tables");
   if (!container) {
@@ -1079,8 +1261,9 @@ function renderTimelineTable(grouped) {
   }
 
   container.innerHTML = "";
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const currentHour = new Date().getHours();
+
 
   // Define time ranges for auto-expansion
   const shouldExpand = {
@@ -1193,13 +1376,13 @@ function initManagementChart() {
         {
           label: "Completed",
           backgroundColor: "#28a745",
-          data: [0, 0, 0],
+          data: FIXED_TIME_SLOTS.map(() => 0),
           stack: "Stack 0",
         },
         {
           label: "Pending",
           backgroundColor: "#ffc107",
-          data: [0, 0, 0],
+          data: FIXED_TIME_SLOTS.map(() => 0),
           stack: "Stack 0",
         },
       ],
@@ -1224,6 +1407,28 @@ function initManagementChart() {
   scheduleRoundRefresh();
 }
 
+function normalizeTimeSlot(slot) {
+  if (!slot) return null;
+  const firstPart = String(slot).split(",")[0].trim();
+  if (!firstPart) return null;
+
+  const lower = firstPart.toLowerCase();
+  const match = lower.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (match) {
+    let hour = parseInt(match[1], 10);
+    const minutes = match[2] ? match[2] : "00";
+    const meridiem = match[3];
+
+    if (meridiem === "pm" && hour < 12) hour += 12;
+    if (meridiem === "am" && hour === 12) hour = 0;
+
+    const hh = String(hour).padStart(2, "0");
+    return `${hh}:${minutes}`;
+  }
+
+  return firstPart;
+}
+
 async function updateManagementChart() {
   if (!managementChart) return;
 
@@ -1240,14 +1445,17 @@ async function updateManagementChart() {
     const prescriptions = prescJson.data || [];
     const tracking = trackJson.data || [];
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
 
     // Prepare counts per slot: index order matches FIXED_TIME_SLOTS
     const totals = FIXED_TIME_SLOTS.map(() => 0);
     const completed = FIXED_TIME_SLOTS.map(() => 0);
 
     function dateOnly(d) {
-      return d ? String(d).split("T")[0] : null;
+      if (!d) return null;
+      // Handle both ISO (T) and space-separated timestamps
+      const raw = String(d);
+      return raw.includes("T") ? raw.split("T")[0] : raw.split(" ")[0];
     }
 
     prescriptions.forEach((p) => {
@@ -1272,7 +1480,7 @@ async function updateManagementChart() {
       if (slots.length === 0) return;
 
       slots.forEach((rawSlot) => {
-        const norm = String(rawSlot).trim();
+        const norm = normalizeTimeSlot(rawSlot);
         const idx = FIXED_TIME_SLOTS.findIndex((s) => s.value === norm);
         if (idx === -1) return;
         totals[idx] += 1;
@@ -1280,7 +1488,7 @@ async function updateManagementChart() {
         // Check if medication was served
         const servedHere = tracking.some((t) => {
           const tDate = dateOnly(t.consume_date);
-          const tSlot = String(t.time_slot).trim();
+          const tSlot = normalizeTimeSlot(t.time_slot);
           return (
             t.patient_id === p.patient_id &&
             t.medicine_name === p.medicine_name &&
@@ -1309,6 +1517,7 @@ async function updateManagementChart() {
     console.error("updateManagementChart error:", err);
   }
 }
+
 
 function scheduleRoundRefresh() {
   if (managementRoundTimeout) {

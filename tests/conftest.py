@@ -14,9 +14,11 @@ import sys
 import time
 import threading
 import socket
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from contextlib import closing
+
 
 import pytest
 from playwright.sync_api import sync_playwright, Playwright
@@ -52,19 +54,28 @@ def flask_server(flask_port):
     """
     # Set minimal environment variables for testing BEFORE importing app
     # This ensures config.py uses these test values during initialization
+    tmp_base = tempfile.mkdtemp(prefix="emar_tests_")
+    local_db_path = os.path.join(tmp_base, "local_db")
+    os.makedirs(local_db_path, exist_ok=True)
+    os.environ.setdefault('LOCAL_DB_PATH', local_db_path)
+    os.environ.setdefault('SYNC_QUEUE_PATH', os.path.join(tmp_base, 'sync_queue.json'))
+    os.environ.setdefault('PRESCRIPTION_QUEUE_PATH', os.path.join(tmp_base, 'prescription_queue.json'))
+
+    os.environ.setdefault('TESTING', '1')
     os.environ.setdefault('SECRET_KEY', 'test-secret-key')
-    os.environ.setdefault('PATIENT_CHANNEL_ID', 'test_channel')
-    os.environ.setdefault('PATIENT_WRITE_KEY', 'test_key')
-    os.environ.setdefault('PATIENT_READ_KEY', 'test_key')
-    os.environ.setdefault('PRESCRIPTION_CHANNEL_ID', 'test_channel')
-    os.environ.setdefault('PRESCRIPTION_WRITE_KEY', 'test_key')
-    os.environ.setdefault('PRESCRIPTION_READ_KEY', 'test_key')
-    os.environ.setdefault('TRACKING_CHANNEL_ID', 'test_channel')
-    os.environ.setdefault('TRACKING_WRITE_KEY', 'test_key')
-    os.environ.setdefault('TRACKING_READ_KEY', 'test_key')
+    os.environ.setdefault('PATIENT_CHANNEL_ID', '3124887')
+    os.environ.setdefault('PATIENT_WRITE_KEY', 'SI3A2R579YEOZBNF')
+    os.environ.setdefault('PATIENT_READ_KEY', 'EIHZ4M56P78UQGL1')
+    os.environ.setdefault('PRESCRIPTION_CHANNEL_ID', '3124898')
+    os.environ.setdefault('PRESCRIPTION_WRITE_KEY', '4SPLC67X22H1ZKDW')
+    os.environ.setdefault('PRESCRIPTION_READ_KEY', '39HWHBXVF29VTRRU')
+    os.environ.setdefault('TRACKING_CHANNEL_ID', '3131200')
+    os.environ.setdefault('TRACKING_WRITE_KEY', 'LOFTBPN6E2O124FE')
+    os.environ.setdefault('TRACKING_READ_KEY', 'L5EM2MRTXX0ISV40')
 
     # Import app after setting env vars to ensure config picks them up
     from app import app
+
     
     # Configure Flask for testing
     app.config['TESTING'] = True
@@ -115,8 +126,10 @@ def browser(playwright_instance: Playwright):
     try:
         browser = playwright_instance.chromium.launch(
             headless=True,
+            slow_mo=500,  # slow interactions for clearer demo recordings
             args=["--no-sandbox", "--disable-dev-shm-usage"],
         )
+
     except Exception as exc:
         pytest.skip(
             "Playwright Chromium browser is not installed. "

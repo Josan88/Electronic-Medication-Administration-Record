@@ -12,7 +12,8 @@ using bulk write operations. It includes:
 import json
 import os
 import time
-from threading import Lock
+import tempfile
+from threading import Lock, Event
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from utils.logging_config import logger
@@ -78,10 +79,11 @@ class SyncQueue:
     
     def __init__(
         self,
-        storage_path: str = '/tmp/emar_sync_queue.json',
+        storage_path: str = None,
         max_retry_attempts: int = 5,
-        initial_backoff_seconds: int = 60
+        initial_backoff_seconds: int = 15
     ):
+
         """
         Initialize sync queue.
         
@@ -90,10 +92,15 @@ class SyncQueue:
             max_retry_attempts: Maximum retry attempts per operation
             initial_backoff_seconds: Initial backoff time for retries
         """
-        self.storage_path = storage_path
+        env_storage = os.environ.get('SYNC_QUEUE_PATH')
+        self.storage_path = storage_path or env_storage
+        if not self.storage_path:
+            self.storage_path = os.path.join(tempfile.gettempdir(), 'emar_sync_queue.json')
+
         self.max_retry_attempts = max_retry_attempts
         self.initial_backoff_seconds = initial_backoff_seconds
         self.lock = Lock()
+        self.new_item_event = Event()
         self.pending_items: List[SyncQueueItem] = []
         self.failed_items: List[SyncQueueItem] = []
         self.stats = {
@@ -180,6 +187,7 @@ class SyncQueue:
             item = SyncQueueItem(channel_name, since_entry_id)
             self.pending_items.append(item)
             self._save_to_disk()
+            self.new_item_event.set()  # Signal that a new item is available
             logger.info(
                 f"Added sync operation for {channel_name} "
                 f"(since entry_id {since_entry_id})"
@@ -319,6 +327,23 @@ class SyncQueue:
         """
         with self.lock:
             return self.last_synced_entry_ids.get(channel_name, 0)
+
+    def wait_for_new_item(self, timeout: float = None) -> bool:
+        """
+        Wait for a new item to be added to the queue.
+        
+        Args:
+            timeout: Maximum time to wait in seconds
+            
+        Returns:
+            True if event was set, False if timeout occurred
+        """
+        # Wait for the event
+        flag = self.new_item_event.wait(timeout)
+        # Clear the event so we can wait again
+        if flag:
+            self.new_item_event.clear()
+        return flag
 
 
 # Global sync queue instance

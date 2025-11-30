@@ -87,8 +87,10 @@ class LocalDatabase:
         }
         
         self._initialize_storage()
+        logger.info(f"LocalDatabase initialized with base_path: {self.base_path}")
     
     def _initialize_storage(self):
+
         """Create storage directory and initialize empty channel files if they don't exist."""
         try:
             os.makedirs(self.base_path, exist_ok=True)
@@ -114,8 +116,16 @@ class LocalDatabase:
     def _read_channel_file(self, file_path: str) -> Dict[str, Any]:
         """Read channel data from file."""
         try:
-            with open(file_path, 'r') as f:
-                return json.load(f)
+            abs_path = os.path.abspath(file_path)
+            if not os.path.exists(abs_path):
+                logger.warning(f"File not found at {abs_path}, returning empty struct")
+                return {'channel': 'unknown', 'feeds': []}
+
+            with open(abs_path, 'r') as f:
+                data = json.load(f)
+                feeds = data.get('feeds', [])
+                logger.info(f"DEBUG_READ: Reading {abs_path}: found {len(feeds)} entries. Feeds content sample: {str(feeds)[:100]}")
+                return data
         except Exception as e:
             logger.error(f"Failed to read channel file {file_path}: {e}")
             raise LocalDatabaseError(f"Failed to read channel file: {e}")
@@ -123,12 +133,15 @@ class LocalDatabase:
     def _write_channel_file(self, file_path: str, data: Dict[str, Any]):
         """Write channel data to file (atomic operation)."""
         try:
-            temp_path = f"{file_path}.tmp"
+            abs_path = os.path.abspath(file_path)
+            temp_path = f"{abs_path}.tmp"
+            feeds = data.get('feeds', [])
+            logger.info(f"DEBUG_WRITE: Writing to {abs_path}: {len(feeds)} entries. Last entry: {str(feeds[-1]) if feeds else 'None'}")
             with open(temp_path, 'w') as f:
                 json.dump(data, f, indent=2)
-            os.replace(temp_path, file_path)
+            os.replace(temp_path, abs_path)
         except Exception as e:
-            logger.error(f"Failed to write channel file {file_path}: {e}")
+            logger.error(f"Failed to write channel file {file_path}: {e}", exc_info=True)
             raise LocalDatabaseError(f"Failed to write channel file: {e}")
     
     def _map_data_to_feed(self, data: Dict[str, Any], channel_name: str) -> Dict[str, Any]:
@@ -184,13 +197,13 @@ class LocalDatabase:
         
         return mapped_data
     
-    def read_channel(self, channel_name: str, limit: int = 100) -> List[Dict[str, Any]]:
+    def read_channel(self, channel_name: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
-        Read all data from a local channel.
+        Read data from a local channel.
         
         Args:
             channel_name: Name of the channel (patient_info, medicine_prescription, medicine_track)
-            limit: Maximum number of records to return
+            limit: Maximum number of records to return. If None, return all records.
             
         Returns:
             List of dictionaries with mapped field names
@@ -204,8 +217,9 @@ class LocalDatabase:
                 channel_data = self._read_channel_file(file_path)
                 feeds = channel_data.get('feeds', [])
                 
-                # Return most recent entries up to limit
-                feeds = feeds[-limit:] if len(feeds) > limit else feeds
+                # Return most recent entries up to limit (if provided)
+                if limit is not None and len(feeds) > limit:
+                    feeds = feeds[-limit:]
                 
                 # Map to user-friendly format
                 return [self._map_feed_to_data(feed, channel_name) for feed in feeds]
@@ -213,6 +227,7 @@ class LocalDatabase:
             except Exception as e:
                 logger.error(f"Failed to read from local channel {channel_name}: {e}")
                 raise LocalDatabaseError(f"Failed to read from local channel: {e}")
+
     
     def write_to_channel(self, channel_name: str, data: Dict[str, Any]) -> int:
         """

@@ -31,8 +31,8 @@ def add_patient():
         if data is None:
             raise ValidationError("Invalid JSON data")
 
-        # Validate and sanitize input data
-        validated_data = validate_patient_data(data)
+        # Validate and sanitize input data (check for duplicate patient ID)
+        validated_data = validate_patient_data(data, check_duplicate=True)
 
         entry_id = hybrid_service.write_to_channel("patient_info", validated_data)
         return success_response(
