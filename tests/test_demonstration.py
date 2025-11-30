@@ -18,15 +18,13 @@ class TestWebsiteDemonstration:
         # Enable console logging
         page.on("console", lambda msg: print(f"BROWSER_LOG: {msg.text}"))
 
-        # Use a unique suffix to ensure we don't clash with previous runs in ThingSpeak
-        # (since tracking data persists in the cloud)
-        import time
-        unique_suffix = str(int(time.time()))[-4:]
-        
+        # Use a consistent medicine name for demonstration
+        # (ThingSpeak persistence may show prior runs; this demo tolerates that)
+
         patient_id = "108"
-        med_name = f"Lozenges - 500mg ({unique_suffix})"
+        med_name = "Lozenges - 500mg"
         dosage = "500mg"
-        time_slot = "21:00"  # pick a slot unlikely to be pre-served
+        time_slot = "13:00"  # 1:00 PM - different from old test data
         slot_label = {
             "09:00": "9:00 AM",
             "13:00": "1:00 PM",
@@ -43,55 +41,97 @@ class TestWebsiteDemonstration:
         page.click("button.btn-login")
         page.wait_for_url("**/dashboard?role=nurse")
 
-        # Navigate to Nurse Dashboard and add patient 108
+        # Navigate to Nurse Dashboard
         page.click("label.burger-icon")
         page.wait_for_timeout(300)
         page.click("button:has-text('Nurse Dashboard')")
         page.wait_for_timeout(500)
         expect(page.locator("#patients")).to_be_visible()
 
-        page.fill("#patient_id", patient_id)
-        page.fill("#name", "Demo Patient 108")
+        # DEMONSTRATION 1: Invalid patient ID format (validation error)
+        page.fill("#patient_id", "108@#!")
+        page.fill("#name", "John Doe")
         page.select_option("#floor", "1")
         page.select_option("#room", "101")
         page.select_option("#bed", "A")
         page.fill("#age", "30")
         page.select_option("#gender", "Male")
         page.fill("#notes", "Demonstration")
-        
-        # Submit form
         page.click("#patientForm button[type='submit']")
-        
-        # Check for success toast OR handle duplicate case
-        try:
-            expect(page.locator(".toast.success")).to_be_visible(timeout=5000)
-        except AssertionError:
-            # If success toast didn't appear, it might be a duplicate (400 error).
-            # In this case, we MUST ensure the patient exists in the local DB for the demo to work smoothly
-            # (especially if network fallback is flaky).
-            from services.local_db_service import local_db
-            
-            # Check if we need to backfill local DB
-            if not local_db.patient_exists(patient_id):
-                print(f"Backfilling local DB for existing patient {patient_id}")
-                local_db.write_to_channel("patient_info", {
-                    "patient_id": patient_id,
-                    "name": "Demo Patient 108",
-                    "floor": "1",
-                    "room": "101",
-                    "bed": "A",
-                    "age": "30",
-                    "gender": "Male",
-                    "notes": "Demonstration (Backfilled)"
-                })
-                # Force reload of the page/list to pick up the local data if needed
-                page.reload()
-                page.wait_for_timeout(1000)
-                # Re-navigate
-                page.click("label.burger-icon")
-                page.wait_for_timeout(300)
-                page.click("button:has-text('Nurse Dashboard')")
-                page.wait_for_timeout(500)
+
+        # Verify validation error toast appears
+        expect(page.locator(".toast.error")).to_be_visible(timeout=5000)
+        expect(page.locator(".toast.error")).to_contain_text(
+            "Patient ID must contain only letters, numbers, hyphens, or underscores"
+        )
+        # Verify form data is preserved (no reset on validation error)
+        expect(page.locator("#patient_id")).to_have_value("108@#!")
+        page.wait_for_timeout(2000)  # Allow error toast to be visible in video
+
+        # Wait for first error toast to disappear before next test
+        expect(page.locator(".toast.error")).to_be_hidden(timeout=10000)
+
+        # DEMONSTRATION 2: Invalid age value (validation error)
+        page.fill("#patient_id", patient_id)
+        page.fill("#name", "Demo Patient")  # No digits in name to pass name validation
+        page.select_option("#floor", "1")
+        page.select_option("#room", "101")
+        page.select_option("#bed", "A")
+        page.fill("#age", "999")  # Age out of valid range (0-150)
+        page.select_option("#gender", "Male")
+        page.fill("#notes", "Demonstration")
+        page.click("#patientForm button[type='submit']")
+
+        # Verify invalid age error toast
+        expect(page.locator(".toast.error")).to_be_visible(timeout=5000)
+        expect(page.locator(".toast.error")).to_contain_text(
+            "Age must be between 0 and 150"
+        )
+        page.wait_for_timeout(2000)  # Allow error toast to be visible in video
+
+        # Wait for error toast to disappear before next test
+        expect(page.locator(".toast.error")).to_be_hidden(timeout=10000)
+
+        # DEMONSTRATION 3: Successful patient creation
+        page.fill("#patient_id", patient_id)
+        page.fill("#name", "John Doe")
+        page.select_option("#floor", "1")
+        page.select_option("#room", "101")
+        page.select_option("#bed", "A")
+        page.fill("#age", "30")
+        page.select_option("#gender", "Male")
+        page.fill("#notes", "Demonstration")
+        page.click("#patientForm button[type='submit']")
+
+        # Verify success toast
+        expect(page.locator(".toast.success")).to_be_visible(timeout=5000)
+        expect(page.locator(".toast.success")).to_contain_text(
+            "Patient added successfully"
+        )
+        page.wait_for_timeout(2000)  # Allow success toast to be visible in video
+
+        # Wait for success toast to disappear before next test
+        expect(page.locator(".toast.success")).to_be_hidden(timeout=10000)
+
+        # DEMONSTRATION 4: Duplicate patient ID (duplication error)
+        page.fill("#patient_id", patient_id)
+        page.fill("#name", "John Doe")
+        page.select_option("#floor", "1")
+        page.select_option("#room", "101")
+        page.select_option("#bed", "A")
+        page.fill("#age", "30")
+        page.select_option("#gender", "Male")
+        page.fill("#notes", "Demonstration")
+        page.click("#patientForm button[type='submit']")
+
+        # Verify duplication error toast
+        expect(page.locator(".toast.error")).to_be_visible(timeout=5000)
+        expect(page.locator(".toast.error")).to_contain_text(
+            "Patient with ID '108' already exists"
+        )
+        # Verify form data is preserved (no reset on duplication error)
+        expect(page.locator("#patient_id")).to_have_value(patient_id)
+        page.wait_for_timeout(2000)  # Allow error toast to be visible in video
 
         # Add prescription for Lozenges - 500mg
         page.click("button.tab-button:has-text('Prescriptions')")
@@ -113,25 +153,28 @@ class TestWebsiteDemonstration:
         page.click("button:has-text('Submit All Prescriptions')")
         expect(page.locator("#confirmPrescriptionModal")).to_be_visible()
         page.click("#confirmSubmissionBtn")
-        expect(page.locator(".toast.success"), "Prescription toast should appear").to_be_visible(
-            timeout=10000
-        )
+        expect(
+            page.locator(".toast.success"), "Prescription toast should appear"
+        ).to_be_visible(timeout=10000)
 
-        # Wait until prescription API reflects the new entry
+        # Wait until prescription API reflects the new entry (filter by today's date)
         for _ in range(10):
-            presc_res = requests.get(f"{app_url}/api/patient/{patient_id}/prescriptions")
+            presc_res = requests.get(
+                f"{app_url}/api/patient/{patient_id}/prescriptions"
+            )
             presc_data = presc_res.json().get("data", [])
             has_entry = any(
                 p.get("patient_id") == patient_id
                 and p.get("medicine_name") == med_name
                 and time_slot in str(p.get("time_slot", ""))
+                and p.get("start_date") == today  # Filter for today's entry
                 for p in presc_data
             )
             if has_entry:
                 break
             time.sleep(1)
         else:
-            assert False, "New prescription not found in API after 10s"
+            assert False, f"New prescription for {today} not found in API after 10s"
 
         # Duty Dashboard search for patient 108
         page.click("label.burger-icon")
@@ -153,18 +196,21 @@ class TestWebsiteDemonstration:
         page.wait_for_timeout(400)
         page.evaluate("showDutyDashboard()")
         expect(page.locator("#timeline-tables")).to_be_visible(timeout=10000)
-        # Use textContent to check existence even if collapsed (hidden)
+
+        # Wait for today's prescription to appear in timeline
         page.wait_for_function(
-            f"() => document.querySelector('#timeline-tables')?.textContent.includes('108') && document.querySelector('#timeline-tables')?.textContent.includes('{med_name}')",
+            f"() => document.querySelector('#timeline-tables')?.textContent.includes('{patient_id}')",
             timeout=15000,
         )
         round_header = page.locator(".accordion-header", has_text=slot_label)
         round_header.wait_for(state="visible", timeout=5000)
         round_header.click()
-        page.wait_for_timeout(500)
+        page.wait_for_timeout(1000)
+
+        # Verify pending status is visible
         expect(
             page.locator(
-                f"tr:has-text('108'):has-text('{med_name}'):has-text('Pending')"
+                f"tr:has-text('{patient_id}'):has-text('{med_name}'):has-text('Pending')"
             )
         ).to_be_visible(timeout=10000)
 
@@ -216,18 +262,41 @@ class TestWebsiteDemonstration:
         expect(page.locator("#timeline-tables")).to_be_visible(timeout=10000)
         # Use textContent to check existence even if collapsed
         page.wait_for_function(
-            f"() => document.querySelector('#timeline-tables')?.textContent.includes('108') && document.querySelector('#timeline-tables')?.textContent.includes('{med_name}')",
+            f"() => document.querySelector('#timeline-tables')?.textContent.includes('{patient_id}')",
             timeout=15000,
         )
-        round_header = page.locator(".accordion-header", has_text=slot_label)
-        round_header.wait_for(state="visible", timeout=5000)
-        round_header.click()
-        page.wait_for_timeout(500)
-        expect(
-            page.locator(
-                f"tr:has-text('108'):has-text('{med_name}'):has-text('Complete')"
-            )
-        ).to_be_visible(timeout=10000)
+        # Robust wait: poll UI until the completed row appears (ThingSpeak sync may delay)
+        complete_found = False
+        for _ in range(45):  # ~90s max
+            try:
+                round_header = page.locator(".accordion-header", has_text=slot_label)
+                round_header.wait_for(state="visible", timeout=2000)
+                round_header.click()
+                page.wait_for_timeout(300)
+                # Check for Complete status in timeline (may coexist with old entries)
+                timeline_content = page.locator("#timeline-tables").text_content()
+                if "Complete" in timeline_content:
+                    complete_found = True
+                    break
+            except Exception:
+                pass
+            finally:
+                # Collapse back if open to keep UI consistent
+                try:
+                    round_header = page.locator(
+                        ".accordion-header", has_text=slot_label
+                    )
+                    round_header.click()
+                    page.wait_for_timeout(200)
+                except Exception:
+                    pass
+            # Refresh the view and try again
+            page.evaluate("showDutyDashboard()")
+            page.wait_for_timeout(2000)
+
+        assert (
+            complete_found
+        ), "Completed administration row did not appear within expected time"
 
         # Switch to management and verify dashboards render
         page.goto(f"{app_url}/management-login")

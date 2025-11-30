@@ -1,0 +1,992 @@
+[
+    {
+        "id": "6ba0ba7f7fb9f284",
+        "type": "tab",
+        "label": "Frontend",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "6dd49de421e0c305",
+        "type": "inject",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Inject every 10 min",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "*/10 0-23 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "iso",
+        "payloadType": "date",
+        "x": 180,
+        "y": 400,
+        "wires": [
+            [
+                "7e61c171020371e6"
+            ]
+        ]
+    },
+    {
+        "id": "cccbc29e77d0493e",
+        "type": "json",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Parse JSON",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 1050,
+        "y": 380,
+        "wires": [
+            [
+                "f000f1f271cd64fc"
+            ]
+        ]
+    },
+    {
+        "id": "4e0277942225adf2",
+        "type": "comment",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Read data from channel Medicine_Prescription ",
+        "info": "",
+        "x": 220,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "7e61c171020371e6",
+        "type": "http request",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Get Medicine_Prescription",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://api.thingspeak.com/channels/3124898/feeds.json?api_key=39HWHBXVF29VTRRU&results",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 480,
+        "y": 400,
+        "wires": [
+            [
+                "6ec85de8105e2a38"
+            ]
+        ]
+    },
+    {
+        "id": "f000f1f271cd64fc",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Get Specific paitent with medication info that is within the dates",
+        "func": "let feeds = msg.payload.feeds;\nlet targetPatient = flow.get(\"patientID\") || \"UNKNOWN\";\nnode.warn(\"Stored Patient ID: \" + flow.get(\"patientID\"));\nlet data = [];\n\nif (feeds && feeds.length > 0) {\n    let todayStr = flow.get(\"currentDate\");\n\n    if (!todayStr || todayStr.trim() === \"\") {\n        // If no custom date stored, use system date\n        todayStr = new Date().toISOString().split(\"T\")[0];\n        node.warn(\"No currentDate in flow — using system date: \" + todayStr);\n    } \n    else\n    {\n        flow.set(\"currentDate\", \"\");\n    }\n    //let todayStr = today.toISOString().split(\"T\")[0]; // yyyy-mm-dd\n\n    node.warn(\"Filtering for patient: \" + targetPatient + \" on \" + todayStr);\n\n    feeds.forEach(f => {\n        if (f.field1 && f.field2 && f.field3 && f.field4 && f.field5 && f.field6 && f.field7) {\n\n            let record = {\n                patient_id: f.field1,\n                medicine: f.field2,\n                dosage: f.field3,\n                frequency: f.field4,\n                start_date: f.field5,\n                end_date: f.field6,\n                time_slot: f.field7\n            };\n\n            if (f.field1 === targetPatient) {\n                // let startDate = f.field5;\n                // let endDate = f.field6;\n                let startDate = f.field5;\n                let endDate = f.field6;\n\n                let today = new Date(todayStr.trim());\n                let start = new Date(startDate.trim());\n                let end = new Date(endDate.trim());\n               if (today >= start && today <= end) {\n                    data.push(record);\n                }\n            }\n        }\n    });\n} else {\n    node.warn(\"No valid data fetched from ThingSpeak\");\n}\n\nmsg.payload = data;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1390,
+        "y": 380,
+        "wires": [
+            [
+                "45ec49a5225a76a0",
+                "d6201d7f69c6df0a"
+            ]
+        ]
+    },
+    {
+        "id": "45ec49a5225a76a0",
+        "type": "debug",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Check whether any list get",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1780,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "6ec85de8105e2a38",
+        "type": "switch",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Check whether request successful",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "btwn",
+                "v": "200",
+                "vt": "num",
+                "v2": "299",
+                "v2t": "num"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 800,
+        "y": 400,
+        "wires": [
+            [
+                "cccbc29e77d0493e"
+            ],
+            [
+                "403383541b7302c8"
+            ]
+        ]
+    },
+    {
+        "id": "403383541b7302c8",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Retry handler",
+        "func": "// initialize or increment retry count\nmsg.retries = (msg.retries || 0) + 1;\n\n// set maximum retries\nlet maxRetries = 5;\n\nif (msg.retries <= maxRetries) {\n    node.warn(`HTTP request failed. Retrying attempt ${msg.retries}/${maxRetries}...`);\n    return msg;  // will be delayed and sent back\n} else {\n    node.error(\"Max retries reached. Stopping retries.\");\n    return null;\n}\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1080,
+        "y": 440,
+        "wires": [
+            [
+                "1fd8545fb6b58b98"
+            ]
+        ]
+    },
+    {
+        "id": "1fd8545fb6b58b98",
+        "type": "delay",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 220,
+        "y": 440,
+        "wires": [
+            [
+                "7e61c171020371e6"
+            ]
+        ]
+    },
+    {
+        "id": "c5815048780ac992",
+        "type": "debug",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "debug 6",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "e4dd033ef9b3f8e9",
+        "type": "link in",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "link in 3",
+        "links": [],
+        "x": 75,
+        "y": 160,
+        "wires": [
+            [
+                "9a8970ef6d84aae4"
+            ]
+        ]
+    },
+    {
+        "id": "daa46689ca73aa06",
+        "type": "comment",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Set flow patient ID using value from Modbus Read",
+        "info": "",
+        "x": 230,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "00327af30425490c",
+        "type": "debug",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "data to modbus",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1080,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "253f330e183f4bd2",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "transfer data to modbus",
+        "func": "let lines = msg.payload.medicine_list || [];\n\n// Ensure we always have 8 lines total\nconst MAX_LINES = 8;\nwhile (lines.length < MAX_LINES) {\n    lines.push(\"\");  // pad with blank lines\n}\n\n// Each line = 20 chars, total 8 lines\n// Each Modbus register holds 2 chars (so 10 words/line)\nlet payload = [];\n\nfor (let line of lines.slice(0, MAX_LINES)) {  // only take first 8 lines if more\n    // pad each line to 20 characters (spaces)\n    line = line.padEnd(20, ' ');\n    for (let i = 0; i < 10; i++) {  // 10 registers per line\n        let lo = line.charCodeAt(i * 2) || 32;      // low byte\n        let hi = line.charCodeAt(i * 2 + 1) || 32;  // high byte\n        payload.push((hi << 8) + lo);               // combine into 16-bit\n    }\n}\n\nreturn [{\n    payload: payload,\n    // fc: 16,             // Write Multiple Registers\n    // unitid: 1,\n    // address: 31,        // Start address in your NB Designer\n    // quantity: payload.length\n}];\n\n\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 810,
+        "y": 720,
+        "wires": [
+            [
+                "00327af30425490c",
+                "d68ff7e0ed656369"
+            ]
+        ]
+    },
+    {
+        "id": "8d5e10139828f768",
+        "type": "comment",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "To display medicine and dosage together on PLC",
+        "info": "# ",
+        "x": 220,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "6611a29998a23566",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Filter on specific time slot & set servingMedList",
+        "func": "// Get saved test time if available, otherwise use incoming payload\nlet testTime = flow.get(\"currentTime\");\nlet filterTime = testTime ;//|| msg.payload;\n\n// Get stored medication records\nlet feeds = flow.get(\"currentPatientMeds\");\n\nif (Array.isArray(feeds) && feeds.length > 0 && filterTime) {\n\n    // Convert injected time to minutes (supports number, ISO date, or string)\n    let now = new Date();\n    if (typeof filterTime === \"string\") {\n        // let [h, m] = injectedTimestamp.split(\":\").map(x => parseInt(x, 10));\n        // now = new Date();\n        // now.setHours(h || 0, m || 0, 0, 0);\n        if (filterTime) {\n            const [h, m] = filterTime.split(\":\");\n            now.setHours(Number(h), Number(m), 0, 0);\n        }\n        flow.set(\"currentTime\", \"\");\n\n    } else {\n        now = new Date(filterTime);\n    }\n\n    let currentHour = now.getHours();\n    let currentMin = now.getMinutes();\n    let currentTime = currentHour * 60 + currentMin;\n\n    // Convert time format hh:mm to total minutes\n    function timeToMinutes(t) {\n        if (!t) return -1;\n        let [hour, minute] = t.split(\":\").map(v => parseInt(v.trim(), 10));\n        return (hour * 60 + (minute || 0));\n    }\n\n    // Filter meds matching the current time slot\n    let meds = feeds.filter(f => {\n        // Split multiple slots: \"09:00, 13:00, 17:00, 21:00\"\n        let slots = f.time_slot.split(\",\").map(s => s.trim());\n\n        // Convert each to minutes\n        let slotMinutes = slots.map(timeToMinutes);\n\n        // Match if current time equals any slot time\n        return slotMinutes.includes(currentTime);\n        \n        // let slotTime = timeToMinutes(f.time_slot);\n        // return slotTime === currentTime && f.medicine && f.dosage;\n    });\n\n    if (meds.length > 0) {\n        let medList = meds.map(m => `${m.medicine} - ${m.dosage}`);\n        flow.set(\"servingMedList\", meds);\n        node.warn(\"Sending data over\");\n\n        msg.payload = {\n            medicine_list: medList\n        };\n    } else {\n        msg.payload = {\n            source_time: filterTime,\n            current_time: `${currentHour}:${currentMin.toString().padStart(2, \"0\")}`,\n            medicine_list: [\"No medications found for this exact time slot\"]\n        };\n    }\n\n} else {\n    msg.payload = [\"No valid data received or invalid timestamp\"];\n}\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 720,
+        "wires": [
+            [
+                "59155ebc8a958ce4",
+                "253f330e183f4bd2"
+            ]
+        ]
+    },
+    {
+        "id": "59155ebc8a958ce4",
+        "type": "debug",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "debug 12",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "5f949dd22bd56c0c",
+        "type": "inject",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "9:00",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 09 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "iso",
+        "payloadType": "date",
+        "x": 130,
+        "y": 700,
+        "wires": [
+            [
+                "6611a29998a23566"
+            ]
+        ]
+    },
+    {
+        "id": "4d65ef093b7e0ed8",
+        "type": "inject",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "17:00",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 17 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "iso",
+        "payloadType": "date",
+        "x": 130,
+        "y": 780,
+        "wires": [
+            [
+                "6611a29998a23566"
+            ]
+        ]
+    },
+    {
+        "id": "48563986241376da",
+        "type": "inject",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "13:00",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 13 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "iso",
+        "payloadType": "date",
+        "x": 130,
+        "y": 740,
+        "wires": [
+            [
+                "6611a29998a23566"
+            ]
+        ]
+    },
+    {
+        "id": "d6201d7f69c6df0a",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Set flow currentPatientMeds",
+        "func": "flow.set(\"currentPatientMeds\", msg.payload);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1800,
+        "y": 380,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f3fd51a315099954",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Send served medication info to Medicine_Prescription_Track ",
+        "func": "let meds = flow.get(\"servingMedList\") || [];\n\nlet data = msg.payload.data || msg.payload;\n\nif (Array.isArray(data) && data[0] === true && meds.length > 0) {\n    node.warn(\"Sending served status\");\n    let now = new Date();\n    now.setHours(now.getHours() + 8);\n    let localDateTime = now.toISOString().replace(\"T\", \" \").substring(0, 19);\n\n    if (!Array.isArray(meds) || meds.length === 0) {\n        node.error(\"No records found in servingMedList\");\n        return null;\n    }\n\n    // Each record is expected to have: patient_id, medicine, dosage, time_slot, etc.\n    let msgs = meds.map(record => ({\n        payload: {\n            api_key: \"LOFTBPN6E2O124FE\",\n            field1: record.patient_id,\n            field2: record.medicine,\n            field3: record.dosage,\n            field4: localDateTime,\n            field5: record.time_slot\n        },\n        method: \"GET\",\n        url: \"https://api.thingspeak.com/update\"\n    }));\n\n    return [msgs];\n}\n\nreturn null;\n\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 1100,
+        "wires": [
+            [
+                "cb60e81108304988"
+            ]
+        ]
+    },
+    {
+        "id": "e03e737fc1e4af7e",
+        "type": "debug",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "debug 8 - json to update",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1190,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "cb60e81108304988",
+        "type": "delay",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "",
+        "pauseType": "rate",
+        "timeout": "15",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "16",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 940,
+        "y": 1100,
+        "wires": [
+            [
+                "550f005b8d456392",
+                "12ccdd5a04f70f2d",
+                "e03e737fc1e4af7e"
+            ]
+        ]
+    },
+    {
+        "id": "2558e2ec91344b31",
+        "type": "comment",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "To send to channel, indicating served",
+        "info": "# ",
+        "x": 520,
+        "y": 1060,
+        "wires": []
+    },
+    {
+        "id": "550f005b8d456392",
+        "type": "http request",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "update",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "query",
+        "url": "https://api.thingspeak.com/update",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 970,
+        "y": 1180,
+        "wires": [
+            [
+                "7707e769e3923daf"
+            ]
+        ]
+    },
+    {
+        "id": "46e99453a3350394",
+        "type": "debug",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "debug 16",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1520,
+        "y": 1200,
+        "wires": []
+    },
+    {
+        "id": "893784ca7a89d29b",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Retry handler",
+        "func": "// initialize or increment retry count\nmsg.retries = (msg.retries || 0) + 1;\n\n// maximum number of retries\nconst maxRetries = 5;\n\n// restore payload for retry\nmsg.payload = flow.get(\"currentSendingData\") || [];\n\nif (msg.retries <= maxRetries) {\n    node.warn(`HTTP request failed. Retrying attempt ${msg.retries}/${maxRetries}...`);\n    // return to delay → http request\n    return msg;\n} else {\n    node.error(`Max retries reached for patient ${msg.payload.field1}. Giving up.`);\n    // prevent endless retry\n    return null;\n}\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 1180,
+        "wires": [
+            [
+                "cb60e81108304988"
+            ]
+        ]
+    },
+    {
+        "id": "7707e769e3923daf",
+        "type": "switch",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Check whether request successful",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "btwn",
+                "v": "200",
+                "vt": "num",
+                "v2": "299",
+                "v2t": "num"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 1220,
+        "y": 1180,
+        "wires": [
+            [
+                "46e99453a3350394",
+                "a3bd0e40fb5d573f"
+            ],
+            [
+                "893784ca7a89d29b"
+            ]
+        ]
+    },
+    {
+        "id": "12ccdd5a04f70f2d",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Set current sending data to be restore if failed",
+        "func": "flow.set(\"currentSendingData\", msg.payload);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1250,
+        "y": 1100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b2e31847f0881904",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Send payload 0 to reset button state",
+        "func": "let data = msg.payload.data || msg.payload;\n\nif (Array.isArray(data) && data[0] === true) {\n    node.warn(\"Button pressed, resetting coil...\");\n    return { payload: 0 };  // send number, not array or object\n}\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 980,
+        "wires": [
+            [
+                "b5803bfd25373a9e"
+            ]
+        ]
+    },
+    {
+        "id": "c68eb7be3f926598",
+        "type": "comment",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Read button in Patient Med screen",
+        "info": "",
+        "x": 180,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "6fd2e711fbba9288",
+        "type": "comment",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Set button back to State 0",
+        "info": "",
+        "x": 490,
+        "y": 940,
+        "wires": []
+    },
+    {
+        "id": "c95358603d7b2989",
+        "type": "comment",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Clear display for patient meds",
+        "info": "",
+        "x": 500,
+        "y": 1260,
+        "wires": []
+    },
+    {
+        "id": "5d35bd454123fc8a",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Send empty value to the registers for the notebook component",
+        "func": "// Number of lines and characters per line\nconst numLines = 8;\nconst charsPerLine = 20;\nconst wordsPerLine = charsPerLine / 2;  // 2 chars per word\n\nlet payload = [];\n\nlet data = msg.payload.data || msg.payload;\n\nif (Array.isArray(data) && data[0] === true) {\n    // Fill all registers with space characters (ASCII 32)\n    for (let line = 0; line < numLines; line++) {\n        for (let i = 0; i < wordsPerLine; i++) {\n            let lo = 32; // ' ' (space)\n            let hi = 32; // ' ' (space)\n            payload.push((hi << 8) + lo);\n        }\n    }\n\n    return [{\n        payload: payload,\n        fc: 16,        // Write Multiple Registers\n        unitid: 1,\n        address: 31,   // Starting Modbus address (adjust as needed)\n        quantity: payload.length\n    }];\n}\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 610,
+        "y": 1300,
+        "wires": [
+            [
+                "e80d17ea4c411e03"
+            ]
+        ]
+    },
+    {
+        "id": "d68ff7e0ed656369",
+        "type": "link out",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Write MedicationList to Notebook",
+        "mode": "link",
+        "links": [],
+        "x": 1025,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "a3bd0e40fb5d573f",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Clear servingMedList",
+        "func": "flow.set(\"servingMedList\", \"\");",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1560,
+        "y": 1160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b5803bfd25373a9e",
+        "type": "link out",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Send payload 0 to set button status",
+        "mode": "link",
+        "links": [],
+        "x": 735,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "e80d17ea4c411e03",
+        "type": "link out",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Clear the notebook component",
+        "mode": "link",
+        "links": [],
+        "x": 895,
+        "y": 1300,
+        "wires": []
+    },
+    {
+        "id": "aced6472a871f48d",
+        "type": "link in",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "link in 7",
+        "links": [],
+        "x": 75,
+        "y": 1120,
+        "wires": [
+            [
+                "b2e31847f0881904",
+                "5d35bd454123fc8a",
+                "f3fd51a315099954"
+            ]
+        ]
+    },
+    {
+        "id": "487e4d43b80b3f14",
+        "type": "inject",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "21:00",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 21 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "iso",
+        "payloadType": "date",
+        "x": 130,
+        "y": 820,
+        "wires": [
+            [
+                "6611a29998a23566"
+            ]
+        ]
+    },
+    {
+        "id": "f4060ae005304d59",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "[TEST] Set demo current time",
+        "func": "flow.set(\"currentTime\", msg.payload);\nnode.warn(\"time: \" + flow.get(\"currentTime\"));\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "9a8970ef6d84aae4",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "Set patient ID",
+        "func": "flow.set(\"patientID\", msg.payload);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 160,
+        "wires": [
+            [
+                "c5815048780ac992"
+            ]
+        ]
+    },
+    {
+        "id": "9fa06d49e4e60f0c",
+        "type": "function",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "[TEST] Set current date ",
+        "func": "flow.set(\"currentDate\", msg.payload);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 300,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d843e6aca36d7821",
+        "type": "ui_text_input",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "",
+        "label": "[TEST] Manual set current time",
+        "tooltip": "",
+        "group": "7c24bc850b3f1db4",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "text",
+        "delay": 300,
+        "topic": "topic",
+        "sendOnBlur": true,
+        "className": "",
+        "topicType": "msg",
+        "x": 190,
+        "y": 600,
+        "wires": [
+            [
+                "f4060ae005304d59"
+            ]
+        ]
+    },
+    {
+        "id": "a1459d3e8df0ea84",
+        "type": "ui_button",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "[TEST] Get medication for medication round",
+        "group": "7c24bc850b3f1db4",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Get medication for medication round",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "date",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 230,
+        "y": 660,
+        "wires": [
+            [
+                "6611a29998a23566"
+            ]
+        ]
+    },
+    {
+        "id": "cfe83e7e5a01fd2b",
+        "type": "ui_text_input",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "",
+        "label": "[TEST] Manual set current date",
+        "tooltip": "",
+        "group": "b9531de50130cb25",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "text",
+        "delay": 300,
+        "topic": "topic",
+        "sendOnBlur": true,
+        "className": "",
+        "topicType": "msg",
+        "x": 190,
+        "y": 300,
+        "wires": [
+            [
+                "9fa06d49e4e60f0c"
+            ]
+        ]
+    },
+    {
+        "id": "1783aa394bdf0228",
+        "type": "ui_button",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "[TEST] Get full patient medication list",
+        "group": "b9531de50130cb25",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Get full patient medication list",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "date",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 210,
+        "y": 360,
+        "wires": [
+            [
+                "7e61c171020371e6"
+            ]
+        ]
+    },
+    {
+        "id": "6c0f3e966cd61efd",
+        "type": "ui_spacer",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "spacer",
+        "group": "7c24bc850b3f1db4",
+        "order": 2,
+        "width": 1,
+        "height": 1
+    },
+    {
+        "id": "68a97f4f7eda9974",
+        "type": "ui_spacer",
+        "z": "6ba0ba7f7fb9f284",
+        "name": "spacer",
+        "group": "b9531de50130cb25",
+        "order": 2,
+        "width": 1,
+        "height": 1
+    },
+    {
+        "id": "7c24bc850b3f1db4",
+        "type": "ui_group",
+        "name": "Get medication list of a medication round",
+        "tab": "6c8ed2f95ccc86e9",
+        "order": 8,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "b9531de50130cb25",
+        "type": "ui_group",
+        "name": "Get Medication list of the day",
+        "tab": "6c8ed2f95ccc86e9",
+        "order": 7,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "6c8ed2f95ccc86e9",
+        "type": "ui_tab",
+        "name": "IRIV EdgeAI CM5 Dashboard",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "a44fecec40b5ddd0",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6"
+        }
+    }
+]

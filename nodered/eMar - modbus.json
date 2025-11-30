@@ -1,0 +1,338 @@
+[
+    {
+        "id": "dfcc31c8c6e4ade5",
+        "type": "tab",
+        "label": "Modbus",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "4f01029cf765835e",
+        "type": "modbus-server",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "",
+        "logEnabled": false,
+        "hostname": "192.168.250.2",
+        "serverPort": 10502,
+        "responseDelay": 100,
+        "delayUnit": "ms",
+        "coilsBufferSize": "1",
+        "holdingBufferSize": "120",
+        "inputBufferSize": "0",
+        "discreteBufferSize": "0",
+        "showErrors": false,
+        "showStatusActivities": false,
+        "x": 160,
+        "y": 80,
+        "wires": [
+            [],
+            [],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "55b263dbce70b88c",
+        "type": "modbus-read",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Modbus Read Patient ID (Address 0 to 10)(FC 3)",
+        "topic": "",
+        "showStatusActivities": false,
+        "logIOActivities": false,
+        "showErrors": false,
+        "showWarnings": true,
+        "unitid": "1",
+        "dataType": "HoldingRegister",
+        "adr": "0",
+        "quantity": "10",
+        "rate": "1",
+        "rateUnit": "s",
+        "delayOnStart": false,
+        "startDelayTime": "",
+        "server": "4ec3f416abe10b48",
+        "useIOFile": false,
+        "ioFile": "",
+        "useIOForPayload": false,
+        "emptyMsgOnFail": false,
+        "x": 280,
+        "y": 240,
+        "wires": [
+            [],
+            [
+                "7e6715f1c6441c03"
+            ]
+        ]
+    },
+    {
+        "id": "34cbba39d192bbd3",
+        "type": "comment",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Get patient ID",
+        "info": "",
+        "x": 150,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "7e6715f1c6441c03",
+        "type": "function",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Convert bit value to string",
+        "func": "// Decode 10 holding registers (each with two ASCII characters)\nlet idNum = msg.payload.data;\n\n// Check if all values are 0\nlet allEmpty = idNum.every(v => v === 0 || v === 8224);\nif (allEmpty) {\n    //node.warn(\"⚠️ All ID registers are empty (0 or 8224) — ignoring update.\");\n    return null; // do not send anything forward\n}\n\nlet text = \"\";\n\nfor (let i = 0; i < idNum.length; i++) {\n    let val = idNum[i];\n    // interpret low byte first, then high byte\n    let low = (val >> 8) & 0xFF;   // swapped positions!\n    let high = val & 0xFF;\n\n    if (high > 0) text += String.fromCharCode(high);\n    if (low > 0) text += String.fromCharCode(low);\n}\n\n// Trim trailing nulls and spaces\nmsg.payload = text.trim();\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 260,
+        "wires": [
+            [
+                "88ab4fb38de702d4"
+            ]
+        ]
+    },
+    {
+        "id": "88ab4fb38de702d4",
+        "type": "link out",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Set Patient ID (Modbus backend)",
+        "mode": "link",
+        "links": [],
+        "x": 805,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "aa4e0f633d6a6ad0",
+        "type": "modbus-write",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Modbus Write Notebook - (Address 30 to110) (FC 16)",
+        "showStatusActivities": false,
+        "showErrors": false,
+        "showWarnings": true,
+        "unitid": "",
+        "dataType": "MHoldingRegisters",
+        "adr": "30",
+        "quantity": "80",
+        "server": "4ec3f416abe10b48",
+        "emptyMsgOnFail": false,
+        "keepMsgProperties": false,
+        "delayOnStart": false,
+        "startDelayTime": "",
+        "x": 360,
+        "y": 720,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "c873949be7272811",
+        "type": "link in",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "link in 4",
+        "links": [],
+        "x": 105,
+        "y": 700,
+        "wires": [
+            [
+                "aa4e0f633d6a6ad0"
+            ]
+        ]
+    },
+    {
+        "id": "39e60a745496dc4a",
+        "type": "comment",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Display medication list on notebook component",
+        "info": "",
+        "x": 260,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "002f856e3ec6ee6c",
+        "type": "modbus-write",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Modbus Write Button (Address 1)(FC 5)",
+        "showStatusActivities": true,
+        "showErrors": false,
+        "showWarnings": true,
+        "unitid": "1",
+        "dataType": "Coil",
+        "adr": "1",
+        "quantity": "1",
+        "server": "4ec3f416abe10b48",
+        "emptyMsgOnFail": false,
+        "keepMsgProperties": false,
+        "delayOnStart": false,
+        "startDelayTime": "",
+        "x": 340,
+        "y": 540,
+        "wires": [
+            [
+                "def72a5c0529ae38"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "def72a5c0529ae38",
+        "type": "debug",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "debug 18",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "1faf80a354c490f7",
+        "type": "link in",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "link in 5",
+        "links": [],
+        "x": 105,
+        "y": 540,
+        "wires": [
+            [
+                "002f856e3ec6ee6c"
+            ]
+        ]
+    },
+    {
+        "id": "4a233df1061bd23d",
+        "type": "comment",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Reset button status",
+        "info": "",
+        "x": 170,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "79472bcc5cb05699",
+        "type": "link in",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "link in 6",
+        "links": [],
+        "x": 105,
+        "y": 760,
+        "wires": [
+            [
+                "aa4e0f633d6a6ad0"
+            ]
+        ]
+    },
+    {
+        "id": "17a8f2265370f735",
+        "type": "comment",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Clear medication list on notebook component",
+        "info": "",
+        "x": 250,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "90f495d0554cc289",
+        "type": "modbus-read",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Modbus Read Served Buton (Address 1)(FC 3)",
+        "topic": "",
+        "showStatusActivities": false,
+        "logIOActivities": false,
+        "showErrors": false,
+        "showWarnings": true,
+        "unitid": "1",
+        "dataType": "Coil",
+        "adr": "1",
+        "quantity": "1",
+        "rate": "1",
+        "rateUnit": "s",
+        "delayOnStart": false,
+        "startDelayTime": "",
+        "server": "4ec3f416abe10b48",
+        "useIOFile": false,
+        "ioFile": "",
+        "useIOForPayload": false,
+        "emptyMsgOnFail": false,
+        "x": 280,
+        "y": 380,
+        "wires": [
+            [
+                "46cc2bcfe3078639"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "46cc2bcfe3078639",
+        "type": "link out",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Send served status",
+        "mode": "link",
+        "links": [],
+        "x": 505,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "c4711a69f66bdbb9",
+        "type": "comment",
+        "z": "dfcc31c8c6e4ade5",
+        "name": "Get served button status",
+        "info": "",
+        "x": 190,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "4ec3f416abe10b48",
+        "type": "modbus-client",
+        "name": "",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "failureLogEnabled": true,
+        "tcpHost": "192.168.250.2",
+        "tcpPort": "10502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": 9600,
+        "serialDatabits": 8,
+        "serialStopbits": 1,
+        "serialParity": "none",
+        "serialConnectionDelay": 100,
+        "serialAsciiResponseStartDelimiter": "0x3A",
+        "unit_id": 1,
+        "commandDelay": 1,
+        "clientTimeout": 1000,
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": 2000,
+        "parallelUnitIdsAllowed": true,
+        "showErrors": false,
+        "showWarnings": true,
+        "showLogs": true
+    },
+    {
+        "id": "050af9a9a2c32a73",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-modbus": "5.44.1"
+        }
+    }
+]
