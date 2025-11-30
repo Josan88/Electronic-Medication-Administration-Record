@@ -126,8 +126,10 @@ def browser(playwright_instance: Playwright):
     try:
         browser = playwright_instance.chromium.launch(
             headless=True,
+            slow_mo=500,  # slow interactions for clearer demo recordings
             args=["--no-sandbox", "--disable-dev-shm-usage"],
         )
+
     except Exception as exc:
         pytest.skip(
             "Playwright Chromium browser is not installed. "

@@ -1083,6 +1083,11 @@ function isServed(prescription, tracking, specificSlot = null) {
   const slotsToCheck = specificSlot ? [specificSlot] : prescriptionSlots;
 
   return tracking.some((t) => {
+    // Debug logging
+    if (t.patient_id === prescription.patient_id) {
+       console.log(`Checking tracking for ${t.patient_id}: med=${t.medicine_name} vs ${prescription.medicine_name}, date=${t.consume_date}`);
+    }
+
     // Check if tracking date is today
     // Handle both "T" and space separators in date format
     const consumeDateStr = String(t.consume_date || "");
