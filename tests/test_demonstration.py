@@ -1,6 +1,6 @@
 """
 Demonstration test that records a full website walkthrough for patient 108
-with medication Lozenges - 500mg. Runs nurse and management flows in a
+with medication Lozenges. Runs nurse and management flows in a
 single session to produce one video.
 """
 
@@ -14,7 +14,7 @@ class TestWebsiteDemonstration:
     """Record an end-to-end demonstration covering nurse and management roles."""
 
     def test_full_demonstration_108(self, page: Page, app_url: str):
-        """Execute the full walkthrough using patient 108 and Lozenges 500mg."""
+        """Execute the full walkthrough using patient 108 and Lozenges."""
         # Enable console logging
         page.on("console", lambda msg: print(f"BROWSER_LOG: {msg.text}"))
 
@@ -22,9 +22,9 @@ class TestWebsiteDemonstration:
         # (ThingSpeak persistence may show prior runs; this demo tolerates that)
 
         patient_id = "108"
-        med_name = "Lozenges - 500mg"
+        med_name = "Lozenges"
         dosage = "500mg"
-        time_slot = "21:00"  # 9:00 PM - evening slot to ensure it's in the future
+        time_slot = "13:00"  # 1:00 PM - afternoon slot to ensure it's in the future
         slot_label = {
             "09:00": "9:00 AM",
             "13:00": "1:00 PM",
@@ -135,7 +135,7 @@ class TestWebsiteDemonstration:
         expect(page.locator("#patient_id")).to_have_value(patient_id)
         page.wait_for_timeout(2000)  # Allow error toast to be visible in video
 
-        # Add prescription for Lozenges - 500mg
+        # Add prescription for Lozenges
         page.click("button.tab-button:has-text('Prescriptions')")
         page.wait_for_timeout(300)
         page.fill("#presc_patient_id", patient_id)
@@ -211,7 +211,7 @@ class TestWebsiteDemonstration:
         round_header.click()
         page.wait_for_timeout(1000)
 
-        # Locate the row for patient 108 with Lozenges - 500mg (may show as Pending or need completion)
+        # Locate the row for patient 108 with Lozenges (may show as Pending or need completion)
         med_row = page.locator(
             f"tr:has-text('{patient_id}'):has-text('{med_name}')"
         ).first
@@ -312,4 +312,84 @@ class TestWebsiteDemonstration:
         # Verify management dashboard loads with all components
         expect(page.locator("#managementDashboard")).to_be_visible()
         expect(page.locator("#managementChart")).to_be_visible()
-        page.wait_for_timeout(3000)  # Hold final view for demonstration video
+
+        # Scroll down to ensure chart is visible in video recording
+        page.locator("#managementChart").scroll_into_view_if_needed()
+        page.wait_for_timeout(
+            800
+        )  # Allow time for scroll to complete and be visible in video
+
+        # MANAGEMENT CHART INTERACTIONS (enhanced video coverage)
+        # Wait until global Chart instance (managementChart) is initialized (declared with let, not on window)
+        page.wait_for_function(
+            "() => typeof managementChart !== 'undefined' && managementChart && managementChart.data && managementChart.data.datasets && managementChart.data.datasets.length > 1"
+        )
+
+        # Capture initial dataset snapshot (Completed vs Pending counts per time slot)
+        initial_datasets = page.evaluate(
+            "() => (typeof managementChart !== 'undefined' && managementChart ? managementChart.data.datasets.map(ds => ({label: ds.label, data: [...ds.data]})) : [])"
+        )
+        print(f"MGMT_CHART_INITIAL_DATASETS: {initial_datasets}")
+
+        # Force a re-init refresh (safe re-render) if desired
+        page.evaluate("window.initManagementChart && window.initManagementChart();")
+        page.wait_for_function(
+            "() => typeof managementChart !== 'undefined' && managementChart && managementChart.data && managementChart.data.datasets && managementChart.data.datasets.length > 1"
+        )
+        refreshed_datasets = page.evaluate(
+            "() => (typeof managementChart !== 'undefined' && managementChart ? managementChart.data.datasets.map(ds => ({label: ds.label, data: [...ds.data]})) : [])"
+        )
+        print(f"MGMT_CHART_REFRESHED_DATASETS: {refreshed_datasets}")
+
+        # Hover each bar to trigger tooltips (visual only, Chart.js canvas tooltips not DOM-accessible)
+        canvas = page.locator("#managementChart")
+        box = canvas.bounding_box()
+        if box:
+            slots = 4  # Fixed time slot count
+            for i in range(slots):
+                x = box["x"] + (i + 0.5) * (box["width"] / slots)
+                y = box["y"] + box["height"] / 2
+                page.mouse.move(x, y)
+                page.wait_for_timeout(500)
+
+        # Toggle to Nurse Dashboard and back to ensure re-render persistence
+        page.click("label.burger-icon")
+        page.wait_for_timeout(200)
+        nurse_btn = page.locator("button:has-text('Nurse Dashboard')")
+        if nurse_btn.is_visible():
+            nurse_btn.click()
+        else:
+            # Fallback: invoke dashboard switch directly (button hidden for management role)
+            page.evaluate("showDashboard && showDashboard('nurseDashboard')")
+        page.wait_for_timeout(600)
+        page.click("label.burger-icon")
+        page.wait_for_timeout(200)
+        mgmt_btn = page.locator("button:has-text('Management Dashboard')")
+        if mgmt_btn.is_visible():
+            mgmt_btn.click()
+        else:
+            page.evaluate("showDashboard && showDashboard('managementDashboard')")
+        page.wait_for_timeout(800)
+
+        # Scroll chart back into view after navigation toggle
+        page.locator("#managementChart").scroll_into_view_if_needed()
+        page.wait_for_timeout(600)
+        expect(page.locator("#managementChart")).to_be_visible()
+
+        # Verify datasets remain accessible after navigation
+        post_toggle_datasets = page.evaluate(
+            "() => (typeof managementChart !== 'undefined' && managementChart ? managementChart.data.datasets.map(ds => ({label: ds.label, data: [...ds.data]})) : [])"
+        )
+        print(f"MGMT_CHART_POST_TOGGLE_DATASETS: {post_toggle_datasets}")
+
+        # Basic integrity assertions: dataset structure preserved
+        assert (
+            initial_datasets and refreshed_datasets and post_toggle_datasets
+        ), "Management chart datasets not captured"
+        assert all(
+            isinstance(entry.get("data", []), list) and len(entry.get("data", [])) == 4
+            for entry in post_toggle_datasets
+        ), "Unexpected dataset length after dashboard toggle"
+
+        # Final hold for video clarity
+        page.wait_for_timeout(2500)
