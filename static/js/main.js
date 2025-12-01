@@ -36,6 +36,10 @@ document.addEventListener("DOMContentLoaded", function () {
   loadTracking();
   updateStats();
 
+  // Keep top-level stats fresh (patients/prescriptions/today administrations)
+  // Refresh every 60 seconds to avoid stale values on long-lived sessions
+  setInterval(updateStats, 60 * 1000);
+
   // renderDutyTimetable is now part of showDutyDashboard
   // updateDutyTimetableStatus is called after tracking data loads
 });
@@ -265,7 +269,7 @@ function addMedicineField() {
   // Add frequency change listener for auto-population
   const frequencyInput = newGroup.querySelector('input[name="frequency"]');
   if (frequencyInput) {
-    frequencyInput.addEventListener('blur', function() {
+    frequencyInput.addEventListener("blur", function () {
       autoPopulateTimeSlotsIfNeeded(newGroup);
     });
   }
@@ -277,12 +281,12 @@ function addMedicineField() {
 // Auto-populate time slots if frequency is 4
 function autoPopulateTimeSlotsIfNeeded(medicineGroup) {
   const frequencyInput = medicineGroup.querySelector('[name="frequency"]');
-  const container = medicineGroup.querySelector('.time-slots-container');
-  
+  const container = medicineGroup.querySelector(".time-slots-container");
+
   if (!frequencyInput || !container) return;
-  
+
   const frequencyValue = parseInt(frequencyInput.value);
-  
+
   // Only auto-populate if frequency is exactly 4 and no time slots exist yet
   if (frequencyValue === 4 && container.children.length === 0) {
     // Add all 4 standard time slots
@@ -303,7 +307,7 @@ function autoPopulateTimeSlotsIfNeeded(medicineGroup) {
         option.textContent = opt.label;
         selectField.appendChild(option);
       });
-      
+
       // Pre-select the appropriate time slot
       selectField.value = timeSlot.value;
 
@@ -318,14 +322,17 @@ function autoPopulateTimeSlotsIfNeeded(medicineGroup) {
       wrapper.appendChild(selectField);
       wrapper.appendChild(removeButton);
       container.appendChild(wrapper);
-      
+
       // Add validation on change
-      selectField.addEventListener('change', function() {
+      selectField.addEventListener("change", function () {
         validateTimeSlots(medicineGroup);
       });
     });
-    
-    showMessage("info", "Time slots auto-populated for 4 times daily frequency (9AM, 1PM, 5PM, 9PM)");
+
+    showMessage(
+      "info",
+      "Time slots auto-populated for 4 times daily frequency (9AM, 1PM, 5PM, 9PM)"
+    );
   }
 }
 
@@ -387,37 +394,44 @@ function addTimeField(button) {
   wrapper.appendChild(selectField);
   wrapper.appendChild(removeButton);
   container.appendChild(wrapper);
-  
+
   // Add validation on change to prevent duplicates
-  selectField.addEventListener('change', function() {
+  selectField.addEventListener("change", function () {
     validateTimeSlots(medicineGroup);
   });
 }
 
 // Helper function to validate time slots for duplicates
 function validateTimeSlots(medicineGroup) {
-  const container = medicineGroup.querySelector('.time-slots-container');
-  const selects = Array.from(container.querySelectorAll('select[name="time_slots[]"]'));
-  const values = selects.map(s => s.value);
-  
+  const container = medicineGroup.querySelector(".time-slots-container");
+  const selects = Array.from(
+    container.querySelectorAll('select[name="time_slots[]"]')
+  );
+  const values = selects.map((s) => s.value);
+
   // Check for duplicates
-  const duplicates = values.filter((item, index) => values.indexOf(item) !== index);
-  
+  const duplicates = values.filter(
+    (item, index) => values.indexOf(item) !== index
+  );
+
   if (duplicates.length > 0) {
-    showMessage('error', 'Duplicate time slots detected. Please select different times.');
+    showMessage(
+      "error",
+      "Duplicate time slots detected. Please select different times."
+    );
     // Highlight duplicate selects
-    selects.forEach(select => {
+    selects.forEach((select) => {
       if (duplicates.includes(select.value)) {
-        select.style.borderColor = 'red';
+        select.style.borderColor = "red";
       } else {
-        select.style.borderColor = '';
+        select.style.borderColor = "";
       }
     });
     return false;
   } else {
     // Clear any previous error highlighting
-    selects.forEach(select => {
-      select.style.borderColor = '';
+    selects.forEach((select) => {
+      select.style.borderColor = "";
     });
     return true;
   }
@@ -463,10 +477,13 @@ async function addPrescription() {
   for (const group of medicineGroups) {
     // Validate time slots for duplicates
     if (!validateTimeSlots(group)) {
-      showMessage("error", "Please fix duplicate time slots before submitting.");
+      showMessage(
+        "error",
+        "Please fix duplicate time slots before submitting."
+      );
       return;
     }
-    
+
     // Extract data from the current medicine group using its 'name' attributes
     const prescriptionData = {
       patient_id: patientId,
@@ -769,7 +786,6 @@ async function loadPatientActiveMeds() {
       return true;
     });
 
-
     // render meds below the patient card with improved format
     let medsHtml = "";
     if (activeMeds.length > 0) {
@@ -778,12 +794,18 @@ async function loadPatientActiveMeds() {
           (med) => `
         <div class="data-item">
           <strong>${med.medicine_name || "N/A"}</strong><br>
-          <span style="margin-left: 1rem;">Dosage: ${med.dosage || "N/A"}</span><br>
-          <span style="margin-left: 1rem;">Frequency: ${med.frequency || "N/A"} times daily</span><br>
-          <span style="margin-left: 1rem;">Times: ${med.time_slot || "N/A"}</span><br>
-          <small style="margin-left: 1rem;">Period: ${med.start_date || "N/A"} to ${
-            med.end_date || "Ongoing"
-          }</small>
+          <span style="margin-left: 1rem;">Dosage: ${
+            med.dosage || "N/A"
+          }</span><br>
+          <span style="margin-left: 1rem;">Frequency: ${
+            med.frequency || "N/A"
+          } times daily</span><br>
+          <span style="margin-left: 1rem;">Times: ${
+            med.time_slot || "N/A"
+          }</span><br>
+          <small style="margin-left: 1rem;">Period: ${
+            med.start_date || "N/A"
+          } to ${med.end_date || "Ongoing"}</small>
         </div>`
         )
         .join("");
@@ -876,18 +898,28 @@ async function updateStats() {
     const totalPatients = patients.length;
     const activePrescriptions = prescriptions.length;
 
-    // Count completed today
+    // Count unique completed administrations today (aligning with management chart logic)
     const today = getLocalDateString();
-    const completedToday = tracking.filter((r) =>
-      (r.consume_date || "").startsWith(today)
-    ).length;
-
+    const uniqueCompleted = new Set();
+    tracking.forEach((r) => {
+      const rawDate = r.consume_date || "";
+      if (!rawDate) return;
+      const datePart = rawDate.includes("T")
+        ? rawDate.split("T")[0]
+        : rawDate.split(" ")[0];
+      if (datePart !== today) return;
+      if ((r.status || "").toLowerCase() !== "complete") return; // only completed
+      const timeSlotNorm = normalizeTimeSlot(r.time_slot);
+      const key = `${r.patient_id}::${r.medicine_name}::${timeSlotNorm}`;
+      uniqueCompleted.add(key);
+    });
+    const completedToday = uniqueCompleted.size;
 
     document.getElementById("totalPatients").textContent = totalPatients;
     document.getElementById("totalPrescriptions").textContent =
       activePrescriptions;
     document.getElementById("todayAdministrations").textContent =
-      completedToday;
+      String(completedToday);
   } catch (error) {
     console.error("updateStats error:", error);
   }
@@ -895,34 +927,34 @@ async function updateStats() {
 
 function showMessage(type, message) {
   // Get or create toast container
-  let container = document.querySelector('.toast-container');
+  let container = document.querySelector(".toast-container");
   if (!container) {
-    container = document.createElement('div');
-    container.className = 'toast-container';
-    container.setAttribute('aria-live', 'polite');
-    container.setAttribute('aria-atomic', 'true');
+    container = document.createElement("div");
+    container.className = "toast-container";
+    container.setAttribute("aria-live", "polite");
+    container.setAttribute("aria-atomic", "true");
     document.body.appendChild(container);
   }
 
   // Create toast element
-  const toast = document.createElement('div');
+  const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  toast.setAttribute('role', 'alert');
-  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute("role", "alert");
+  toast.setAttribute("aria-live", "assertive");
 
   // Get icon based on type
   const icons = {
-    success: '✓',
-    error: '✗',
-    info: 'ℹ'
+    success: "✓",
+    error: "✗",
+    info: "ℹ",
   };
-  const icon = icons[type] || 'ℹ';
+  const icon = icons[type] || "ℹ";
 
   // Get duration based on type (milliseconds)
   const durations = {
     success: 4000,
     error: 7000,
-    info: 5000
+    info: 5000,
   };
   const duration = durations[type] || 5000;
 
@@ -938,15 +970,15 @@ function showMessage(type, message) {
   container.appendChild(toast);
 
   // Setup progress bar animation
-  const progressBar = toast.querySelector('.toast-progress');
+  const progressBar = toast.querySelector(".toast-progress");
   setTimeout(() => {
     progressBar.style.transition = `width ${duration}ms linear`;
-    progressBar.style.width = '0%';
+    progressBar.style.width = "0%";
   }, 10);
 
   // Setup close button
-  const closeBtn = toast.querySelector('.toast-close');
-  closeBtn.addEventListener('click', () => {
+  const closeBtn = toast.querySelector(".toast-close");
+  closeBtn.addEventListener("click", () => {
     removeToast(toast);
   });
 
@@ -957,15 +989,15 @@ function showMessage(type, message) {
 }
 
 function removeToast(toast) {
-  if (toast.classList.contains('hiding')) return;
-  
-  toast.classList.add('hiding');
+  if (toast.classList.contains("hiding")) return;
+
+  toast.classList.add("hiding");
   setTimeout(() => {
     if (toast.parentNode) {
       toast.parentNode.removeChild(toast);
-      
+
       // Remove container if empty
-      const container = document.querySelector('.toast-container');
+      const container = document.querySelector(".toast-container");
       if (container && container.children.length === 0) {
         container.remove();
       }
@@ -974,7 +1006,7 @@ function removeToast(toast) {
 }
 
 function escapeHtml(text) {
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
@@ -1023,7 +1055,6 @@ async function showDutyDashboard() {
 
     // Get today's date for filtering active prescriptions
     const today = getLocalDateString();
-
 
     // Filter prescriptions to only include active ones (today is within start_date and end_date)
     const activePrescriptions = prescriptions.filter((p) => {
@@ -1085,7 +1116,9 @@ function isServed(prescription, tracking, specificSlot = null) {
   return tracking.some((t) => {
     // Debug logging
     if (t.patient_id === prescription.patient_id) {
-       console.log(`Checking tracking for ${t.patient_id}: med=${t.medicine_name} vs ${prescription.medicine_name}, date=${t.consume_date}`);
+      console.log(
+        `Checking tracking for ${t.patient_id}: med=${t.medicine_name} vs ${prescription.medicine_name}, date=${t.consume_date}`
+      );
     }
 
     // Check if tracking date is today
@@ -1115,10 +1148,10 @@ function isServed(prescription, tracking, specificSlot = null) {
 
     // IMPORTANT: Validate that the actual consumption time falls within the expected time window
     // Parse the actual consumption time from consume_date
-    const consumeTime = consumeDateStr.includes(" ") 
+    const consumeTime = consumeDateStr.includes(" ")
       ? consumeDateStr.split(" ")[1] // "2025-11-18 10:20:18" -> "10:20:18"
       : null;
-    
+
     if (!consumeTime) {
       // If no time component, we can't validate the window
       return true; // Accept it (legacy behavior)
@@ -1133,17 +1166,20 @@ function isServed(prescription, tracking, specificSlot = null) {
     const slotMinutes = slotHour * 60 + slotMinute;
 
     // Find the next slot time to determine the window
-    const allSlots = prescriptionSlots.map(s => {
-      const [h, m] = s.split(":").map(Number);
-      return h * 60 + m;
-    }).sort((a, b) => a - b);
+    const allSlots = prescriptionSlots
+      .map((s) => {
+        const [h, m] = s.split(":").map(Number);
+        return h * 60 + m;
+      })
+      .sort((a, b) => a - b);
 
     const currentSlotIndex = allSlots.indexOf(slotMinutes);
     if (currentSlotIndex === -1) return false;
 
-    const nextSlotMinutes = currentSlotIndex < allSlots.length - 1
-      ? allSlots[currentSlotIndex + 1]
-      : allSlots[0] + 1440; // Next day's first slot
+    const nextSlotMinutes =
+      currentSlotIndex < allSlots.length - 1
+        ? allSlots[currentSlotIndex + 1]
+        : allSlots[0] + 1440; // Next day's first slot
 
     // Check if consume time falls within [slotMinutes, nextSlotMinutes)
     if (nextSlotMinutes > 1440) {
@@ -1151,7 +1187,10 @@ function isServed(prescription, tracking, specificSlot = null) {
       // OR single slot per day (e.g., 13:00 to 13:00 next day)
       if (currentSlotIndex < allSlots.length - 1) {
         // Multiple slots, last one crosses to first one next day
-        return consumeMinutes >= slotMinutes || consumeMinutes < (nextSlotMinutes - 1440);
+        return (
+          consumeMinutes >= slotMinutes ||
+          consumeMinutes < nextSlotMinutes - 1440
+        );
       } else {
         // Single slot - window is from slot time today until same time tomorrow
         // Only times >= slotMinutes are valid today
@@ -1173,7 +1212,9 @@ function resolveTrackingSlot(record) {
 
   if (slots.length === 0) return "";
 
-  const consumeRaw = String(record.consume_date || record.consume_datetime || "");
+  const consumeRaw = String(
+    record.consume_date || record.consume_datetime || ""
+  );
   if (!consumeRaw) return slots[0];
 
   const timePart = consumeRaw.includes("T")
@@ -1237,7 +1278,8 @@ async function updateDutyTimetableStatus() {
       const medName = cell.getAttribute("data-medicine");
 
       const recordFound = trackingRecords.some((r) => {
-        if (r.patient_id !== patientId || r.medicine_name !== medName) return false;
+        if (r.patient_id !== patientId || r.medicine_name !== medName)
+          return false;
         const resolvedSlot = resolveTrackingSlot(r);
         return resolvedSlot === timeSlot;
       });
@@ -1252,7 +1294,6 @@ async function updateDutyTimetableStatus() {
   }
 }
 
-
 function renderTimelineTable(grouped) {
   const container = document.querySelector("#timeline-tables");
   if (!container) {
@@ -1263,7 +1304,6 @@ function renderTimelineTable(grouped) {
   container.innerHTML = "";
   const today = getLocalDateString();
   const currentHour = new Date().getHours();
-
 
   // Define time ranges for auto-expansion
   const shouldExpand = {
@@ -1517,7 +1557,6 @@ async function updateManagementChart() {
     console.error("updateManagementChart error:", err);
   }
 }
-
 
 function scheduleRoundRefresh() {
   if (managementRoundTimeout) {

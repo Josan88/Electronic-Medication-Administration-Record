@@ -24,7 +24,7 @@ class TestWebsiteDemonstration:
         patient_id = "108"
         med_name = "Lozenges"
         dosage = "500mg"
-        time_slot = "13:00"  # 1:00 PM - afternoon slot to ensure it's in the future
+        time_slot = "17:00"  # 5:00 PM - afternoon slot to ensure it's in the future
         slot_label = {
             "09:00": "9:00 AM",
             "13:00": "1:00 PM",
