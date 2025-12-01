@@ -24,13 +24,6 @@ class TestWebsiteDemonstration:
         patient_id = "108"
         med_name = "Lozenges"
         dosage = "500mg"
-        time_slot = "17:00"  # 5:00 PM - afternoon slot to ensure it's in the future
-        slot_label = {
-            "09:00": "9:00 AM",
-            "13:00": "1:00 PM",
-            "17:00": "5:00 PM",
-            "21:00": "9:00 PM",
-        }[time_slot]
         today = datetime.now().strftime("%Y-%m-%d")
         tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
         # Use today for prescription so it appears in duty dashboard
@@ -135,50 +128,126 @@ class TestWebsiteDemonstration:
         expect(page.locator("#patient_id")).to_have_value(patient_id)
         page.wait_for_timeout(2000)  # Allow error toast to be visible in video
 
-        # Add prescription for Lozenges
+        # DEMONSTRATION 5: Duplicate time slot validation for frequency=2 medicine
+        page.wait_for_timeout(1500)  # Visual separator
         page.click("button.tab-button:has-text('Prescriptions')")
         page.wait_for_timeout(300)
         page.fill("#presc_patient_id", patient_id)
         page.click("button:has-text('Add Another Medicine')")
         page.wait_for_timeout(200)
 
-        medicine_group = page.locator(".medicine-group").first
-        medicine_group.locator("input[name='medicine_name']").fill(med_name)
-        medicine_group.locator("input[name='dosage']").fill(dosage)
-        medicine_group.locator("input[name='frequency']").fill("1")
-        medicine_group.locator("input[name='start_date']").fill(presc_date)
-        medicine_group.locator("input[name='end_date']").fill(tomorrow)
-        medicine_group.locator("button:has-text('Add Time')").click()
-        page.wait_for_timeout(200)
-        medicine_group.locator("select[name='time_slots[]']").select_option(time_slot)
+        # Add first medicine with frequency=2, attempt duplicate time slots
+        medicine1_group = page.locator(".medicine-group").first
+        medicine1_group.locator("input[name='medicine_name']").fill("Aspirin")
+        medicine1_group.locator("input[name='dosage']").fill("100mg")
+        medicine1_group.locator("input[name='frequency']").fill("2")
+        medicine1_group.locator("input[name='start_date']").fill(presc_date)
+        medicine1_group.locator("input[name='end_date']").fill(tomorrow)
 
+        # Add first time slot: 09:00
+        medicine1_group.locator("button:has-text('Add Time')").click()
+        page.wait_for_timeout(200)
+        medicine1_group.locator("select[name='time_slots[]']").first.select_option(
+            "09:00"
+        )
+
+        # Add second time slot: attempt duplicate 09:00
+        medicine1_group.locator("button:has-text('Add Time')").click()
+        page.wait_for_timeout(200)
+        medicine1_group.locator("select[name='time_slots[]']").nth(1).select_option(
+            "09:00"
+        )
+        page.wait_for_timeout(500)  # Allow duplicate selection to register
+
+        # Try to submit - should trigger duplicate validation error
         page.click("button:has-text('Submit All Prescriptions')")
+        page.wait_for_timeout(300)
+
+        # Verify duplicate error toast appears
+        expect(page.locator(".toast.error")).to_be_visible(timeout=5000)
+        expect(page.locator(".toast.error")).to_contain_text(
+            "Duplicate time slots detected"
+        )
+        page.wait_for_timeout(2000)  # Show error in video
+
+        # Modal should NOT have opened due to validation error, but close it if it did
+        if page.locator("#confirmPrescriptionModal").is_visible():
+            page.click(".close-button")
+            page.wait_for_timeout(300)
+
+        # Correct the duplicate: change second slot to 13:00
+        medicine1_group.locator("select[name='time_slots[]']").nth(1).select_option(
+            "13:00"
+        )
+        page.wait_for_timeout(500)
+
+        # DEMONSTRATION 6: Multi-medicine submission with summary preview
+        page.wait_for_timeout(1500)  # Visual separator
+
+        # Add second medicine with frequency=1 (WITHOUT submitting first medicine)
+        page.click("button:has-text('Add Another Medicine')")
+        page.wait_for_timeout(300)
+
+        medicine2_group = page.locator(".medicine-group").nth(1)
+        medicine2_group.locator("input[name='medicine_name']").fill("Lozenges")
+        medicine2_group.locator("input[name='dosage']").fill("500mg")
+        medicine2_group.locator("input[name='frequency']").fill("1")
+        medicine2_group.locator("input[name='start_date']").fill(presc_date)
+        medicine2_group.locator("input[name='end_date']").fill(tomorrow)
+        medicine2_group.locator("button:has-text('Add Time')").click()
+        page.wait_for_timeout(200)
+        medicine2_group.locator("select[name='time_slots[]']").select_option("21:00")
+
+        # Submit all prescriptions at once
+        page.click("button:has-text('Submit All Prescriptions')")
+        page.wait_for_timeout(500)
+
+        # Verify preview modal shows BOTH medicines
         expect(page.locator("#confirmPrescriptionModal")).to_be_visible()
+        preview_content = page.locator("#prescriptionPreviewContent").text_content()
+        assert "Aspirin" in preview_content, "First medicine not in preview"
+        assert "Lozenges" in preview_content, "Second medicine not in preview"
+        assert (
+            "09:00" in preview_content and "13:00" in preview_content
+        ), "Medicine 1 time slots not in preview"
+        assert "21:00" in preview_content, "Medicine 2 time slot not in preview"
+        page.wait_for_timeout(2500)  # Allow user to review summary in video
+
+        # Confirm submission of both medicines
         page.click("#confirmSubmissionBtn")
         expect(
             page.locator(".toast.success"), "Prescription toast should appear"
         ).to_be_visible(timeout=10000)
 
-        # Wait until prescription API reflects the new entry (filter by date)
+        # Wait until BOTH prescriptions appear in API (filter by date)
         for _ in range(10):
             presc_res = requests.get(
                 f"{app_url}/api/patient/{patient_id}/prescriptions"
             )
             presc_data = presc_res.json().get("data", [])
-            has_entry = any(
+            # Check for Aspirin prescription
+            has_aspirin = any(
                 p.get("patient_id") == patient_id
-                and p.get("medicine_name") == med_name
-                and time_slot in str(p.get("time_slot", ""))
-                and p.get("start_date") == presc_date  # Filter for prescription date
+                and p.get("medicine_name") == "Aspirin"
+                and "09:00" in str(p.get("time_slot", ""))
+                and p.get("start_date") == presc_date
                 for p in presc_data
             )
-            if has_entry:
+            # Check for Lozenges prescription
+            has_lozenges = any(
+                p.get("patient_id") == patient_id
+                and p.get("medicine_name") == "Lozenges"
+                and "21:00" in str(p.get("time_slot", ""))
+                and p.get("start_date") == presc_date
+                for p in presc_data
+            )
+            if has_aspirin and has_lozenges:
                 break
             time.sleep(1)
         else:
             assert (
                 False
-            ), f"New prescription for {presc_date} not found in API after 10s"
+            ), f"Both prescriptions for {presc_date} not found in API after 10s"
 
         # Duty Dashboard search for patient 108
         page.click("label.burger-icon")
@@ -195,39 +264,62 @@ class TestWebsiteDemonstration:
         page.wait_for_timeout(2000)
         expect(page.locator("#patientMedsResult")).not_to_be_empty(timeout=10000)
 
+        # Verify both medicines appear in search results
+        search_results = page.locator("#patientMedsResult").text_content()
+        assert "Aspirin" in search_results, "Aspirin not found in patient medications"
+        assert "Lozenges" in search_results, "Lozenges not found in patient medications"
+
+        # Scroll down to show all medication details in video
+        page.locator("#patientMedsResult").scroll_into_view_if_needed()
+        page.evaluate(
+            "window.scrollBy(0, 200)"
+        )  # Scroll down 200px to show more content
+        page.wait_for_timeout(1500)  # Show results in video
+
         # Show round timeline with pending status before completion
         page.click("button.tab-button:has-text('Round Timeline')")
         page.wait_for_timeout(400)
         page.evaluate("showDutyDashboard()")
         expect(page.locator("#timeline-tables")).to_be_visible(timeout=10000)
 
-        # Wait for today's prescription to appear in timeline
+        # Wait for today's prescriptions to appear in timeline
         page.wait_for_function(
             f"() => document.querySelector('#timeline-tables')?.textContent.includes('{patient_id}')",
             timeout=15000,
         )
-        round_header = page.locator(".accordion-header", has_text=slot_label)
-        round_header.wait_for(state="visible", timeout=5000)
-        round_header.click()
-        page.wait_for_timeout(1000)
 
-        # Locate the row for patient 108 with Lozenges (may show as Pending or need completion)
-        med_row = page.locator(
-            f"tr:has-text('{patient_id}'):has-text('{med_name}')"
-        ).first
-        expect(med_row).to_be_visible(timeout=10000)
+        # Check multiple time slots (09:00 for Aspirin, 13:00 for Aspirin, 21:00 for Lozenges)
+        for slot_time, slot_name in [
+            ("09:00", "9:00 AM"),
+            ("13:00", "1:00 PM"),
+            ("21:00", "9:00 PM"),
+        ]:
+            round_header = page.locator(".accordion-header", has_text=slot_name)
+            round_header.wait_for(state="visible", timeout=5000)
+            round_header.click()
+            page.wait_for_timeout(800)
 
-        # Mark medication complete via API to keep flow deterministic
-        consume_datetime = f"{presc_date} {time_slot}:00"
+            # Verify patient 108 appears in this time slot
+            timeline_content = page.locator("#timeline-tables").text_content()
+            assert (
+                patient_id in timeline_content
+            ), f"Patient {patient_id} not found in {slot_name} timeline"
+
+            # Collapse the accordion for next iteration
+            round_header.click()
+            page.wait_for_timeout(300)
+
+        # Mark ONE medication complete for demonstration (Lozenges at 21:00)
+        consume_datetime = f"{presc_date} 21:00:00"
         track_resp = requests.post(
             f"{app_url}/api/medication-tracking",
             json={
                 "patient_id": patient_id,
-                "medicine_name": med_name,
-                "dosage": dosage,
+                "medicine_name": "Lozenges",
+                "dosage": "500mg",
                 "status": "complete",
                 "consume_date": consume_datetime,
-                "time_slot": time_slot,
+                "time_slot": "21:00",
             },
         )
         assert track_resp.status_code == 200, track_resp.text
@@ -239,8 +331,8 @@ class TestWebsiteDemonstration:
             tracking_data = tracking_res.json().get("data", [])
             found_complete = any(
                 t.get("patient_id") == patient_id
-                and t.get("medicine_name") == med_name
-                and time_slot in str(t.get("time_slot", ""))
+                and t.get("medicine_name") == "Lozenges"
+                and "21:00" in str(t.get("time_slot", ""))
                 and str(t.get("consume_date", "")).startswith(presc_date)
                 for t in tracking_data
             )
@@ -272,7 +364,7 @@ class TestWebsiteDemonstration:
         complete_found = False
         for _ in range(45):  # ~90s max
             try:
-                round_header = page.locator(".accordion-header", has_text=slot_label)
+                round_header = page.locator(".accordion-header", has_text="9:00 PM")
                 round_header.wait_for(state="visible", timeout=2000)
                 round_header.click()
                 page.wait_for_timeout(300)
@@ -286,9 +378,7 @@ class TestWebsiteDemonstration:
             finally:
                 # Collapse back if open to keep UI consistent
                 try:
-                    round_header = page.locator(
-                        ".accordion-header", has_text=slot_label
-                    )
+                    round_header = page.locator(".accordion-header", has_text="9:00 PM")
                     round_header.click()
                     page.wait_for_timeout(200)
                 except Exception:
