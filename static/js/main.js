@@ -266,6 +266,7 @@ function addMedicineField() {
     startDateInput.value = getLocalDateString();
   }
 
+<<<<<<< HEAD
   // Add frequency change listener for auto-population
   const frequencyInput = newGroup.querySelector('input[name="frequency"]');
   if (frequencyInput) {
@@ -274,10 +275,13 @@ function addMedicineField() {
     });
   }
 
+=======
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
   // Append the new group
   container.appendChild(newGroup);
 }
 
+<<<<<<< HEAD
 // Auto-populate time slots if frequency is 4
 function autoPopulateTimeSlotsIfNeeded(medicineGroup) {
   const frequencyInput = medicineGroup.querySelector('[name="frequency"]');
@@ -336,6 +340,8 @@ function autoPopulateTimeSlotsIfNeeded(medicineGroup) {
   }
 }
 
+=======
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
 function removeMedicineField(button) {
   // Traverse up to the parent '.medicine-group' and remove it
   button.closest(".medicine-group").remove();
@@ -394,6 +400,7 @@ function addTimeField(button) {
   wrapper.appendChild(selectField);
   wrapper.appendChild(removeButton);
   container.appendChild(wrapper);
+<<<<<<< HEAD
 
   // Add validation on change to prevent duplicates
   selectField.addEventListener("change", function () {
@@ -435,6 +442,8 @@ function validateTimeSlots(medicineGroup) {
     });
     return true;
   }
+=======
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
 }
 
 async function addPrescription() {
@@ -475,6 +484,7 @@ async function addPrescription() {
 
   // Loop through each dynamic medicine group
   for (const group of medicineGroups) {
+<<<<<<< HEAD
     // Validate time slots for duplicates
     if (!validateTimeSlots(group)) {
       showMessage(
@@ -484,6 +494,8 @@ async function addPrescription() {
       return;
     }
 
+=======
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
     // Extract data from the current medicine group using its 'name' attributes
     const prescriptionData = {
       patient_id: patientId,
@@ -531,38 +543,31 @@ async function addPrescription() {
       } else {
         failureCount++;
         console.error("API Error during submission:", result.error);
-        showMessage("error", "Error: " + result.error);
       }
     } catch (error) {
       failureCount++;
       console.error("Error adding prescription entry:", error.message);
-      showMessage("error", "Error adding prescription: " + error.message);
     }
   }
 
-  // Show final status and reset form only if all succeeded
-  if (successCount > 0 && failureCount === 0) {
+  // Show final status and reset form
+  if (successCount > 0) {
     showMessage(
       "success",
-      `${successCount} prescription(s) added successfully!`
+      `${successCount} prescription(s) added successfully! (${failureCount} failed)`
     );
-    // Reset form and dynamic fields
-    document.getElementById("prescriptionForm").reset();
-    document.getElementById("medicineFieldsContainer").innerHTML = ""; // Clear all dynamic fields
-    addMedicineField(); // Add one fresh field
-    setTimeout(() => loadPrescriptions(), 2000);
-  } else if (successCount > 0) {
-    showMessage(
-      "success",
-      `${successCount} prescription(s) added successfully! (${failureCount} failed - form data preserved)`
-    );
-    setTimeout(() => loadPrescriptions(), 2000);
   } else {
     showMessage(
       "error",
-      `Failed to add any prescriptions. ${failureCount} attempt(s) failed. Form data preserved.`
+      `Failed to add any prescriptions. ${failureCount} attempt(s) failed.`
     );
   }
+
+  // Reset form and dynamic fields
+  document.getElementById("prescriptionForm").reset();
+  document.getElementById("medicineFieldsContainer").innerHTML = ""; // Clear all dynamic fields
+  addMedicineField(); // Add one fresh field
+  setTimeout(() => loadPrescriptions(), 2000);
 }
 
 // Utility Functions
@@ -718,17 +723,11 @@ async function loadPatientActiveMeds() {
         patient = pj.data || pj || null;
       }
     } catch (e) {
-      // Patient not found
-      patient = null;
+      // ignore, we'll still attempt to show meds
     }
 
-    // If patient doesn't exist, show error and stop
-    if (!patient) {
-      resultContainer.innerHTML = `<div class="message error">Patient ID '${patientId}' not found. Please check the ID and try again.</div>`;
-      return;
-    }
-
-    const infoHtml = `
+    const infoHtml = patient
+      ? `
       <div class="card patient-info-card" style="margin-top: 1rem;">
         <h4 style="margin-bottom: 1rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 0.75rem;">Patient Information</h4>
         <div class="patient-info-grid">
@@ -753,7 +752,8 @@ async function loadPatientActiveMeds() {
             <span class="info-value">${patient.bed || "N/A"}</span>
           </div>
         </div>
-      </div>`;
+      </div>`
+      : `<div class="card patient-info-card" style="margin-top: 2rem;"><h4>Patient: ${patientId}</h4></div>`;
 
     // Show patient card immediately with a static loading message
     resultContainer.innerHTML =
@@ -778,7 +778,7 @@ async function loadPatientActiveMeds() {
     }
 
     // determine active meds
-    const today = getLocalDateString();
+    const today = new Date().toISOString().split("T")[0];
     const activeMeds = (prescs || []).filter((m) => {
       if (!m.start_date) return false;
       if (String(m.start_date).split("T")[0] > today) return false;
@@ -786,13 +786,18 @@ async function loadPatientActiveMeds() {
       return true;
     });
 
+<<<<<<< HEAD
     // render meds below the patient card with improved format
+=======
+    // render meds below the patient card
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
     let medsHtml = "";
     if (activeMeds.length > 0) {
       medsHtml = activeMeds
         .map(
           (med) => `
         <div class="data-item">
+<<<<<<< HEAD
           <strong>${med.medicine_name || "N/A"}</strong><br>
           <span style="margin-left: 1rem;">Dosage: ${
             med.dosage || "N/A"
@@ -806,6 +811,14 @@ async function loadPatientActiveMeds() {
           <small style="margin-left: 1rem;">Period: ${
             med.start_date || "N/A"
           } to ${med.end_date || "Ongoing"}</small>
+=======
+          <strong>${med.medicine_name || "N/A"}</strong> - ${
+            med.dosage || "N/A"
+          } - ${med.frequency || "N/A"}<br>
+          <small>From: ${med.start_date || "N/A"} To: ${
+            med.end_date || "Ongoing"
+          }</small>
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
         </div>`
         )
         .join("");
@@ -898,6 +911,7 @@ async function updateStats() {
     const totalPatients = patients.length;
     const activePrescriptions = prescriptions.length;
 
+<<<<<<< HEAD
     // Count unique completed administrations today (aligning with management chart logic)
     const today = getLocalDateString();
     const uniqueCompleted = new Set();
@@ -914,6 +928,13 @@ async function updateStats() {
       uniqueCompleted.add(key);
     });
     const completedToday = uniqueCompleted.size;
+=======
+    // Count completed today
+    const today = new Date().toISOString().split("T")[0];
+    const completedToday = tracking.filter((r) =>
+      (r.consume_date || "").startsWith(today)
+    ).length;
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
 
     document.getElementById("totalPatients").textContent = totalPatients;
     document.getElementById("totalPrescriptions").textContent =
@@ -1054,7 +1075,11 @@ async function showDutyDashboard() {
     const tracking = trackResult.data || [];
 
     // Get today's date for filtering active prescriptions
+<<<<<<< HEAD
     const today = getLocalDateString();
+=======
+    const today = new Date().toISOString().split("T")[0];
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
 
     // Filter prescriptions to only include active ones (today is within start_date and end_date)
     const activePrescriptions = prescriptions.filter((p) => {
@@ -1103,7 +1128,7 @@ async function showDutyDashboard() {
 }
 
 function isServed(prescription, tracking, specificSlot = null) {
-  const today = getLocalDateString();
+  const today = new Date().toISOString().split("T")[0];
 
   // Parse prescription time slots (may be comma-separated)
   const prescriptionSlots = (prescription.time_slot || "")
@@ -1114,6 +1139,7 @@ function isServed(prescription, tracking, specificSlot = null) {
   const slotsToCheck = specificSlot ? [specificSlot] : prescriptionSlots;
 
   return tracking.some((t) => {
+<<<<<<< HEAD
     // Debug logging
     if (t.patient_id === prescription.patient_id) {
       console.log(
@@ -1121,6 +1147,8 @@ function isServed(prescription, tracking, specificSlot = null) {
       );
     }
 
+=======
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
     // Check if tracking date is today
     // Handle both "T" and space separators in date format
     const consumeDateStr = String(t.consume_date || "");
@@ -1135,11 +1163,11 @@ function isServed(prescription, tracking, specificSlot = null) {
       return false;
     }
 
-    // Map tracking record to the relevant slot (handles comma-separated schedules)
-    const trackSlot = resolveTrackingSlot(t);
-    if (!trackSlot) {
-      return false;
-    }
+    // For tracking records, the time_slot should be a single slot
+    // If it's comma-separated (malformed data), only use the first slot
+    // This represents the actual time the medication was administered
+    const trackSlotRaw = String(t.time_slot || "").trim();
+    const trackSlot = trackSlotRaw.split(",")[0].trim();
 
     // Check if the tracking slot matches any of the slots to check
     if (!slotsToCheck.includes(trackSlot)) {
@@ -1202,6 +1230,7 @@ function isServed(prescription, tracking, specificSlot = null) {
   });
 }
 
+<<<<<<< HEAD
 // Determine which slot a tracking record corresponds to (handles comma-separated schedules)
 function resolveTrackingSlot(record) {
   const slotRaw = String(record.time_slot || "");
@@ -1262,6 +1291,8 @@ function resolveTrackingSlot(record) {
   return slots[0];
 }
 
+=======
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
 async function updateDutyTimetableStatus() {
   try {
     const response = await fetch("/api/medication-tracking");
@@ -1277,12 +1308,21 @@ async function updateDutyTimetableStatus() {
       const timeSlot = cell.getAttribute("data-timeslot");
       const medName = cell.getAttribute("data-medicine");
 
+<<<<<<< HEAD
       const recordFound = trackingRecords.some((r) => {
         if (r.patient_id !== patientId || r.medicine_name !== medName)
           return false;
         const resolvedSlot = resolveTrackingSlot(r);
         return resolvedSlot === timeSlot;
       });
+=======
+      const recordFound = trackingRecords.some(
+        (r) =>
+          r.patient_id === patientId &&
+          r.time_slot === timeSlot &&
+          r.medicine_name === medName
+      );
+>>>>>>> parent of 434cc36 (Merge pull request #26 from Josan88/copilot/fix-user-experience-issues)
 
       if (recordFound) {
         cell.classList.add("completed"); // Mark visually completed
@@ -1302,7 +1342,7 @@ function renderTimelineTable(grouped) {
   }
 
   container.innerHTML = "";
-  const today = getLocalDateString();
+  const today = new Date().toISOString().split("T")[0];
   const currentHour = new Date().getHours();
 
   // Define time ranges for auto-expansion
@@ -1416,13 +1456,13 @@ function initManagementChart() {
         {
           label: "Completed",
           backgroundColor: "#28a745",
-          data: FIXED_TIME_SLOTS.map(() => 0),
+          data: [0, 0, 0],
           stack: "Stack 0",
         },
         {
           label: "Pending",
           backgroundColor: "#ffc107",
-          data: FIXED_TIME_SLOTS.map(() => 0),
+          data: [0, 0, 0],
           stack: "Stack 0",
         },
       ],
@@ -1447,28 +1487,6 @@ function initManagementChart() {
   scheduleRoundRefresh();
 }
 
-function normalizeTimeSlot(slot) {
-  if (!slot) return null;
-  const firstPart = String(slot).split(",")[0].trim();
-  if (!firstPart) return null;
-
-  const lower = firstPart.toLowerCase();
-  const match = lower.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
-  if (match) {
-    let hour = parseInt(match[1], 10);
-    const minutes = match[2] ? match[2] : "00";
-    const meridiem = match[3];
-
-    if (meridiem === "pm" && hour < 12) hour += 12;
-    if (meridiem === "am" && hour === 12) hour = 0;
-
-    const hh = String(hour).padStart(2, "0");
-    return `${hh}:${minutes}`;
-  }
-
-  return firstPart;
-}
-
 async function updateManagementChart() {
   if (!managementChart) return;
 
@@ -1485,17 +1503,14 @@ async function updateManagementChart() {
     const prescriptions = prescJson.data || [];
     const tracking = trackJson.data || [];
 
-    const today = getLocalDateString();
+    const today = new Date().toISOString().split("T")[0];
 
     // Prepare counts per slot: index order matches FIXED_TIME_SLOTS
     const totals = FIXED_TIME_SLOTS.map(() => 0);
     const completed = FIXED_TIME_SLOTS.map(() => 0);
 
     function dateOnly(d) {
-      if (!d) return null;
-      // Handle both ISO (T) and space-separated timestamps
-      const raw = String(d);
-      return raw.includes("T") ? raw.split("T")[0] : raw.split(" ")[0];
+      return d ? String(d).split("T")[0] : null;
     }
 
     prescriptions.forEach((p) => {
@@ -1520,7 +1535,7 @@ async function updateManagementChart() {
       if (slots.length === 0) return;
 
       slots.forEach((rawSlot) => {
-        const norm = normalizeTimeSlot(rawSlot);
+        const norm = String(rawSlot).trim();
         const idx = FIXED_TIME_SLOTS.findIndex((s) => s.value === norm);
         if (idx === -1) return;
         totals[idx] += 1;
@@ -1528,7 +1543,7 @@ async function updateManagementChart() {
         // Check if medication was served
         const servedHere = tracking.some((t) => {
           const tDate = dateOnly(t.consume_date);
-          const tSlot = normalizeTimeSlot(t.time_slot);
+          const tSlot = String(t.time_slot).trim();
           return (
             t.patient_id === p.patient_id &&
             t.medicine_name === p.medicine_name &&
