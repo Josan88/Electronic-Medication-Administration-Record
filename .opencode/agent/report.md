@@ -1,12 +1,7 @@
 ---
-description: Reviews code for quality and best practices
-mode: subagent
-model: anthropic/claude-sonnet-4-20250514
-temperature: 0.1
-tools:
-  write: false
-  edit: false
-  bash: false
+description: Review of the Proposed Method / Solution Guide document for clarity, completeness, and alignment with ENG40011 rubric criteria.
+temperature: 1.0
+model: google/gemini-3-pro-preview
 ---
 
 # Review: Proposed Method / Solution Guide
