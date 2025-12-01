@@ -8,6 +8,7 @@ storage and ThingSpeak as backup. It handles:
 - Backward compatibility with existing thingspeak_service interface
 """
 
+import os
 from typing import Dict, List, Optional, Any
 from services.local_db_service import local_db, LocalDatabaseError
 from services.thingspeak_service import thingspeak_service, ThingSpeakError
@@ -37,10 +38,6 @@ class HybridDataService:
         self.local_db = local_db
         self.thingspeak_service = thingspeak_service
         self.sync_queue = sync_queue
-<<<<<<< Updated upstream
-    
-    def read_channel(self, channel_name: str) -> List[Dict[str, Any]]:
-=======
 
     def _read_thingspeak_channel(
         self,
@@ -67,61 +64,46 @@ class HybridDataService:
     def read_channel(
         self, channel_name: str, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
->>>>>>> Stashed changes
         """
         Read all data from a channel (local database with ThingSpeak fallback).
 
         Args:
             channel_name: Name of the channel
-<<<<<<< Updated upstream
-            
-=======
             limit: Maximum number of records to return. If None, return all.
 
->>>>>>> Stashed changes
         Returns:
             List of dictionaries with mapped field names
 
         Raises:
             HybridDataServiceError: If both local and ThingSpeak reads fail
         """
-<<<<<<< Updated upstream
-=======
         # Removed special-case forcing ThingSpeak read for 'medicine_track' to allow
         # immediate visibility of newly written local tracking entries before sync.
 
->>>>>>> Stashed changes
         try:
             # Try local database first
-            data = self.local_db.read_channel(channel_name)
-            logger.debug(f"Read {len(data)} records from local database: {channel_name}")
-            return data
+            if limit is None:
+                data = self.local_db.read_channel(channel_name)
+            else:
+                data = self.local_db.read_channel(channel_name, limit=limit)
+            logger.debug(
+                f"Read {len(data)} records from local database: {channel_name}"
+            )
+            if data:
+                return data
+
+            logger.info(
+                f"No local records found for {channel_name}; falling back to ThingSpeak"
+            )
+            return self._read_thingspeak_channel(channel_name)
         except LocalDatabaseError as e:
             # Fallback to ThingSpeak
             logger.warning(
                 f"Local database read failed for {channel_name}, "
                 f"falling back to ThingSpeak: {e}"
             )
-<<<<<<< Updated upstream
-            try:
-                data = self.thingspeak_service.read_channel(channel_name)
-                logger.info(
-                    f"Successfully read {len(data)} records from ThingSpeak "
-                    f"fallback: {channel_name}"
-                )
-                return data
-            except ThingSpeakError as ts_error:
-                error_msg = (
-                    f"Failed to read from both local database and ThingSpeak "
-                    f"for {channel_name}: Local error: {e}, ThingSpeak error: {ts_error}"
-                )
-                logger.error(error_msg)
-                raise HybridDataServiceError(error_msg)
-    
-=======
             return self._read_thingspeak_channel(channel_name, local_error=e)
 
->>>>>>> Stashed changes
     def write_to_channel(self, channel_name: str, data: Dict[str, str]) -> str:
         """
         Write data to local channel and queue for ThingSpeak sync.
@@ -142,15 +124,11 @@ class HybridDataService:
 
             # Queue for ThingSpeak sync (async backup)
             # The sync worker will pick this up and bulk write to ThingSpeak
-            logger.debug(
-                f"Wrote entry {entry_id} to local database {channel_name}, "
-                f"queued for ThingSpeak sync"
+            testing_mode = os.environ.get("TESTING") == "1"
+            skip_sync = testing_mode and channel_name in (
+                "patient_info",
+                "medicine_prescription",
             )
-<<<<<<< Updated upstream
-            
-            return str(entry_id)
-            
-=======
 
             if skip_sync:
                 logger.debug(
@@ -166,14 +144,10 @@ class HybridDataService:
 
             return str(entry_id)
 
->>>>>>> Stashed changes
         except LocalDatabaseError as e:
             error_msg = f"Failed to write to local database for {channel_name}: {e}"
             logger.error(error_msg)
             raise HybridDataServiceError(error_msg)
-<<<<<<< Updated upstream
-    
-=======
 
     def _find_in_thingspeak(
         self,
@@ -205,7 +179,6 @@ class HybridDataService:
             logger.error(error_msg)
             raise HybridDataServiceError(error_msg)
 
->>>>>>> Stashed changes
     def find_by_field(
         self, channel_name: str, field_name: str, value: str
     ) -> List[Dict[str, Any]]:
@@ -220,11 +193,8 @@ class HybridDataService:
         Returns:
             List of matching records
         """
-<<<<<<< Updated upstream
-=======
         # Removed special-case for 'medicine_track' so local records are considered first.
 
->>>>>>> Stashed changes
         try:
             # Try local database first
             results = self.local_db.find_by_field(channel_name, field_name, value)
@@ -232,37 +202,24 @@ class HybridDataService:
                 f"Found {len(results)} records in local database "
                 f"for {field_name}={value}"
             )
-            return results
+            if results:
+                return results
+
+            logger.info(
+                f"No local matches for {field_name}={value} in {channel_name}; "
+                "falling back to ThingSpeak"
+            )
+            return self._find_in_thingspeak(channel_name, field_name, value)
         except LocalDatabaseError as e:
             # Fallback to ThingSpeak
             logger.warning(
                 f"Local database search failed for {channel_name}, "
                 f"falling back to ThingSpeak: {e}"
             )
-<<<<<<< Updated upstream
-            try:
-                results = self.thingspeak_service.find_by_field(
-                    channel_name, field_name, value
-                )
-                logger.info(
-                    f"Successfully found {len(results)} records from ThingSpeak "
-                    f"fallback for {field_name}={value}"
-                )
-                return results
-            except ThingSpeakError as ts_error:
-                error_msg = (
-                    f"Failed to search in both local database and ThingSpeak: "
-                    f"Local error: {e}, ThingSpeak error: {ts_error}"
-                )
-                logger.error(error_msg)
-                raise HybridDataServiceError(error_msg)
-    
-=======
             return self._find_in_thingspeak(
                 channel_name, field_name, value, local_error=e
             )
 
->>>>>>> Stashed changes
     def get_patient(self, patient_id: str) -> Optional[Dict[str, Any]]:
         """
         Get a specific patient by ID.
