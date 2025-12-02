@@ -186,6 +186,24 @@ curl -X GET http://localhost:5000/api/queue/status
 curl -X POST http://localhost:5000/api/queue/clear-failed
 ```
 
+### Get Sync Status (Local Database Mode)
+
+```bash
+curl -X GET http://localhost:5000/api/queue/sync-status
+```
+
+### Clear Failed Sync Items
+
+```bash
+curl -X POST http://localhost:5000/api/queue/sync-clear-failed
+```
+
+### Check ThingSpeak Backup Health
+
+```bash
+curl -X GET http://localhost:5000/api/queue/thingspeak-health
+```
+
 ### Pretty Print JSON Response
 
 ```bash
@@ -280,6 +298,18 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/medication-tracking" `
 
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:5000/api/queue/status"
+```
+
+### Get Sync Status (Local Database Mode)
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/api/queue/sync-status"
+```
+
+### Check ThingSpeak Backup Health
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/api/queue/thingspeak-health"
 ```
 
 ### Error Handling in PowerShell
@@ -457,6 +487,44 @@ def get_queue_status():
 
 # Example usage
 queue_status = get_queue_status()
+```
+
+### Get Sync Status (Local Database Mode)
+
+```python
+def get_sync_status():
+    response = requests.get(f"{BASE_URL}/api/queue/sync-status")
+    if response.status_code == 200:
+        data = response.json()["data"]
+        print(f"Pending Syncs: {data['pending_count']}")
+        print(f"Failed Syncs: {data['failed_count']}")
+        print(f"Last Synced Entry IDs: {data['last_synced_entry_ids']}")
+        return data
+    else:
+        print(f"Error: {response.status_code}")
+        return None
+
+# Example usage
+sync_status = get_sync_status()
+```
+
+### Check ThingSpeak Backup Health
+
+```python
+def check_thingspeak_health():
+    response = requests.get(f"{BASE_URL}/api/queue/thingspeak-health")
+    if response.status_code == 200:
+        data = response.json()["data"]
+        print(f"Overall Health: {'Healthy' if data['healthy'] else 'Unhealthy'}")
+        for channel, status in data['channels'].items():
+            print(f"  {channel}: {'Available' if status['available'] else 'Unavailable'}")
+        return data
+    else:
+        print(f"Error: {response.status_code}")
+        return None
+
+# Example usage
+health = check_thingspeak_health()
 ```
 
 ### Error Handling
@@ -692,6 +760,58 @@ async function getQueueStatus() {
 getQueueStatus();
 ```
 
+### Get Sync Status (Local Database Mode)
+
+```javascript
+async function getSyncStatus() {
+  try {
+    const response = await fetch(`${BASE_URL}/api/queue/sync-status`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const result = await response.json();
+    const data = result.data;
+    
+    console.log("Sync Status:");
+    console.log(`  Pending: ${data.pending_count}`);
+    console.log(`  Failed: ${data.failed_count}`);
+    console.log(`  Last Synced IDs:`, data.last_synced_entry_ids);
+    
+    return data;
+  } catch (error) {
+    console.error("Error fetching sync status:", error);
+  }
+}
+
+getSyncStatus();
+```
+
+### Check ThingSpeak Backup Health
+
+```javascript
+async function checkThingSpeakHealth() {
+  try {
+    const response = await fetch(`${BASE_URL}/api/queue/thingspeak-health`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const result = await response.json();
+    const data = result.data;
+    
+    console.log(`ThingSpeak Health: ${data.healthy ? "Healthy" : "Unhealthy"}`);
+    for (const [channel, status] of Object.entries(data.channels)) {
+      console.log(`  ${channel}: ${status.available ? "Available" : "Unavailable"}`);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error checking ThingSpeak health:", error);
+  }
+}
+
+checkThingSpeakHealth();
+```
+
 ### Complete Example with Error Handling
 
 ```javascript
@@ -850,4 +970,4 @@ If you hit the rate limit, you'll see an error. Wait 15 seconds before retrying.
 
 ---
 
-*Last Updated: November 15, 2025*
+*Last Updated: December 2025*

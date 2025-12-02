@@ -2,31 +2,34 @@
 
 A comprehensive web-based Electronic Medication Administration Record system with local database storage and ThingSpeak IoT platform backup for resilient data management.
 
-## 📚 Documentation
+## Documentation
 
+- **[Documentation Index](docs/INDEX.md)** - Complete documentation map
 - **[API Documentation (Swagger UI)](http://localhost:5000/api/docs)** - Interactive API reference
 - **[API Usage Examples](docs/API_EXAMPLES.md)** - Practical examples with curl, PowerShell, Python, and JavaScript
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - System architecture, data flow diagrams, and design decisions
-- **[Local Database Guide](docs/LOCAL_DATABASE.md)** - Local database architecture and ThingSpeak sync (NEW!)
-- **[Bulk Write Examples](docs/BULK_WRITE_EXAMPLES.md)** - ThingSpeak Bulk Write API examples (NEW!)
+- **[Local Database Guide](docs/LOCAL_DATABASE.md)** - Local database architecture and ThingSpeak sync
+- **[Bulk Write Examples](docs/BULK_WRITE_EXAMPLES.md)** - ThingSpeak Bulk Write API examples
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete deployment instructions for development and production
-- **[Contributing Guide](CONTRIBUTING.md)** - Guidelines for contributing to the project
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - Guidelines for contributing to the project
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
 
-## 🌟 Features
+## Features
 
 - **Patient Management**: Add, view, and manage patient information
 - **Medicine Prescriptions**: Track prescribed medications with dosage, frequency, and duration
 - **Medication Tracking**: Record and monitor medication administration in real-time
 - **Dashboard**: Quick lookup for patient information with complete medication history
-- **Local Database**: Fast, real-time data storage with no rate limits (new!)
-- **ThingSpeak Backup**: Automatic periodic sync to ThingSpeak using Bulk Write API (new!)
+- **Local Database**: Fast, real-time data storage with no rate limits
+- **ThingSpeak Backup**: Automatic periodic sync to ThingSpeak using Bulk Write API
 - **Queue Management**: Persistent prescription queue with automatic retry and monitoring
-- **Resilient Sync**: Retry logic with exponential backoff for ThingSpeak backup (new!)
+- **Resilient Sync**: Retry logic with exponential backoff for ThingSpeak backup
 - **Statistics**: Visual overview of total patients, prescriptions, and daily administrations
 - **API Documentation**: Interactive Swagger UI for API exploration and testing
-- **Monitoring**: Sync status endpoints for operational monitoring (new!)
+- **Monitoring**: Sync status endpoints for operational monitoring
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -106,7 +109,7 @@ A comprehensive web-based Electronic Medication Administration Record system wit
 - Enter Patient ID and click **"Search"**
 - View complete patient history
 
-## 💻 Technology Stack
+## Technology Stack
 
 - **Backend**: Flask 3.0.0 (Python)
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla ES6+)
@@ -172,7 +175,7 @@ The system uses three ThingSpeak channels for cloud backup:
 - Field4: Consume_Date
 - Field5: Time_Slot
 
-## 📱 Accessing the Application
+## Accessing the Application
 
 ### From Same Computer
 
@@ -230,7 +233,7 @@ For detailed architecture and data flow information, see the [Architecture Guide
 - **GET** `/api/queue/status` - Get current queue status (size, failed items, statistics)
 - **POST** `/api/queue/clear-failed` - Clear all failed items from the queue
 
-## 🧪 Testing the API
+## Testing the API
 
 ### Method 1: Web Interface (Recommended)
 
@@ -273,7 +276,7 @@ python test_api.py
 
 **Note**: Test script includes automatic 15-second delays between write operations to comply with ThingSpeak rate limits
 
-## 📋 API Request Examples
+## API Request Examples
 
 ### Add a Patient
 
@@ -328,7 +331,7 @@ POST /api/medication-tracking
 - `consume_date: "2025-11-13 17:16:27"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"complete"** ✓ (within 17:00 slot)
 - `consume_date: "2025-11-13 14:30:00"` with `time_slot: "09:00, 13:00, 17:00, 21:00"` → status: **"complete"** ✓ (between the 13:00 and 17:00 slots)
 
-## ⚠️ Important Notes
+## Important Notes
 
 ### ThingSpeak Rate Limits
 
@@ -485,7 +488,9 @@ Electronic-Medication-Administration-Record/
 - Comprehensive patient view
 - Real-time data updates
 
-## 🔧 Troubleshooting
+## Troubleshooting
+
+For detailed troubleshooting, see the **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)**.
 
 ### Application Won't Start
 
@@ -523,7 +528,7 @@ app.run(debug=True, host="0.0.0.0", port=5001)
 4. Check terminal for background worker messages: `"Successfully posted entry"`
 5. Look for `response.raise_for_status()` exceptions in logs
 
-## 🚀 Deployment
+## Deployment
 
 The system supports multiple deployment strategies. For detailed instructions, see the **[Deployment Guide](docs/DEPLOYMENT.md)**.
 
@@ -542,7 +547,7 @@ For production environments, use a WSGI server (like Gunicorn) and a reverse pro
 gunicorn -w 4 -b 0.0.0.0:5000 app:app
 ```
 
-## 🔐 Security Considerations
+## Security Considerations
 
 **This is a development setup!**
 
@@ -577,7 +582,7 @@ For production use:
 - Integration with hospital management systems
 - Prescription validation and drug interaction checking
 
-## 💡 Tips & Tricks
+## Tips & Tricks
 
 ### Quick Data Entry
 
@@ -627,8 +632,8 @@ The app uses **three separate ThingSpeak channels**, each with 8-field data cons
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** November 9, 2025
+**Version:** 3.0.0  
+**Last Updated:** December 2025
 
 ## Contributing
 
