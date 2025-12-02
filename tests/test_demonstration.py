@@ -20,10 +20,24 @@ class TestWebsiteDemonstration:
 
         # Use a consistent medicine name for demonstration
         # (ThingSpeak persistence may show prior runs; this demo tolerates that)
-
         patient_id = "108"
-        med_name = "Lozenges"
-        dosage = "500mg"
+
+        # Medicine 1: Aspirin
+        med1_name = "Aspirin"
+        med1_dosage = "100mg"
+        med1_frequency = "2"
+        med1_time1 = "13:00"
+        med1_time1_display = "1:00 PM"
+        med1_time2 = "21:00"
+        med1_time2_display = "9:00 PM"
+
+        # Medicine 2: Lozenges
+        med2_name = "Lozenges"
+        med2_dosage = "500mg"
+        med2_frequency = "1"
+        med2_time = "09:00"
+        med2_time_display = "9:00 AM"
+
         today = datetime.now().strftime("%Y-%m-%d")
         tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
         # Use today for prescription so it appears in duty dashboard
@@ -44,7 +58,7 @@ class TestWebsiteDemonstration:
         expect(page.locator("#patients")).to_be_visible()
 
         # DEMONSTRATION 1: Invalid patient ID format (validation error)
-        page.fill("#patient_id", "108@#!")
+        page.fill("#patient_id", f"{patient_id}@#!")
         page.fill("#name", "John Doe")
         page.select_option("#floor", "1")
         page.select_option("#room", "101")
@@ -60,7 +74,7 @@ class TestWebsiteDemonstration:
             "Patient ID must contain only letters, numbers, hyphens, or underscores"
         )
         # Verify form data is preserved (no reset on validation error)
-        expect(page.locator("#patient_id")).to_have_value("108@#!")
+        expect(page.locator("#patient_id")).to_have_value(f"{patient_id}@#!")
         page.wait_for_timeout(2000)  # Allow error toast to be visible in video
 
         # Wait for first error toast to disappear before next test
@@ -138,24 +152,24 @@ class TestWebsiteDemonstration:
 
         # Add first medicine with frequency=2, attempt duplicate time slots
         medicine1_group = page.locator(".medicine-group").first
-        medicine1_group.locator("input[name='medicine_name']").fill("Aspirin")
-        medicine1_group.locator("input[name='dosage']").fill("100mg")
-        medicine1_group.locator("input[name='frequency']").fill("2")
+        medicine1_group.locator("input[name='medicine_name']").fill(med1_name)
+        medicine1_group.locator("input[name='dosage']").fill(med1_dosage)
+        medicine1_group.locator("input[name='frequency']").fill(med1_frequency)
         medicine1_group.locator("input[name='start_date']").fill(presc_date)
         medicine1_group.locator("input[name='end_date']").fill(tomorrow)
 
-        # Add first time slot: 09:00
+        # Add first time slot: 13:00
         medicine1_group.locator("button:has-text('Add Time')").click()
         page.wait_for_timeout(200)
         medicine1_group.locator("select[name='time_slots[]']").first.select_option(
-            "09:00"
+            med1_time1
         )
 
-        # Add second time slot: attempt duplicate 09:00
+        # Add second time slot: attempt duplicate 13:00
         medicine1_group.locator("button:has-text('Add Time')").click()
         page.wait_for_timeout(200)
         medicine1_group.locator("select[name='time_slots[]']").nth(1).select_option(
-            "09:00"
+            med1_time1
         )
         page.wait_for_timeout(500)  # Allow duplicate selection to register
 
@@ -175,9 +189,9 @@ class TestWebsiteDemonstration:
             page.click(".close-button")
             page.wait_for_timeout(300)
 
-        # Correct the duplicate: change second slot to 13:00
+        # Correct the duplicate: change second slot to 21:00
         medicine1_group.locator("select[name='time_slots[]']").nth(1).select_option(
-            "13:00"
+            med1_time2
         )
         page.wait_for_timeout(500)
 
@@ -189,14 +203,14 @@ class TestWebsiteDemonstration:
         page.wait_for_timeout(300)
 
         medicine2_group = page.locator(".medicine-group").nth(1)
-        medicine2_group.locator("input[name='medicine_name']").fill("Lozenges")
-        medicine2_group.locator("input[name='dosage']").fill("500mg")
-        medicine2_group.locator("input[name='frequency']").fill("1")
+        medicine2_group.locator("input[name='medicine_name']").fill(med2_name)
+        medicine2_group.locator("input[name='dosage']").fill(med2_dosage)
+        medicine2_group.locator("input[name='frequency']").fill(med2_frequency)
         medicine2_group.locator("input[name='start_date']").fill(presc_date)
         medicine2_group.locator("input[name='end_date']").fill(tomorrow)
         medicine2_group.locator("button:has-text('Add Time')").click()
         page.wait_for_timeout(200)
-        medicine2_group.locator("select[name='time_slots[]']").select_option("21:00")
+        medicine2_group.locator("select[name='time_slots[]']").select_option(med2_time)
 
         # Submit all prescriptions at once
         page.click("button:has-text('Submit All Prescriptions')")
@@ -205,12 +219,12 @@ class TestWebsiteDemonstration:
         # Verify preview modal shows BOTH medicines
         expect(page.locator("#confirmPrescriptionModal")).to_be_visible()
         preview_content = page.locator("#prescriptionPreviewContent").text_content()
-        assert "Aspirin" in preview_content, "First medicine not in preview"
-        assert "Lozenges" in preview_content, "Second medicine not in preview"
+        assert med1_name in preview_content, "First medicine not in preview"
+        assert med2_name in preview_content, "Second medicine not in preview"
         assert (
-            "09:00" in preview_content and "13:00" in preview_content
+            med1_time1 in preview_content and med1_time2 in preview_content
         ), "Medicine 1 time slots not in preview"
-        assert "21:00" in preview_content, "Medicine 2 time slot not in preview"
+        assert med2_time in preview_content, "Medicine 2 time slot not in preview"
         page.wait_for_timeout(2500)  # Allow user to review summary in video
 
         # Confirm submission of both medicines
@@ -228,16 +242,16 @@ class TestWebsiteDemonstration:
             # Check for Aspirin prescription
             has_aspirin = any(
                 p.get("patient_id") == patient_id
-                and p.get("medicine_name") == "Aspirin"
-                and "09:00" in str(p.get("time_slot", ""))
+                and p.get("medicine_name") == med1_name
+                and med1_time1 in str(p.get("time_slot", ""))
                 and p.get("start_date") == presc_date
                 for p in presc_data
             )
             # Check for Lozenges prescription
             has_lozenges = any(
                 p.get("patient_id") == patient_id
-                and p.get("medicine_name") == "Lozenges"
-                and "21:00" in str(p.get("time_slot", ""))
+                and p.get("medicine_name") == med2_name
+                and med2_time in str(p.get("time_slot", ""))
                 and p.get("start_date") == presc_date
                 for p in presc_data
             )
@@ -266,8 +280,12 @@ class TestWebsiteDemonstration:
 
         # Verify both medicines appear in search results
         search_results = page.locator("#patientMedsResult").text_content()
-        assert "Aspirin" in search_results, "Aspirin not found in patient medications"
-        assert "Lozenges" in search_results, "Lozenges not found in patient medications"
+        assert (
+            med1_name in search_results
+        ), f"{med1_name} not found in patient medications"
+        assert (
+            med2_name in search_results
+        ), f"{med2_name} not found in patient medications"
 
         # Scroll down to show all medication details in video
         page.locator("#patientMedsResult").scroll_into_view_if_needed()
@@ -288,11 +306,11 @@ class TestWebsiteDemonstration:
             timeout=15000,
         )
 
-        # Check multiple time slots (09:00 for Aspirin, 13:00 for Aspirin, 21:00 for Lozenges)
+        # Check multiple time slots (09:00 for Lozenges, 13:00 for Aspirin, 21:00 for Aspirin)
         for slot_time, slot_name in [
-            ("09:00", "9:00 AM"),
-            ("13:00", "1:00 PM"),
-            ("21:00", "9:00 PM"),
+            (med2_time, med2_time_display),
+            (med1_time1, med1_time1_display),
+            (med1_time2, med1_time2_display),
         ]:
             round_header = page.locator(".accordion-header", has_text=slot_name)
             round_header.wait_for(state="visible", timeout=5000)
@@ -305,21 +323,26 @@ class TestWebsiteDemonstration:
                 patient_id in timeline_content
             ), f"Patient {patient_id} not found in {slot_name} timeline"
 
+            # Scroll down to show medication details in video
+            page.locator("#timeline-tables").scroll_into_view_if_needed()
+            page.evaluate("window.scrollBy(0, 200)")  # Scroll down 200px
+            page.wait_for_timeout(1000)  # Show content in video
+
             # Collapse the accordion for next iteration
             round_header.click()
             page.wait_for_timeout(300)
 
-        # Mark ONE medication complete for demonstration (Lozenges at 21:00)
-        consume_datetime = f"{presc_date} 21:00:00"
+        # Mark ONE medication complete for demonstration (Lozenges at 09:00)
+        consume_datetime = f"{presc_date} {med2_time}:00"
         track_resp = requests.post(
             f"{app_url}/api/medication-tracking",
             json={
                 "patient_id": patient_id,
-                "medicine_name": "Lozenges",
-                "dosage": "500mg",
+                "medicine_name": med2_name,
+                "dosage": med2_dosage,
                 "status": "complete",
                 "consume_date": consume_datetime,
-                "time_slot": "21:00",
+                "time_slot": med2_time,
             },
         )
         assert track_resp.status_code == 200, track_resp.text
@@ -331,8 +354,8 @@ class TestWebsiteDemonstration:
             tracking_data = tracking_res.json().get("data", [])
             found_complete = any(
                 t.get("patient_id") == patient_id
-                and t.get("medicine_name") == "Lozenges"
-                and "21:00" in str(t.get("time_slot", ""))
+                and t.get("medicine_name") == med2_name
+                and med2_time in str(t.get("time_slot", ""))
                 and str(t.get("consume_date", "")).startswith(presc_date)
                 for t in tracking_data
             )
@@ -364,7 +387,9 @@ class TestWebsiteDemonstration:
         complete_found = False
         for _ in range(45):  # ~90s max
             try:
-                round_header = page.locator(".accordion-header", has_text="9:00 PM")
+                round_header = page.locator(
+                    ".accordion-header", has_text=med2_time_display
+                )
                 round_header.wait_for(state="visible", timeout=2000)
                 round_header.click()
                 page.wait_for_timeout(300)
@@ -378,7 +403,9 @@ class TestWebsiteDemonstration:
             finally:
                 # Collapse back if open to keep UI consistent
                 try:
-                    round_header = page.locator(".accordion-header", has_text="9:00 PM")
+                    round_header = page.locator(
+                        ".accordion-header", has_text=med2_time_display
+                    )
                     round_header.click()
                     page.wait_for_timeout(200)
                 except Exception:
