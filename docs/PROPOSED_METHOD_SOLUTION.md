@@ -13,7 +13,7 @@
 
 The Electronic Medication Administration Record (eMAR) system implements a hybrid IoT/Web architecture designed to digitize medication management workflows in healthcare environments. The system addresses the complete medication lifecycle: from prescription entry by physicians, through cloud synchronization, to bedside administration by nursing staff at industrial Human-Machine Interface (HMI) terminals.
 
-The end-to-end workflow operates as follows: A physician enters a prescription via the Flask-based Web Application, which immediately stores the data in a local JSON database for low-latency access. A background synchronization worker then replicates this data to the ThingSpeak IoT cloud platform, ensuring redundancy and enabling remote access. At the bedside, a nurse scans a patient identifier at a PLC-connected HMI terminal. The Node-RED edge application reads this identifier via Modbus TCP, queries the ThingSpeak cloud for active prescriptions, filters by the current medication round schedule, and displays the relevant medications on the HMI screen (as detailed in Figure 1). Upon administration confirmation, the system logs the event back to the cloud, completing the audit trail.
+The end-to-end workflow operates as follows: A physician enters a prescription via the Flask-based Web Application, which immediately stores the data in a local JSON database for low-latency access. A background synchronization worker then replicates this data to the ThingSpeak IoT cloud platform, ensuring redundancy and enabling remote access. At the bedside, a nurse scans a patient identifier at a PLC-connected HMI terminal. The Node-RED edge application reads this identifier via Modbus TCP, queries the ThingSpeak cloud for active prescriptions, filters by the current medication round schedule, and displays the relevant medications on the HMI screen (as detailed in Figure 2). Upon administration confirmation, the system logs the event back to the cloud, completing the audit trail.
 
 ### 3.1.1 Management Subsystem (Flask/Web Application)
 
@@ -69,7 +69,7 @@ The HMI screens were designed using NB Designer, the configuration software for 
 
 The communication settings configure each HMI (e.g., 192.168.250.4, 192.168.250.5) as a Modbus TCP master connecting to the shared Node-RED edge device (192.168.250.2) acting as the slave on port 10502. This architecture allows a single edge device to serve multiple bedside terminals simultaneously.
 
-### Figure 1.1: Electrical Connection Schematic
+### Figure 1: Electrical Connection Schematic
 
 *Figure 1: Electrical schematic showing 24V DC distribution, protection components, and Modbus TCP interface wiring.*
 
@@ -182,7 +182,7 @@ Protocol translation enables conversion between modern web protocols and legacy 
 
 ## 3.2 Visual Representations
 
-### Figure 2: System Block Diagram
+### Figure 3: System Block Diagram
 
 *Figure 3: High-Level System Block Diagram illustrating the complete data flow from prescription entry to bedside administration.*
 
@@ -242,7 +242,7 @@ graph TB
     NodeRED -->|"12. Log to Tracking"| TS_API
 ```
 
-### Figure 3: Software Flowchart - Prescription Queue Retry Logic
+### Figure 4: Software Flowchart - Prescription Queue Retry Logic
 
 *Figure 4: Flowchart depicting the exponential backoff retry mechanism for the Prescription Queue Worker.*
 
@@ -336,7 +336,7 @@ sequenceDiagram
 
 ### Figure 6: System Component Architecture
 
-*Figure 5: Detailed component architecture showing the Flask application structure and service layer.*
+*Figure 6: Detailed component architecture showing the Flask application structure and service layer.*
 
 ```mermaid
 graph LR
@@ -735,7 +735,7 @@ Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Feature
 ### Figure 9: Mobile Medication Cart Integration
 
 ![Mobile Cart Context](./images/In-Context.png)
-*Figure 8: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
+*Figure 9: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
 
 **For a comprehensive technical analysis of Wi-Fi 6 advantages, detailed security standards, and regulatory compliance reference tables, please refer to [Appendix B: Wireless Communication Analysis](./APPENDIX_B_WIRELESS_COMMUNICATION.md).**
 
@@ -756,4 +756,3 @@ Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Feature
 - **TLS:** Transport Layer Security
 - **TWT:** Target Wake Time
 - **XSS:** Cross-Site Scripting
-ing
