@@ -71,7 +71,7 @@ The communication settings configure each HMI (e.g., 192.168.250.4, 192.168.250.
 
 ### Figure 1.1: Electrical Connection Schematic
 
-*Figure 1.1: Electrical schematic showing 24V DC distribution, protection components, and Modbus TCP interface wiring.*
+*Figure 1: Electrical schematic showing 24V DC distribution, protection components, and Modbus TCP interface wiring.*
 
 ```mermaid
 graph TD
@@ -163,12 +163,12 @@ graph LR
     Switch -- Ethernet --> HMI3["HMI Panel 3<br/>(Bed 3)<br/>192.168.250.6"]
 ```
 
-### Figure 1: HMI Interface Screens
+### Figure 2: HMI Interface Screens
 
 |                Main Menu                 |              Patient ID Entry              |                     Medication Display                     |
 | :--------------------------------------: | :----------------------------------------: | :--------------------------------------------------------: |
 | ![Main Menu](./images/hmi_main_menu.jpg) | ![Patient ID](./images/hmi_patient_id.jpg) | ![Medication Display](./images/hmi_medication_display.jpg) |
-*Figure 1: The three primary user interface screens deployed on the Omron NB HMI.*
+*Figure 2: The three primary user interface screens deployed on the Omron NB HMI.*
 
 The Node-RED flow implements scheduled medication rounds at 09:00, 13:00, 17:00, and 21:00. The prescription filtering logic operates on three criteria. First, the patient ID decoded from PLC holding registers must match the prescription record. Second, the current date must fall within the prescription's valid date range defined by the start_date and end_date fields. Third, the current time must match one of the comma-separated time slots specified in the prescription (e.g., "09:00, 13:00, 17:00, 21:00"). The matching logic performs an exact string comparison in HH:MM format, with the cron scheduler ensuring triggers occur precisely at the designated times. For manual triggers initiated via the Node-RED dashboard, the system uses the current system time or an optional override value provided for testing purposes.
 
@@ -184,7 +184,7 @@ Protocol translation enables conversion between modern web protocols and legacy 
 
 ### Figure 2: System Block Diagram
 
-*Figure 2: High-Level System Block Diagram illustrating the complete data flow from prescription entry to bedside administration.*
+*Figure 3: High-Level System Block Diagram illustrating the complete data flow from prescription entry to bedside administration.*
 
 ```mermaid
 graph TB
@@ -244,7 +244,7 @@ graph TB
 
 ### Figure 3: Software Flowchart - Prescription Queue Retry Logic
 
-*Figure 3: Flowchart depicting the exponential backoff retry mechanism for the Prescription Queue Worker.*
+*Figure 4: Flowchart depicting the exponential backoff retry mechanism for the Prescription Queue Worker.*
 
 ```mermaid
 flowchart TD
@@ -281,9 +281,9 @@ flowchart TD
     end
 ```
 
-### Figure 4: Sequence Diagram - Medication Administration Workflow
+### Figure 5: Sequence Diagram - Medication Administration Workflow
 
-*Figure 4: UML Sequence Diagram showing the interaction between system components during a medication administration event.*
+*Figure 5: UML Sequence Diagram showing the interaction between system components during a medication administration event.*
 
 ```mermaid
 sequenceDiagram
@@ -334,7 +334,7 @@ sequenceDiagram
     end
 ```
 
-### Figure 5: System Component Architecture
+### Figure 6: System Component Architecture
 
 *Figure 5: Detailed component architecture showing the Flask application structure and service layer.*
 
@@ -732,7 +732,7 @@ Transitioning to a wireless infrastructure requires addressing specific challeng
 
 Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts. All wireless deployments must strictly adhere to **IEC 80001-1** (Risk management for IT-networks incorporating medical devices) to ensure electromagnetic coexistence with life-critical telemetry.
 
-### Figure 8: Mobile Medication Cart Integration
+### Figure 9: Mobile Medication Cart Integration
 
 ![Mobile Cart Context](./images/In-Context.png)
 *Figure 8: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
