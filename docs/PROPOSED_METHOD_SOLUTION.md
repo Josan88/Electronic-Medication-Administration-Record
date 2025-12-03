@@ -44,7 +44,7 @@ The system implements a **Hybrid Storage Architecture** where the local JSON dat
 
 - **Incremental sync tracking:** Each channel maintains a `last_synced_entry_id` pointer, ensuring only new records are transmitted.
 - **Exponential backoff:** Sync failures trigger retries with delays following the formula $T_{backoff} = 15 \times 2^{(n-1)}$ seconds, where $n$ is the attempt number (yielding delays of 15s, 30s, 60s, 120s, 240s).
-- **Bulk write optimization:** Up to 100 records are batched per ThingSpeak API call to maximize throughput within rate constraints.
+- **Bulk write optimization:** Up to 100 records are batched per ThingSpeak API call. This is a configuration choice to balance request latency with throughput, as the API technically supports up to 960 updates per bulk request.
 
 ### 3.1.3 Administration Subsystem (Node-RED/PLC Interface)
 
