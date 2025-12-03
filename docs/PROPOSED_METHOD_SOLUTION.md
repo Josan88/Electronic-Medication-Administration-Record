@@ -675,78 +675,29 @@ The architecture provides a clear pathway to enterprise scalability through migr
 
 ## 3.7 Future Considerations: Wireless Industrial Communication
 
-The current eMAR implementation utilizes wired Modbus TCP communication between the Node-RED edge device and PLC/HMI terminals. For deployment scenarios requiring mobile medication carts or flexible ward configurations, wireless industrial communication presents a viable enhancement pathway. This section outlines the technical considerations for transitioning to wireless Modbus TCP infrastructure.
+The current eMAR implementation utilizes wired Modbus TCP communication between the Node-RED edge device and PLC/HMI terminals. For deployment scenarios requiring mobile medication carts or flexible ward configurations, wireless industrial communication presents a viable enhancement pathway.
 
-### 3.7.1 Wireless Modbus TCP Implementation Approaches
+### 3.7.1 Technical Challenges & Solutions
 
-Modbus TCP is natively compatible with IP-based wireless networks (Wi-Fi), with physical implementation in industrial settings typically taking two forms. The first and most common approach involves the use of wireless bridges or gateways for legacy integration. In this configuration, wired PLCs connect to an Industrial Wireless Client/Bridge, which handles the Wi-Fi connection transparently. Prominent examples include the ProSoft Technology RLX2 series and Siemens SCALANCE W series, both designed to bridge standard Ethernet protocols like Modbus TCP over 802.11 networks [1, 2].
+Transitioning to a wireless infrastructure requires addressing specific challenges regarding latency, security, and roaming to maintain industrial reliability standards.
 
-The second consideration relates to protocol adaptation at the data link layer. While standard Modbus TCP packets are wrapped in 802.11 frames without modification, industrial radios often employ specialized packet aggregation algorithms to optimize performance. Standard consumer Wi-Fi aggregation can sometimes delay small industrial packets due to buffering strategies optimized for bulk data transfer. Industrial-grade bridges address this limitation by implementing optimizations that prioritize small, time-critical frames typical of industrial control protocols [2].
+*   **Protocol Adaptation (Latency & Jitter):** Native Modbus TCP lacks tolerance for wireless jitter. Implementation requires increasing application-layer timeouts to **1000–3000ms** (vs. 500ms wired) and implementing Application Layer Retries to handle transient packet loss without alerting operators.
+*   **Security Architecture:** Modbus TCP is unencrypted. Wireless deployment necessitates a defense-in-depth approach:
+    *   **WPA3-Enterprise** with SAE key exchange to prevent dictionary attacks.
+    *   **Modbus Security (TLS)** or VPN tunneling to encrypt control traffic.
+    *   **Network Segmentation** (VLANs) to isolate industrial traffic from guest/clinical networks.
+*   **Mobility & Roaming:** Mobile carts require **IEEE 802.11r (Fast Transition)** support to ensure roaming handovers between Access Points occur in <50ms, preventing Modbus TCP session disconnects.
 
-### 3.7.2 Industrial Wi-Fi Standards
+### 3.7.2 Mobile Hardware & Standards
 
-For a future-proof eMAR system, Wi-Fi 6 (IEEE 802.11ax) is recommended over the preceding Wi-Fi 5 (802.11ac) standard. Wi-Fi 6 introduces several technical advancements that directly benefit industrial IoT applications in healthcare environments.
-
-The most significant improvement is Orthogonal Frequency-Division Multiple Access (OFDMA), which fundamentally changes how the wireless medium is shared among devices. Unlike previous standards based on OFDM that served one user at a time per channel, OFDMA allows the access point to communicate with multiple devices simultaneously by subdividing the channel into smaller resource units. This architectural change significantly reduces jitter and makes packet arrival times more predictable, which is critical for industrial protocols that rely on consistent timing [3].
-
-Wi-Fi 6 also introduces Target Wake Time (TWT), a power management feature particularly relevant for battery-powered devices such as mobile medication carts. TWT allows devices to negotiate specific times to wake up and communicate with the access point, rather than maintaining continuous radio activity. This scheduled approach can reduce radio power consumption by up to 67% compared to legacy standards, extending battery life for mobile healthcare equipment [3].
-
-Additionally, the BSS Coloring feature in Wi-Fi 6 enables devices to distinguish between their own network traffic and interference from neighboring networks operating on the same or adjacent channels. In hospital environments where multiple wireless networks coexist (clinical, guest, administrative, and biomedical), this capability prevents unnecessary transmission delays caused by false collision detection with traffic from adjacent networks [3].
-
-### 3.7.3 Security Considerations
-
-Native Modbus TCP lacks built-in authentication or encryption mechanisms, as the protocol was designed for isolated industrial networks. This limitation makes secure transport layers mandatory for any wireless deployment where radio signals may extend beyond controlled physical boundaries.
-
-Network access control represents the first layer of defense. The deployment should specify WPA3-Enterprise security, which utilizes Simultaneous Authentication of Equals (SAE) as its key exchange protocol. SAE provides resistance to offline dictionary attacks that could compromise WPA2-protected networks, where captured handshake packets could be subjected to brute-force analysis. WPA3 also mandates Protected Management Frames (PMF), which encrypt management traffic to prevent deauthentication attacks and other management frame exploits that could disrupt connectivity [4].
-
-At the application layer, the Modbus Organization has released the Modbus Security specification to address the protocol's inherent lack of security. This specification encapsulates standard Modbus packets within a TLS (Transport Layer Security) tunnel, utilizing port 802 instead of the standard port 502. The TLS wrapper provides mutual authentication between client and server, ensuring that only authorized devices can participate in Modbus communications, while also providing confidentiality through encryption of the payload data [5].
-
-Network segmentation provides an additional architectural safeguard. The eMAR traffic should be isolated on a dedicated VLAN (Virtual Local Area Network) with Quality of Service (QoS) priority configured to ensure that medication administration traffic receives preferential treatment over general network traffic. This separation also limits the attack surface by preventing devices on guest or administrative networks from directly accessing industrial control traffic [4].
-
-### 3.7.4 Latency and Reliability
-
-Wireless communication introduces variable latency (jitter) that wired Modbus does not experience. Radio frequency interference, signal attenuation, and access point handovers all contribute to timing variability that must be accommodated in the system design.
-
-Standard wired Modbus timeouts, typically configured between 100ms and 500ms, are insufficient for wireless deployments and result in frequent communication errors. These errors occur primarily during roaming handovers when a mobile device transitions between access points, or during periods of RF interference from other wireless systems. Best practices for wireless industrial protocols recommend increasing the application-layer timeout to between 1000ms and 3000ms, as expressed in Equation 5 [6].
-
-$$T_{timeout} = 1000\text{ms} \text{ to } 3000\text{ms}$$
-
-**Equation 5: Recommended Wireless Modbus Timeout**
-
-In addition to extended timeouts, implementing Application Layer Retries provides resilience against transient failures. A typical configuration would attempt three retries before triggering a fault condition, allowing the system to recover from brief connectivity interruptions without alerting operators to non-critical events [6].
-
-Fast roaming capability is essential for mobile medication carts that traverse between access point coverage areas. Without proper roaming support, the handover process between access points can take several seconds, during which active Modbus TCP connections may timeout and require re-establishment. The network infrastructure should support IEEE 802.11r (Fast Basic Service Set Transition), which caches security credentials across access points to enable roaming transitions in under 50 milliseconds. This rapid handover prevents Modbus TCP connection drops that would otherwise interrupt medication administration workflows [3].
-
-### 3.7.5 Healthcare-Specific Standards
-
-Wireless deployment of medical device networks is subject to specific regulatory standards that govern risk management and electromagnetic compatibility. The primary governing standard is IEC 80001-1, titled "Application of risk management for IT-networks incorporating medical devices." This standard defines the roles and responsibilities of healthcare delivery organizations, medical device manufacturers, and IT vendors when medical devices are connected to general IT networks. Compliance with IEC 80001-1 requires documented risk assessment of the wireless network's impact on medical device safety and effectiveness [7, 8].
-
-Electromagnetic coexistence presents a particular concern in healthcare environments where multiple wireless systems operate in close proximity. The FDA and AAMI (Association for the Advancement of Medical Instrumentation) recommend following ANSI/IEEE C63.27 for evaluating wireless coexistence. This standard provides test methods to ensure that the eMAR system's Wi-Fi transmissions do not interfere with life-critical telemetry systems, patient monitors, or other medical devices operating in similar frequency bands. Compliance testing should be performed prior to deployment to identify and mitigate any interference risks [7].
-
-### 3.7.6 Mobile Medication Cart Hardware
-
-Modern healthcare workstations designed for mobile medication administration incorporate several features essential for reliable wireless operation. Manufacturers such as Zebra Technologies (ET5x series) and Capsa Healthcare produce ruggedized tablets specifically designed for clinical environments. These devices are engineered to withstand repeated cleaning with hospital-grade disinfectants and can survive drops from cart height onto hard floors. Integrated barcode scanners support patient and medication verification workflows, while support for the latest Wi-Fi standards ensures reliable connectivity during roaming [9].
+Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts. All wireless deployments must strictly adhere to **IEC 80001-1** (Risk management for IT-networks incorporating medical devices) to ensure electromagnetic coexistence with life-critical telemetry.
 
 ### Figure 8: Mobile Medication Cart Integration
 
 ![Mobile Cart Context](./images/In-Context.png)
 *Figure 8: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
 
-Power management is a critical consideration for mobile cart reliability, as inconsistent power delivery can cause the Wi-Fi radio to drop out during high-current events. Modern medication carts increasingly utilize LiFePO4 (Lithium Iron Phosphate) battery chemistry rather than traditional Lead-Acid batteries. LiFePO4 cells provide a longer cycle life (typically 2000+ cycles versus 500 cycles for Lead-Acid), more stable voltage output throughout the discharge cycle, and faster charging capability. The stable voltage characteristic is particularly important for maintaining consistent Wi-Fi connectivity during motor-driven cart height adjustments or when powering peripheral devices [9].
-
-### 3.7.7 Future Considerations References
-
-| Ref | Source               | Description                                                                                   |
-| --- | -------------------- | --------------------------------------------------------------------------------------------- |
-| [1] | ProSoft Technology   | Industrial Wireless Solutions - RLX2 Series Product Catalog                                   |
-| [2] | Siemens              | Industrial Wireless LAN (IWLAN) - SCALANCE W Series Documentation                             |
-| [3] | Wi-Fi Alliance       | Wi-Fi 6: High Performance, Low Latency Technical Specification                                |
-| [4] | Wi-Fi Alliance       | Wi-Fi Certified WPA3: Security Technical Overview                                             |
-| [5] | Modbus Organization  | Modbus Security Protocol Specification                                                        |
-| [6] | Real Time Automation | Modbus TCP/IP Unplugged - Addressing, Binding, and Best Practices                             |
-| [7] | U.S. FDA             | Radio Frequency Wireless Technology in Medical Devices - Guidance for Industry                |
-| [8] | IEC                  | IEC 80001-1:2010 Application of risk management for IT-networks incorporating medical devices |
-| [9] | Zebra Technologies   | ET5x Series Enterprise Tablets - Healthcare Solutions Documentation                           |
+**For a comprehensive technical analysis of Wi-Fi 6 advantages, detailed security standards, and regulatory compliance reference tables, please refer to [Appendix B: Wireless Communication Analysis](./APPENDIX_B_WIRELESS_COMMUNICATION.md).**
 
 ## Acronyms
 
