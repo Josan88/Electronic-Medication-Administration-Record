@@ -1,5 +1,7 @@
 # Section 3. Proposed Method / Solution
 
+This section details the technical implementation of the Electronic Medication Administration Record (eMAR) system, which integrates web-based management with industrial IoT hardware to ensure accurate medication delivery. The proposed solution employs a hybrid architecture that combines local reliability with cloud scalability to address the critical safety and workflow requirements of healthcare facilities.
+
 ## Section Contents
 - **3.1 Unified System Architecture** (Overview, Subsystems, Interfaces)
 - **3.2 Visual Representations** (System Block Diagram, Flowchart, Sequence, Component, Data Flow)
@@ -482,10 +484,10 @@ Where:
 - $T_{poll}$: Node-RED prescription refresh interval ≈ 600s (10 minutes) or manual trigger
 
 **Worst-case latency (periodic refresh):**
-$$T_{total,max} = 0.1 + 0.01 + 10 + 2 + 600 = 612.11\text{s} \approx 10.2 \text{ minutes}$$
+$$T_{total,max} = 0.1 + 0.01 + 10 + 2 + 600 \approx 612\text{s} \approx 10.2 \text{ minutes}$$
 
 **Best-case latency (manual refresh on HMI):**
-$$T_{total,min} = 0.1 + 0.01 + 10 + 2 + 5 = 17.11\text{s} \approx 17 \text{ seconds}$$
+$$T_{total,min} = 0.1 + 0.01 + 10 + 2 + 5 \approx 17\text{s}$$
 
 **Justification:** The latency profile is acceptable for the clinical workflow where:
 1. Prescriptions are typically entered well in advance of medication rounds (hours to days).
@@ -695,7 +697,7 @@ The eMAR system processes Protected Health Information (PHI) including patient n
 - **Energy Efficiency:** The hybrid architecture minimizes cloud API calls through local caching, reducing network energy consumption. The low-power edge architecture (< 20W total system power) significantly reduces the carbon footprint compared to traditional PC-based nursing stations.
 - **Hardware Longevity:** The Modbus protocol support enables integration with existing industrial hardware, avoiding premature replacement of functional PLCs/HMIs (reducing e-waste).
 - **Data Minimization:** The system stores only operationally necessary data, with configurable retention periods to comply with data protection regulations and minimize storage requirements.
-- **Lifecycle Assessment (LCA):** Material choices for the final enclosure should prioritize recyclable plastics (e.g., ABS or PETG) over composite materials. End-of-life handling should comply with the WEEE Directive, ensuring electronic components are recovered and recycled.
+- **Lifecycle Assessment (LCA):** Material choices for the final enclosure (visualized in Figure 8) should prioritize recyclable plastics (e.g., ABS or PETG) over composite materials. End-of-life handling should comply with the WEEE Directive, ensuring electronic components are recovered and recycled.
 
 ---
 
