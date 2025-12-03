@@ -50,26 +50,46 @@ The Administration Subsystem executes on an edge computing device (IRIV EdgeAI C
 | Read Served Button       | FC 1      | Coils             | 1       | 1        | Button press detection                                |
 | Write Button Reset       | FC 5      | Coils             | 1       | 1        | Reset button state after processing                   |
 
-The Node-RED flow implements scheduled medication rounds at 09:00, 13:00, 17:00, and 21:00, filtering prescriptions by:
-1. **Patient ID match:** Decoded from PLC holding registers.
-2. **Date validity:** Current date within prescription's `start_date` to `end_date` range.
-3. **Time slot match:** Current time matching the comma-separated time slot field (e.g., "09:00, 13:00, 17:00, 21:00"). The matching logic performs an exact string comparison (`HH:MM` format), with the cron scheduler ensuring triggers occur precisely at the designated times. For manual triggers, the system uses the current system time or an optional override value for testing purposes.
+The HMI screens were designed using NB Designer, the configuration software for the Omron NB-series HMI panels. The interface comprises three primary screens that guide nursing staff through the medication administration workflow:
+
+1.  **Main Menu (Screen 0):** Presents navigation options for "Set Patient ID" and "See Medication."
+2.  **Patient ID Entry (Screen 10):** A text input interface mapped to Holding Registers 0-9, allowing entry of up to 20 ASCII characters.
+3.  **Medication Display (Screen 11):** A "Notebook" component showing 8 lines of text (mapped to registers 30-109) detailing the patient's scheduled medications, along with a "Served" confirmation button (Coil 1).
+
+**For a detailed step-by-step configuration guide including component property settings and Modbus addressing setup, please refer to Appendix A: HMI Configuration Guide.**
+
+The communication settings configure the HMI (192.168.250.4) as the Modbus TCP master connecting to the Node-RED edge device (192.168.250.2) acting as the slave on port 10502.
+
+**Physical Network Topology:**
+
+```mermaid
+graph LR
+    Edge["Edge Device<br/>(Node-RED)<br/>192.168.250.2"] -- Ethernet --> Switch(Switch)
+    Switch -- Ethernet --> HMI["HMI Panel<br/>192.168.250.4"]
+```
+
+### Figure 1: HMI Interface Screens
+
+| Main Menu | Patient ID Entry | Medication Display |
+| :---: | :---: | :---: |
+| ![](https://cdn-mineru.openxlab.org.cn/result/2025-12-01/07348aac-b865-4ac6-bd69-cd06bbc512bb/0e89220e81f390a0b40798cd2091dc0a8d7578f942cea1cc4d62b3ed5bff889a.jpg) | ![](https://cdn-mineru.openxlab.org.cn/result/2025-12-01/07348aac-b865-4ac6-bd69-cd06bbc512bb/20fd7e9a8d9977041cdf3d19076c0a5f7b70c35fdc9223b0da5d8e7d0058cc58.jpg) | ![](https://cdn-mineru.openxlab.org.cn/result/2025-12-01/07348aac-b865-4ac6-bd69-cd06bbc512bb/b0393dae0fe70aa3d1a05ce18126463b5da610e937ccc6e1c04a23063e80f9a3.jpg) |
+*Figure 1: The three primary user interface screens deployed on the Omron NB HMI.*
+
+The Node-RED flow implements scheduled medication rounds at 09:00, 13:00, 17:00, and 21:00. The prescription filtering logic operates on three criteria. First, the patient ID decoded from PLC holding registers must match the prescription record. Second, the current date must fall within the prescription's valid date range defined by the start_date and end_date fields. Third, the current time must match one of the comma-separated time slots specified in the prescription (e.g., "09:00, 13:00, 17:00, 21:00"). The matching logic performs an exact string comparison in HH:MM format, with the cron scheduler ensuring triggers occur precisely at the designated times. For manual triggers initiated via the Node-RED dashboard, the system uses the current system time or an optional override value provided for testing purposes.
 
 ### 3.1.4 Interface Specification
 
-The Web Application interfaces with the Cloud via REST API (HTTPS POST/GET), utilizing channel-specific API keys for authentication. The Edge Device interfaces with the Cloud via REST (GET for prescription reads, GET with parameters for tracking writes) and with the PLC via Modbus TCP. This dual-protocol architecture enables:
+The Web Application interfaces with the Cloud via REST API (HTTPS POST/GET), utilizing channel-specific API keys for authentication. The Edge Device interfaces with the Cloud via REST (GET for prescription reads, GET with parameters for tracking writes) and with the PLC via Modbus TCP. This dual-protocol architecture provides three key capabilities essential for healthcare environments.
 
-- **Protocol translation:** Conversion between modern web protocols and legacy industrial communication standards.
-- **Temporal decoupling:** The cloud layer acts as a message broker, allowing asynchronous operation between the management and administration systems.
-- **Network isolation:** The PLC network can remain air-gapped from the internet, with only the edge device requiring cloud connectivity.
+Protocol translation enables conversion between modern web protocols and legacy industrial communication standards, allowing the integration of cloud-based data services with existing hospital automation infrastructure without requiring hardware replacement. Temporal decoupling is achieved through the cloud layer acting as a message broker, permitting asynchronous operation between the management and administration systems such that prescription entry and bedside administration need not occur simultaneously or require direct network connectivity between endpoints. Network isolation ensures that the PLC network can remain air-gapped from the internet, with only the edge device requiring cloud connectivity, thereby reducing the attack surface for industrial control systems while maintaining full functionality.
 
 ---
 
 ## 3.2 Visual Representations
 
-### Figure 1: System Block Diagram
+### Figure 2: System Block Diagram
 
-*Figure 1: High-Level System Block Diagram illustrating the complete data flow from prescription entry to bedside administration.*
+*Figure 2: High-Level System Block Diagram illustrating the complete data flow from prescription entry to bedside administration.*
 
 ```mermaid
 graph TB
@@ -127,9 +147,9 @@ graph TB
     NodeRED -->|"12. Log to Tracking"| TS_API
 ```
 
-### Figure 2: Software Flowchart - Prescription Queue Retry Logic
+### Figure 3: Software Flowchart - Prescription Queue Retry Logic
 
-*Figure 2: Flowchart depicting the exponential backoff retry mechanism for the Prescription Queue Worker.*
+*Figure 3: Flowchart depicting the exponential backoff retry mechanism for the Prescription Queue Worker.*
 
 ```mermaid
 flowchart TD
@@ -166,9 +186,9 @@ flowchart TD
     end
 ```
 
-### Figure 3: Sequence Diagram - Medication Administration Workflow
+### Figure 4: Sequence Diagram - Medication Administration Workflow
 
-*Figure 3: UML Sequence Diagram showing the interaction between system components during a medication administration event.*
+*Figure 4: UML Sequence Diagram showing the interaction between system components during a medication administration event.*
 
 ```mermaid
 sequenceDiagram
@@ -219,9 +239,9 @@ sequenceDiagram
     end
 ```
 
-### Figure 4: System Component Architecture
+### Figure 5: System Component Architecture
 
-*Figure 4: Detailed component architecture showing the Flask application structure and service layer.*
+*Figure 5: Detailed component architecture showing the Flask application structure and service layer.*
 
 ```mermaid
 graph LR
@@ -296,9 +316,9 @@ graph LR
     TSSvc --> TS_Cloud
 ```
 
-### Figure 5: Data Flow - Hybrid Storage Architecture
+### Figure 6: Data Flow - Hybrid Storage Architecture
 
-*Figure 5: Data flow diagram showing the hybrid local/cloud storage strategy with sync operations.*
+*Figure 6: Data flow diagram showing the hybrid local/cloud storage strategy with sync operations.*
 
 ```mermaid
 flowchart LR
@@ -558,3 +578,75 @@ The eMAR system architecture successfully integrates web, cloud, and industrial 
 5. **Security by design** with multi-layer input validation, XSS prevention, and atomic file operations.
 
 The architecture provides a clear pathway to enterprise scalability through migration to industry-standard components (PostgreSQL, MQTT, Kubernetes) while maintaining the core design principles of reliability, auditability, and clinical workflow integration.
+
+---
+
+## 3.7 Future Considerations: Wireless Industrial Communication
+
+The current eMAR implementation utilizes wired Modbus TCP communication between the Node-RED edge device and PLC/HMI terminals. For deployment scenarios requiring mobile medication carts or flexible ward configurations, wireless industrial communication presents a viable enhancement pathway. This section outlines the technical considerations for transitioning to wireless Modbus TCP infrastructure.
+
+### 3.7.1 Wireless Modbus TCP Implementation Approaches
+
+Modbus TCP is natively compatible with IP-based wireless networks (Wi-Fi), with physical implementation in industrial settings typically taking two forms. The first and most common approach involves the use of wireless bridges or gateways for legacy integration. In this configuration, wired PLCs connect to an Industrial Wireless Client/Bridge, which handles the Wi-Fi connection transparently. Prominent examples include the ProSoft Technology RLX2 series and Siemens SCALANCE W series, both designed to bridge standard Ethernet protocols like Modbus TCP over 802.11 networks [1, 2].
+
+The second consideration relates to protocol adaptation at the data link layer. While standard Modbus TCP packets are wrapped in 802.11 frames without modification, industrial radios often employ specialized packet aggregation algorithms to optimize performance. Standard consumer Wi-Fi aggregation can sometimes delay small industrial packets due to buffering strategies optimized for bulk data transfer. Industrial-grade bridges address this limitation by implementing optimizations that prioritize small, time-critical frames typical of industrial control protocols [2].
+
+### 3.7.2 Industrial Wi-Fi Standards
+
+For a future-proof eMAR system, Wi-Fi 6 (IEEE 802.11ax) is recommended over the preceding Wi-Fi 5 (802.11ac) standard. Wi-Fi 6 introduces several technical advancements that directly benefit industrial IoT applications in healthcare environments.
+
+The most significant improvement is Orthogonal Frequency-Division Multiple Access (OFDMA), which fundamentally changes how the wireless medium is shared among devices. Unlike previous standards based on OFDM that served one user at a time per channel, OFDMA allows the access point to communicate with multiple devices simultaneously by subdividing the channel into smaller resource units. This architectural change significantly reduces jitter and makes packet arrival times more predictable, which is critical for industrial protocols that rely on consistent timing [3].
+
+Wi-Fi 6 also introduces Target Wake Time (TWT), a power management feature particularly relevant for battery-powered devices such as mobile medication carts. TWT allows devices to negotiate specific times to wake up and communicate with the access point, rather than maintaining continuous radio activity. This scheduled approach can reduce radio power consumption by up to 67% compared to legacy standards, extending battery life for mobile healthcare equipment [3].
+
+Additionally, the BSS Coloring feature in Wi-Fi 6 enables devices to distinguish between their own network traffic and interference from neighboring networks operating on the same or adjacent channels. In hospital environments where multiple wireless networks coexist (clinical, guest, administrative, and biomedical), this capability prevents unnecessary transmission delays caused by false collision detection with traffic from adjacent networks [3].
+
+### 3.7.3 Security Considerations
+
+Native Modbus TCP lacks built-in authentication or encryption mechanisms, as the protocol was designed for isolated industrial networks. This limitation makes secure transport layers mandatory for any wireless deployment where radio signals may extend beyond controlled physical boundaries.
+
+Network access control represents the first layer of defense. The deployment should specify WPA3-Enterprise security, which utilizes Simultaneous Authentication of Equals (SAE) as its key exchange protocol. SAE provides resistance to offline dictionary attacks that could compromise WPA2-protected networks, where captured handshake packets could be subjected to brute-force analysis. WPA3 also mandates Protected Management Frames (PMF), which encrypt management traffic to prevent deauthentication attacks and other management frame exploits that could disrupt connectivity [4].
+
+At the application layer, the Modbus Organization has released the Modbus Security specification to address the protocol's inherent lack of security. This specification encapsulates standard Modbus packets within a TLS (Transport Layer Security) tunnel, utilizing port 802 instead of the standard port 502. The TLS wrapper provides mutual authentication between client and server, ensuring that only authorized devices can participate in Modbus communications, while also providing confidentiality through encryption of the payload data [5].
+
+Network segmentation provides an additional architectural safeguard. The eMAR traffic should be isolated on a dedicated VLAN (Virtual Local Area Network) with Quality of Service (QoS) priority configured to ensure that medication administration traffic receives preferential treatment over general network traffic. This separation also limits the attack surface by preventing devices on guest or administrative networks from directly accessing industrial control traffic [4].
+
+### 3.7.4 Latency and Reliability
+
+Wireless communication introduces variable latency (jitter) that wired Modbus does not experience. Radio frequency interference, signal attenuation, and access point handovers all contribute to timing variability that must be accommodated in the system design.
+
+Standard wired Modbus timeouts, typically configured between 100ms and 500ms, are insufficient for wireless deployments and result in frequent communication errors. These errors occur primarily during roaming handovers when a mobile device transitions between access points, or during periods of RF interference from other wireless systems. Best practices for wireless industrial protocols recommend increasing the application-layer timeout to between 1000ms and 3000ms, as expressed in Equation 5 [6].
+
+$$T_{timeout} = 1000\text{ms} \text{ to } 3000\text{ms}$$
+
+**Equation 5: Recommended Wireless Modbus Timeout**
+
+In addition to extended timeouts, implementing Application Layer Retries provides resilience against transient failures. A typical configuration would attempt three retries before triggering a fault condition, allowing the system to recover from brief connectivity interruptions without alerting operators to non-critical events [6].
+
+Fast roaming capability is essential for mobile medication carts that traverse between access point coverage areas. Without proper roaming support, the handover process between access points can take several seconds, during which active Modbus TCP connections may timeout and require re-establishment. The network infrastructure should support IEEE 802.11r (Fast Basic Service Set Transition), which caches security credentials across access points to enable roaming transitions in under 50 milliseconds. This rapid handover prevents Modbus TCP connection drops that would otherwise interrupt medication administration workflows [3].
+
+### 3.7.5 Healthcare-Specific Standards
+
+Wireless deployment of medical device networks is subject to specific regulatory standards that govern risk management and electromagnetic compatibility. The primary governing standard is IEC 80001-1, titled "Application of risk management for IT-networks incorporating medical devices." This standard defines the roles and responsibilities of healthcare delivery organizations, medical device manufacturers, and IT vendors when medical devices are connected to general IT networks. Compliance with IEC 80001-1 requires documented risk assessment of the wireless network's impact on medical device safety and effectiveness [7, 8].
+
+Electromagnetic coexistence presents a particular concern in healthcare environments where multiple wireless systems operate in close proximity. The FDA and AAMI (Association for the Advancement of Medical Instrumentation) recommend following ANSI/IEEE C63.27 for evaluating wireless coexistence. This standard provides test methods to ensure that the eMAR system's Wi-Fi transmissions do not interfere with life-critical telemetry systems, patient monitors, or other medical devices operating in similar frequency bands. Compliance testing should be performed prior to deployment to identify and mitigate any interference risks [7].
+
+### 3.7.6 Mobile Medication Cart Hardware
+
+Modern healthcare workstations designed for mobile medication administration incorporate several features essential for reliable wireless operation. Manufacturers such as Zebra Technologies (ET5x series) and Capsa Healthcare produce ruggedized tablets specifically designed for clinical environments. These devices are engineered to withstand repeated cleaning with hospital-grade disinfectants and can survive drops from cart height onto hard floors. Integrated barcode scanners support patient and medication verification workflows, while support for the latest Wi-Fi standards ensures reliable connectivity during roaming [9].
+
+Power management is a critical consideration for mobile cart reliability, as inconsistent power delivery can cause the Wi-Fi radio to drop out during high-current events. Modern medication carts increasingly utilize LiFePO4 (Lithium Iron Phosphate) battery chemistry rather than traditional Lead-Acid batteries. LiFePO4 cells provide a longer cycle life (typically 2000+ cycles versus 500 cycles for Lead-Acid), more stable voltage output throughout the discharge cycle, and faster charging capability. The stable voltage characteristic is particularly important for maintaining consistent Wi-Fi connectivity during motor-driven cart height adjustments or when powering peripheral devices [9].
+
+### 3.7.7 Future Considerations References
+
+| Ref | Source | Description |
+|-----|--------|-------------|
+| [1] | ProSoft Technology | Industrial Wireless Solutions - RLX2 Series Product Catalog |
+| [2] | Siemens | Industrial Wireless LAN (IWLAN) - SCALANCE W Series Documentation |
+| [3] | Wi-Fi Alliance | Wi-Fi 6: High Performance, Low Latency Technical Specification |
+| [4] | Wi-Fi Alliance | Wi-Fi Certified WPA3: Security Technical Overview |
+| [5] | Modbus Organization | Modbus Security Protocol Specification |
+| [6] | Real Time Automation | Modbus TCP/IP Unplugged - Addressing, Binding, and Best Practices |
+| [7] | U.S. FDA | Radio Frequency Wireless Technology in Medical Devices - Guidance for Industry |
+| [8] | IEC | IEC 80001-1:2010 Application of risk management for IT-networks incorporating medical devices |
+| [9] | Zebra Technologies | ET5x Series Enterprise Tablets - Healthcare Solutions Documentation |
