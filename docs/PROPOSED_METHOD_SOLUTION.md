@@ -67,7 +67,7 @@ The HMI screens were designed using NB Designer, the configuration software for 
 
 **For a detailed step-by-step configuration guide including component property settings and Modbus addressing setup, please refer to Appendix A: HMI Configuration Guide.**
 
-The communication settings configure the HMI (192.168.250.4) as the Modbus TCP master connecting to the Node-RED edge device (192.168.250.2) acting as the slave on port 10502.
+The communication settings configure each HMI (e.g., 192.168.250.4, 192.168.250.5) as a Modbus TCP master connecting to the shared Node-RED edge device (192.168.250.2) acting as the slave on port 10502. This architecture allows a single edge device to serve multiple bedside terminals simultaneously.
 
 ### Figure 1.1: Electrical Connection Schematic
 
@@ -89,8 +89,10 @@ graph TD
 
     subgraph Loads ["System Loads"]
         CM5["Edge Device<br/>EdgeAI CM5<br/>(Terminals)"]
-        HMI["HMI Panel<br/>Omron NB7W<br/>(DC In)"]
-        SW["Ethernet Switch<br/>Unmanaged<br/>(DC In)"]
+        HMI1["HMI Panel 1<br/>(Bed 1)"]
+        HMI2["HMI Panel 2<br/>(Bed 2)"]
+        HMI3["HMI Panel 3<br/>(Bed 3)"]
+        SW["Ethernet Switch<br/>Unmanaged"]
     end
 
     VCC ==> F1
@@ -99,11 +101,15 @@ graph TD
     GND ==> TB_G
 
     TB_V -- "18 AWG Red" --> CM5
-    TB_V -- "18 AWG Red" --> HMI
+    TB_V -- "18 AWG Red" --> HMI1
+    TB_V -- "18 AWG Red" --> HMI2
+    TB_V -- "18 AWG Red" --> HMI3
     TB_V -- "18 AWG Red" --> SW
 
     TB_G -- "18 AWG Black" --> CM5
-    TB_G -- "18 AWG Black" --> HMI
+    TB_G -- "18 AWG Black" --> HMI1
+    TB_G -- "18 AWG Black" --> HMI2
+    TB_G -- "18 AWG Black" --> HMI3
     TB_G -- "18 AWG Black" --> SW
 ```
 
@@ -117,23 +123,33 @@ graph TD
 | **W-04** | Power Supply Unit | 0V GND | Dist. Block (-) | Bus Entry | 18 AWG Stranded | Black | Main Ground Feed |
 | **W-05** | Dist. Block (+) | Port 1 | EdgeAI CM5 | DC In (+) | 18 AWG Stranded | Red | Edge Device Power |
 | **W-06** | Dist. Block (-) | Port 1 | EdgeAI CM5 | DC In (-) | 18 AWG Stranded | Black | Edge Device Ground |
-| **W-07** | Dist. Block (+) | Port 2 | HMI Panel | 24VDC | 18 AWG Stranded | Red | HMI Power |
-| **W-08** | Dist. Block (-) | Port 2 | HMI Panel | 0V | 18 AWG Stranded | Black | HMI Ground |
+| **W-07** | Dist. Block (+) | Port 2 | HMI Panel 1 | 24VDC | 18 AWG Stranded | Red | HMI 1 Power |
+| **W-08** | Dist. Block (-) | Port 2 | HMI Panel 1 | 0V | 18 AWG Stranded | Black | HMI 1 Ground |
 | **W-09** | Dist. Block (+) | Port 3 | Ethernet Switch | DC In | 18 AWG Stranded | Red | Switch Power |
 | **W-10** | Dist. Block (-) | Port 3 | Ethernet Switch | GND | 18 AWG Stranded | Black | Switch Ground |
 
 **Modbus TCP Interface (RJ45 T-568B):**
 
-|   Pin   | Signal | Function        | Connection    |
-| :-----: | :----- | :-------------- | :------------ |
-|    1    | TX+    | Transmit Data + | Switch Port X |
-|    2    | TX-    | Transmit Data - | Switch Port X |
-|    3    | RX+    | Receive Data +  | Switch Port X |
-|    6    | RX-    | Receive Data -  | Switch Port X |
-| 4,5,7,8 | N/C    | Unused          | Not Connected |
+|   Pin   | Signal | Function        |
+| :-----: | :----- | :-------------- |
+|    1    | TX+    | Transmit Data + |
+|    2    | TX-    | Transmit Data - |
+|    3    | RX+    | Receive Data +  |
+|    6    | RX-    | Receive Data -  |
+| 4,5,7,8 | N/C    | Unused          |
+
+**Network Port Assignment:**
+- **Switch Port 1:** Edge Device (EdgeAI CM5)
+- **Switch Port 2:** HMI Panel 1 (Omron NB7W - Bed 1)
+- **Switch Port 3:** HMI Panel 2 (Omron NB7W - Bed 2)
+- **Switch Port 4:** HMI Panel 3 (Omron NB7W - Bed 3)
+- **Switch Port 5:** Maintenance / Uplink
 
 **Component Specifications:**
 - **Rail Voltage:** 24V DC (SELV compliant)
+- **Power Connections:** 
+  - Edge Device/HMIs: **Screw Terminals** (Phoenix Contact 3.5mm pitch)
+  - Ethernet Switch: **2.1mm DC Barrel Jack** (Center Positive)
 - **Overcurrent Protection:** 2A Slow-Blow Fuse (F1) inline with VCC
 - **Reverse Polarity Protection:** 1N5408 Diode (D1) in series
 
@@ -142,7 +158,9 @@ graph TD
 ```mermaid
 graph LR
     Edge["Edge Device<br/>(Node-RED)<br/>192.168.250.2"] -- Ethernet --> Switch(Switch)
-    Switch -- Ethernet --> HMI["HMI Panel<br/>192.168.250.4"]
+    Switch -- Ethernet --> HMI1["HMI Panel 1<br/>(Bed 1)<br/>192.168.250.4"]
+    Switch -- Ethernet --> HMI2["HMI Panel 2<br/>(Bed 2)<br/>192.168.250.5"]
+    Switch -- Ethernet --> HMI3["HMI Panel 3<br/>(Bed 3)<br/>192.168.250.6"]
 ```
 
 ### Figure 1: HMI Interface Screens
