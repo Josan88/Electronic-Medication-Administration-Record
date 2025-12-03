@@ -12,11 +12,11 @@ This section details the technical implementation of the Electronic Medication A
 
 ## 3.1 Unified System Architecture
 
-The Electronic Medication Administration Record (eMAR) system implements a hybrid IoT/Web architecture designed to digitize medication management workflows in healthcare environments. The system addresses the complete medication lifecycle: from prescription entry by physicians, through cloud synchronization, to bedside administration by nursing staff at industrial Human-Machine Interface (HMI) terminals. The high-level system architecture is illustrated in **Figure 3**.
+The Electronic Medication Administration Record (eMAR) system implements a hybrid IoT/Web architecture designed to digitize medication management workflows in healthcare environments. The system addresses the complete medication lifecycle: from prescription entry by physicians, through cloud synchronization, to bedside administration by nursing staff at industrial Human-Machine Interface (HMI) terminals. The high-level system architecture is illustrated in **Figure 1**.
 
-### Figure 3: System Block Diagram
+### Figure 1: System Block Diagram
 
-*Figure 3: High-Level System Block Diagram illustrating the complete data flow from prescription entry to bedside administration.*
+*Figure 1: High-Level System Block Diagram illustrating the complete data flow from prescription entry to bedside administration.*
 
 ```mermaid
 graph TB
@@ -74,11 +74,11 @@ graph TB
     NodeRED -->|"12. Log to Tracking"| TS_API
 ```
 
-The end-to-end workflow, detailed in the sequence diagram in **Figure 5**, operates as follows: A physician enters a prescription via the Flask-based Web Application, which immediately stores the data in a local JSON database for low-latency access. A background synchronization worker then replicates this data to the ThingSpeak IoT cloud platform, ensuring redundancy and enabling remote access. At the bedside, a nurse scans a patient identifier at a PLC-connected HMI terminal. The Node-RED edge application reads this identifier via Modbus TCP, queries the ThingSpeak cloud for active prescriptions, filters by the current medication round schedule, and displays the relevant medications on the HMI screen (as detailed in Figure 2). Upon administration confirmation, the system logs the event back to the cloud, completing the audit trail.
+The end-to-end workflow, detailed in the sequence diagram in **Figure 2**, operates as follows: A physician enters a prescription via the Flask-based Web Application, which immediately stores the data in a local JSON database for low-latency access. A background synchronization worker then replicates this data to the ThingSpeak IoT cloud platform, ensuring redundancy and enabling remote access. At the bedside, a nurse scans a patient identifier at a PLC-connected HMI terminal. The Node-RED edge application reads this identifier via Modbus TCP, queries the ThingSpeak cloud for active prescriptions, filters by the current medication round schedule, and displays the relevant medications on the HMI screen (as detailed in Figure 7). Upon administration confirmation, the system logs the event back to the cloud, completing the audit trail.
 
-### Figure 5: Sequence Diagram - Medication Administration Workflow
+### Figure 2: Sequence Diagram - Medication Administration Workflow
 
-*Figure 5: UML Sequence Diagram showing the interaction between system components during a medication administration event.*
+*Figure 2: UML Sequence Diagram showing the interaction between system components during a medication administration event.*
 
 ```mermaid
 sequenceDiagram
@@ -131,16 +131,16 @@ sequenceDiagram
 
 ### 3.1.1 Management Subsystem (Flask/Web Application)
 
-The Management Subsystem serves as the primary data entry and administrative interface, implemented using the Flask web framework with a Blueprint-based modular architecture, as shown in **Figure 6**. The subsystem comprises four core route modules:
+The Management Subsystem serves as the primary data entry and administrative interface, implemented using the Flask web framework with a Blueprint-based modular architecture, as shown in **Figure 3**. The subsystem comprises four core route modules:
 
 - **Patients Blueprint (`/api/patients`):** Handles CRUD operations for patient demographic data including identification, location (floor/room/bed), and clinical notes.
 - **Prescriptions Blueprint (`/api/prescriptions`):** Manages medication orders with full validation of medicine names, dosages, frequencies, date ranges, and time slot schedules.
 - **Tracking Blueprint (`/api/medication-tracking`):** Records medication administration events with timestamps and computes real-time compliance status.
 - **Queue Blueprint (`/api/queue`):** Provides monitoring endpoints for queue health, failed item inspection, and manual recovery operations.
 
-### Figure 6: System Component Architecture
+### Figure 3: System Component Architecture
 
-*Figure 6: Detailed component architecture showing the Flask application structure and service layer.*
+*Figure 3: Detailed component architecture showing the Flask application structure and service layer.*
 
 ```mermaid
 graph LR
@@ -231,11 +231,11 @@ The Cloud Data Subsystem utilizes ThingSpeak as the central data bridge between 
 | Medicine Prescription | 3124898 | Active prescriptions   | patient_id, medicine_name, dosage, frequency, start_date, end_date, time_slot |
 | Medicine Track        | 3131200 | Administration records | patient_id, medicine_name, dosage, consume_date, time_slot                    |
 
-The system implements a **Hybrid Storage Architecture**, depicted in **Figure 7**, where the local JSON database serves as the primary data store for immediate reads and writes, while ThingSpeak functions as a synchronized backup enabling cross-site access.
+The system implements a **Hybrid Storage Architecture**, depicted in **Figure 4**, where the local JSON database serves as the primary data store for immediate reads and writes, while ThingSpeak functions as a synchronized backup enabling cross-site access.
 
-### Figure 7: Data Flow - Hybrid Storage Architecture
+### Figure 4: Data Flow - Hybrid Storage Architecture
 
-*Figure 7: Data flow diagram showing the hybrid local/cloud storage strategy with sync operations.*
+*Figure 4: Data flow diagram showing the hybrid local/cloud storage strategy with sync operations.*
 
 ```mermaid
 flowchart LR
@@ -276,12 +276,12 @@ flowchart LR
 The `SyncQueue` service manages this synchronization with:
 
 - **Incremental sync tracking:** Each channel maintains a `last_synced_entry_id` pointer, ensuring only new records are transmitted.
-- **Exponential backoff:** Sync failures trigger retries with delays following the formula $T_{backoff} = 15 \times 2^{(n-1)}$ seconds, where $n$ is the attempt number (yielding delays of 15s, 30s, 60s, 120s, 240s). This logic is visualized in **Figure 4**.
+- **Exponential backoff:** Sync failures trigger retries with delays following the formula $T_{backoff} = 15 \times 2^{(n-1)}$ seconds, where $n$ is the attempt number (yielding delays of 15s, 30s, 60s, 120s, 240s). This logic is visualized in **Figure 5**.
 - **Bulk write optimization:** Up to 100 records are batched per ThingSpeak API call. This is a configuration choice to balance request latency with throughput, as the API technically supports up to 960 updates per bulk request.
 
-### Figure 4: Software Flowchart - Prescription Queue Retry Logic
+### Figure 5: Software Flowchart - Prescription Queue Retry Logic
 
-*Figure 4: Flowchart depicting the exponential backoff retry mechanism for the Prescription Queue Worker.*
+*Figure 5: Flowchart depicting the exponential backoff retry mechanism for the Prescription Queue Worker.*
 
 ```mermaid
 flowchart TD
@@ -339,11 +339,11 @@ The HMI screens were designed using NB Designer, the configuration software for 
 
 **For a detailed step-by-step configuration guide including component property settings and Modbus addressing setup, please refer to Appendix A: HMI Configuration Guide.**
 
-The communication settings configure each HMI (e.g., 192.168.250.4, 192.168.250.5) as a Modbus TCP master connecting to the shared Node-RED edge device (192.168.250.2) acting as the slave on port 10502. This architecture allows a single edge device to serve multiple bedside terminals simultaneously. The electrical connection details are shown in **Figure 1**.
+The communication settings configure each HMI (e.g., 192.168.250.4, 192.168.250.5) as a Modbus TCP master connecting to the shared Node-RED edge device (192.168.250.2) acting as the slave on port 10502. This architecture allows a single edge device to serve multiple bedside terminals simultaneously. The electrical connection details are shown in **Figure 6**.
 
-### Figure 1: Electrical Connection Schematic
+### Figure 6: Electrical Connection Schematic
 
-*Figure 1: Electrical schematic showing 24V DC distribution, protection components, and Modbus TCP interface wiring.*
+*Figure 6: Electrical schematic showing 24V DC distribution, protection components, and Modbus TCP interface wiring.*
 
 ```mermaid
 graph TD
@@ -435,12 +435,12 @@ graph LR
     Switch -- Ethernet --> HMI3["HMI Panel 3<br/>(Bed 3)<br/>192.168.250.6"]
 ```
 
-### Figure 2: HMI Interface Screens
+### Figure 7: HMI Interface Screens
 
 |                Main Menu                 |              Patient ID Entry              |                     Medication Display                     |
 | :--------------------------------------: | :----------------------------------------: | :--------------------------------------------------------: |
 | ![Main Menu](./images/hmi_main_menu.jpg) | ![Patient ID](./images/hmi_patient_id.jpg) | ![Medication Display](./images/hmi_medication_display.jpg) |
-*Figure 2: The three primary user interface screens deployed on the Omron NB HMI.*
+*Figure 7: The three primary user interface screens deployed on the Omron NB HMI.*
 
 The Node-RED flow implements scheduled medication rounds at 09:00, 13:00, 17:00, and 21:00. The prescription filtering logic operates on three criteria. First, the patient ID decoded from PLC holding registers must match the prescription record. Second, the current date must fall within the prescription's valid date range defined by the start_date and end_date fields. Third, the current time must match one of the comma-separated time slots specified in the prescription (e.g., "09:00, 13:00, 17:00, 21:00"). The matching logic performs an exact string comparison in HH:MM format, with the cron scheduler ensuring triggers occur precisely at the designated times. For manual triggers initiated via the Node-RED dashboard, the system uses the current system time or an optional override value provided for testing purposes.
 
