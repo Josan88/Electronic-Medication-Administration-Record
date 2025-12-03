@@ -107,6 +107,21 @@ graph TD
     TB_G -- "18 AWG Black" --> SW
 ```
 
+**DC Wiring Schedule:**
+
+| Wire ID | Source Component | Terminal | Destination Component | Terminal | Conductor Spec | Color Code | Function |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **W-01** | Power Supply Unit | +24V Out | Fuse Holder (F1) | Line | 18 AWG Stranded | Red | Main Power Feed |
+| **W-02** | Fuse Holder (F1) | Load | Diode (D1) | Anode | 18 AWG Stranded | Red | Protected Feed |
+| **W-03** | Diode (D1) | Cathode | Dist. Block (+) | Bus Entry | 18 AWG Stranded | Red | Rectified Bus Feed |
+| **W-04** | Power Supply Unit | 0V GND | Dist. Block (-) | Bus Entry | 18 AWG Stranded | Black | Main Ground Feed |
+| **W-05** | Dist. Block (+) | Port 1 | EdgeAI CM5 | DC In (+) | 18 AWG Stranded | Red | Edge Device Power |
+| **W-06** | Dist. Block (-) | Port 1 | EdgeAI CM5 | DC In (-) | 18 AWG Stranded | Black | Edge Device Ground |
+| **W-07** | Dist. Block (+) | Port 2 | HMI Panel | 24VDC | 18 AWG Stranded | Red | HMI Power |
+| **W-08** | Dist. Block (-) | Port 2 | HMI Panel | 0V | 18 AWG Stranded | Black | HMI Ground |
+| **W-09** | Dist. Block (+) | Port 3 | Ethernet Switch | DC In | 18 AWG Stranded | Red | Switch Power |
+| **W-10** | Dist. Block (-) | Port 3 | Ethernet Switch | GND | 18 AWG Stranded | Black | Switch Ground |
+
 **Modbus TCP Interface (RJ45 T-568B):**
 
 |   Pin   | Signal | Function        | Connection    |
