@@ -225,11 +225,11 @@ The subsystem employs a **Persistent Queue Architecture** to handle the inherent
 
 The Cloud Data Subsystem utilizes ThingSpeak as the central data bridge between the Management and Administration subsystems. ThingSpeak provides RESTful API access to three dedicated channels:
 
-| Channel | ID | Purpose | Fields |
-| --- | --- | --- | --- |
-| Patient Info | 3124887 | Patient demographics | patient_id, name, floor, room, bed, age, gender, notes |
-| Medicine Prescription | 3124898 | Active prescriptions | patient_id, medicine_name, dosage, frequency, start_date, end_date, time_slot |
-| Medicine Track | 3131200 | Administration records | patient_id, medicine_name, dosage, consume_date, time_slot |
+| Channel               | ID      | Purpose                | Fields                                                                        |
+| --------------------- | ------- | ---------------------- | ----------------------------------------------------------------------------- |
+| Patient Info          | 3124887 | Patient demographics   | patient_id, name, floor, room, bed, age, gender, notes                        |
+| Medicine Prescription | 3124898 | Active prescriptions   | patient_id, medicine_name, dosage, frequency, start_date, end_date, time_slot |
+| Medicine Track        | 3131200 | Administration records | patient_id, medicine_name, dosage, consume_date, time_slot                    |
 
 The system implements a **Hybrid Storage Architecture**, depicted in **Figure 7**, where the local JSON database serves as the primary data store for immediate reads and writes, while ThingSpeak functions as a synchronized backup enabling cross-site access.
 
@@ -324,12 +324,12 @@ The Administration Subsystem executes on an edge computing device (IRIV EdgeAI C
 
 **Modbus Register Mapping:**
 
-| Function | Operation | Register Type | Address | Quantity | Description |
-| --- | --- | --- | --- | --- | --- |
-| Read Patient ID | FC 3 | Holding Registers | 0-9 | 10 | ASCII-encoded patient identifier (2 chars/register) |
-| Write Medication Display | FC 16 | Holding Registers | 30-109 | 80 | Notebook text (8 lines x 20 chars, 10 registers/line) |
-| Read Served Button | FC 1 | Coils | 1 | 1 | Button press detection |
-| Write Button Reset | FC 5 | Coils | 1 | 1 | Reset button state after processing |
+| Function                 | Operation | Register Type     | Address | Quantity | Description                                           |
+| ------------------------ | --------- | ----------------- | ------- | -------- | ----------------------------------------------------- |
+| Read Patient ID          | FC 3      | Holding Registers | 0-9     | 10       | ASCII-encoded patient identifier (2 chars/register)   |
+| Write Medication Display | FC 16     | Holding Registers | 30-109  | 80       | Notebook text (8 lines x 20 chars, 10 registers/line) |
+| Read Served Button       | FC 1      | Coils             | 1       | 1        | Button press detection                                |
+| Write Button Reset       | FC 5      | Coils             | 1       | 1        | Reset button state after processing                   |
 
 The HMI screens were designed using NB Designer, the configuration software for the Omron NB-series HMI panels. The interface comprises three primary screens that guide nursing staff through the medication administration workflow:
 
@@ -387,28 +387,28 @@ graph TD
 
 **DC Wiring Schedule:**
 
-| Wire ID | Source Component | Terminal | Destination Component | Terminal | Conductor Spec | Color Code | Function |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **W-01** | Power Supply Unit | +24V Out | Fuse Holder (F1) | Line | 18 AWG Stranded | Red | Main Power Feed |
-| **W-02** | Fuse Holder (F1) | Load | Diode (D1) | Anode | 18 AWG Stranded | Red | Protected Feed |
-| **W-03** | Diode (D1) | Cathode | Dist. Block (+) | Bus Entry | 18 AWG Stranded | Red | Rectified Bus Feed |
-| **W-04** | Power Supply Unit | 0V GND | Dist. Block (-) | Bus Entry | 18 AWG Stranded | Black | Main Ground Feed |
-| **W-05** | Dist. Block (+) | Port 1 | EdgeAI CM5 | DC In (+) | 18 AWG Stranded | Red | Edge Device Power |
-| **W-06** | Dist. Block (-) | Port 1 | EdgeAI CM5 | DC In (-) | 18 AWG Stranded | Black | Edge Device Ground |
-| **W-07** | Dist. Block (+) | Port 2 | HMI Panel 1 | 24VDC | 18 AWG Stranded | Red | HMI 1 Power |
-| **W-08** | Dist. Block (-) | Port 2 | HMI Panel 1 | 0V | 18 AWG Stranded | Black | HMI 1 Ground |
-| **W-09** | Dist. Block (+) | Port 3 | Ethernet Switch | DC In | 18 AWG Stranded | Red | Switch Power |
-| **W-10** | Dist. Block (-) | Port 3 | Ethernet Switch | GND | 18 AWG Stranded | Black | Switch Ground |
+| Wire ID  | Source Component  | Terminal | Destination Component | Terminal  | Conductor Spec  | Color Code | Function           |
+| :------- | :---------------- | :------- | :-------------------- | :-------- | :-------------- | :--------- | :----------------- |
+| **W-01** | Power Supply Unit | +24V Out | Fuse Holder (F1)      | Line      | 18 AWG Stranded | Red        | Main Power Feed    |
+| **W-02** | Fuse Holder (F1)  | Load     | Diode (D1)            | Anode     | 18 AWG Stranded | Red        | Protected Feed     |
+| **W-03** | Diode (D1)        | Cathode  | Dist. Block (+)       | Bus Entry | 18 AWG Stranded | Red        | Rectified Bus Feed |
+| **W-04** | Power Supply Unit | 0V GND   | Dist. Block (-)       | Bus Entry | 18 AWG Stranded | Black      | Main Ground Feed   |
+| **W-05** | Dist. Block (+)   | Port 1   | EdgeAI CM5            | DC In (+) | 18 AWG Stranded | Red        | Edge Device Power  |
+| **W-06** | Dist. Block (-)   | Port 1   | EdgeAI CM5            | DC In (-) | 18 AWG Stranded | Black      | Edge Device Ground |
+| **W-07** | Dist. Block (+)   | Port 2   | HMI Panel 1           | 24VDC     | 18 AWG Stranded | Red        | HMI 1 Power        |
+| **W-08** | Dist. Block (-)   | Port 2   | HMI Panel 1           | 0V        | 18 AWG Stranded | Black      | HMI 1 Ground       |
+| **W-09** | Dist. Block (+)   | Port 3   | Ethernet Switch       | DC In     | 18 AWG Stranded | Red        | Switch Power       |
+| **W-10** | Dist. Block (-)   | Port 3   | Ethernet Switch       | GND       | 18 AWG Stranded | Black      | Switch Ground      |
 
 **Modbus TCP Interface (RJ45 T-568B):**
 
-| Pin | Signal | Function |
+|   Pin   | Signal | Function        |
 | :-----: | :----- | :-------------- |
-| 1 | TX+ | Transmit Data + |
-| 2 | TX- | Transmit Data - |
-| 3 | RX+ | Receive Data + |
-| 6 | RX- | Receive Data - |
-| 4,5,7,8 | N/C | Unused |
+|    1    | TX+    | Transmit Data + |
+|    2    | TX-    | Transmit Data - |
+|    3    | RX+    | Receive Data +  |
+|    6    | RX-    | Receive Data -  |
+| 4,5,7,8 | N/C    | Unused          |
 
 **Network Port Assignment:**
 - **Switch Port 1:** Edge Device (EdgeAI CM5)
@@ -437,7 +437,7 @@ graph LR
 
 ### Figure 2: HMI Interface Screens
 
-| Main Menu | Patient ID Entry | Medication Display |
+|                Main Menu                 |              Patient ID Entry              |                     Medication Display                     |
 | :--------------------------------------: | :----------------------------------------: | :--------------------------------------------------------: |
 | ![Main Menu](./images/hmi_main_menu.jpg) | ![Patient ID](./images/hmi_patient_id.jpg) | ![Medication Display](./images/hmi_medication_display.jpg) |
 *Figure 2: The three primary user interface screens deployed on the Omron NB HMI.*
@@ -575,12 +575,12 @@ With 3 retry attempts, the system achieves 99.99% delivery reliability, with fai
 
 The power consumption of the administration subsystem is a key factor for sustainable operation, particularly if deployed on mobile carts.
 
-| Component | Voltage | Current (Max) | Power (W) | Duty Cycle | Avg Power (W) |
-| --- | --- | --- | --- | --- | --- |
-| Edge Device (EdgeAI CM5) | 12V-24V | 0.5A @ 12V | 6.0 W | 100% | 6.0 W |
-| HMI Panel (Omron NB7W) | 24V | 0.4A | 9.6 W | 100% | 9.6 W |
-| Ethernet Switch (5-port) | 5V | 0.6A | 3.0 W | 100% | 3.0 W |
-| **Total System** | | | **18.6 W** | | **18.6 W** |
+| Component                | Voltage | Current (Max) | Power (W)  | Duty Cycle | Avg Power (W) |
+| ------------------------ | ------- | ------------- | ---------- | ---------- | ------------- |
+| Edge Device (EdgeAI CM5) | 12V-24V | 0.5A @ 12V    | 6.0 W      | 100%       | 6.0 W         |
+| HMI Panel (Omron NB7W)   | 24V     | 0.4A          | 9.6 W      | 100%       | 9.6 W         |
+| Ethernet Switch (5-port) | 5V      | 0.6A          | 3.0 W      | 100%       | 3.0 W         |
+| **Total System**         |         |               | **18.6 W** |            | **18.6 W**    |
 
 **PSU Selection with Safety Margin:**
 To ensure long-term reliability and prevent thermal stress, a standard 20% safety margin is applied to the peak power requirement:
@@ -600,28 +600,28 @@ This low power profile supports operation via standard UPS units or mobile cart 
 
 The design decisions for the eMAR system are directly derived from the identified stakeholder requirements and operational constraints of healthcare environments.
 
-| User Need / Constraint | Design Solution | Implementation |
-| --- | --- | --- |
-| **Reliability in poor network conditions** | Persistent Queue with disk-based storage | `PersistentQueue` class saves state to `prescription_queue.json` using atomic file operations; automatic retry with exponential backoff ensures eventual delivery. |
-| **Integration with existing hospital hardware** | Modbus TCP protocol support | Node-RED `node-red-contrib-modbus` module enables communication with legacy PLCs/HMIs without hardware modifications. Standard port 502 (remapped to 10502) ensures firewall compatibility. |
-| **Low latency for critical operations** | Hybrid local/cloud architecture | Local JSON database provides sub-millisecond read latency; ThingSpeak serves as backup/sync target rather than primary data source for reads. |
-| **Compliance with medication round schedules** | Time-slot based filtering | Prescriptions include `time_slot` field (e.g., "09:00, 13:00, 17:00, 21:00"); Node-RED cron triggers filter medications to current round only. |
-| **Audit trail for medication administration** | Immutable tracking records | Medicine Track channel logs every administration with timestamp; `consume_date` and `time_slot` enable retrospective compliance analysis. |
-| **Data security and input validation** | Multi-layer validation with XSS prevention | All user inputs pass through dedicated validators (`patient_validator.py`, `prescription_validator.py`, `tracking_validator.py`) implementing HTML escaping via `html.escape()`, regex validation, and length constraints. |
-| **Minimal training for nursing staff** | Simple HMI workflow | Three-step process: (1) Scan patient ID, (2) View medications, (3) Press "Served" button. No complex data entry required at bedside. |
-| **Support for multiple concurrent users** | Thread-safe service layer | All shared resources protected by `threading.Lock`; queue operations are atomic; Flask Blueprint architecture enables independent scaling. |
-| **Graceful degradation during cloud outages** | Local-first data strategy | `HybridService` reads from local database first; cloud unavailability does not prevent prescription display (using cached data) or local recording of administrations. |
+| User Need / Constraint                          | Design Solution                            | Implementation                                                                                                                                                                                                             |
+| ----------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reliability in poor network conditions**      | Persistent Queue with disk-based storage   | `PersistentQueue` class saves state to `prescription_queue.json` using atomic file operations; automatic retry with exponential backoff ensures eventual delivery.                                                         |
+| **Integration with existing hospital hardware** | Modbus TCP protocol support                | Node-RED `node-red-contrib-modbus` module enables communication with legacy PLCs/HMIs without hardware modifications. Standard port 502 (remapped to 10502) ensures firewall compatibility.                                |
+| **Low latency for critical operations**         | Hybrid local/cloud architecture            | Local JSON database provides sub-millisecond read latency; ThingSpeak serves as backup/sync target rather than primary data source for reads.                                                                              |
+| **Compliance with medication round schedules**  | Time-slot based filtering                  | Prescriptions include `time_slot` field (e.g., "09:00, 13:00, 17:00, 21:00"); Node-RED cron triggers filter medications to current round only.                                                                             |
+| **Audit trail for medication administration**   | Immutable tracking records                 | Medicine Track channel logs every administration with timestamp; `consume_date` and `time_slot` enable retrospective compliance analysis.                                                                                  |
+| **Data security and input validation**          | Multi-layer validation with XSS prevention | All user inputs pass through dedicated validators (`patient_validator.py`, `prescription_validator.py`, `tracking_validator.py`) implementing HTML escaping via `html.escape()`, regex validation, and length constraints. |
+| **Minimal training for nursing staff**          | Simple HMI workflow                        | Three-step process: (1) Scan patient ID, (2) View medications, (3) Press "Served" button. No complex data entry required at bedside.                                                                                       |
+| **Support for multiple concurrent users**       | Thread-safe service layer                  | All shared resources protected by `threading.Lock`; queue operations are atomic; Flask Blueprint architecture enables independent scaling.                                                                                 |
+| **Graceful degradation during cloud outages**   | Local-first data strategy                  | `HybridService` reads from local database first; cloud unavailability does not prevent prescription display (using cached data) or local recording of administrations.                                                     |
 
 ### Traceability Matrix
 
-| Req ID | Requirement Description | Design Feature | Verification Method | Test Evidence |
+| Req ID | Requirement Description                                     | Design Feature                            | Verification Method                                | Test Evidence                            |
 | :----- | :---------------------------------------------------------- | :---------------------------------------- | :------------------------------------------------- | :--------------------------------------- |
-| REQ-01 | System shall store prescriptions within 60s of entry | Persistent Queue + Background Worker | Integration test: measure queue processing time | `test_queue_integration.py` (PASS) |
-| REQ-02 | System shall display prescriptions at HMI within 15 minutes | Node-RED 10-minute poll + ThingSpeak sync | End-to-end test: timestamp comparison | `test_e2e.py` (PASS) |
-| REQ-03 | System shall survive application restarts | JSON file persistence for queues | Recovery test: kill process, restart, verify queue | `test_hybrid_service_fallback.py` (PASS) |
-| REQ-04 | System shall prevent XSS attacks | HTML escaping in validators | Security test: inject `<script>` payloads | `test_validation.py` (PASS) |
-| REQ-05 | System shall communicate with Modbus PLCs | FC3/FC5/FC16 implementation | Protocol test: register read/write verification | Manual Validation (Modbus Poll) |
-| REQ-06 | System shall log all administrations | Tracking channel write on "Served" | Audit test: verify cloud records match events | `test_tracking_integration.py` (PASS) |
+| REQ-01 | System shall store prescriptions within 60s of entry        | Persistent Queue + Background Worker      | Integration test: measure queue processing time    | `test_queue_integration.py` (PASS)       |
+| REQ-02 | System shall display prescriptions at HMI within 15 minutes | Node-RED 10-minute poll + ThingSpeak sync | End-to-end test: timestamp comparison              | `test_e2e.py` (PASS)                     |
+| REQ-03 | System shall survive application restarts                   | JSON file persistence for queues          | Recovery test: kill process, restart, verify queue | `test_hybrid_service_fallback.py` (PASS) |
+| REQ-04 | System shall prevent XSS attacks                            | HTML escaping in validators               | Security test: inject `<script>` payloads          | `test_validation.py` (PASS)              |
+| REQ-05 | System shall communicate with Modbus PLCs                   | FC3/FC5/FC16 implementation               | Protocol test: register read/write verification    | Manual Validation (Modbus Poll)          |
+| REQ-06 | System shall log all administrations                        | Tracking channel write on "Served"        | Audit test: verify cloud records match events      | `test_tracking_integration.py` (PASS)    |
 
 ---
 
@@ -633,14 +633,14 @@ The current prototype is designed for a single hospital ward (approximately 20 p
 
 **Current State → Production Migration:**
 
-| Component | Prototype | Production | Rationale |
-| --- | --- | --- | --- |
-| Primary Database | Local JSON files | PostgreSQL / TimescaleDB | JSON file I/O does not scale beyond ~10,000 records; relational database provides indexing, concurrent access, and ACID compliance. |
-| Cloud Platform | ThingSpeak (Free Tier) | MQTT Broker (HiveMQ / AWS IoT Core) | ThingSpeak's 15-second rate limit (240 writes/hour) is insufficient for enterprise scale; MQTT supports thousands of messages/second with QoS guarantees. |
-| Queue System | In-memory + JSON persistence | Redis / RabbitMQ | Distributed message queue enables horizontal scaling across multiple application instances with guaranteed delivery. |
-| Edge Deployment | Single Node-RED instance | Kubernetes-orchestrated containers | Container orchestration enables automated failover, rolling updates, and multi-site deployment management. |
-| Authentication | Session-based (basic) | OAuth 2.0 / SAML with RBAC | Healthcare compliance requires role-based access control, audit logging, and integration with hospital identity providers. |
-| **Physical Housing** | 3D Printed Case | Injection Molded ABS | **Cost Reduction:** At >1000 units, injection molding unit cost drops to ~$5 vs ~$50 for 3D printing. |
+| Component            | Prototype                    | Production                          | Rationale                                                                                                                                                 |
+| -------------------- | ---------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary Database     | Local JSON files             | PostgreSQL / TimescaleDB            | JSON file I/O does not scale beyond ~10,000 records; relational database provides indexing, concurrent access, and ACID compliance.                       |
+| Cloud Platform       | ThingSpeak (Free Tier)       | MQTT Broker (HiveMQ / AWS IoT Core) | ThingSpeak's 15-second rate limit (240 writes/hour) is insufficient for enterprise scale; MQTT supports thousands of messages/second with QoS guarantees. |
+| Queue System         | In-memory + JSON persistence | Redis / RabbitMQ                    | Distributed message queue enables horizontal scaling across multiple application instances with guaranteed delivery.                                      |
+| Edge Deployment      | Single Node-RED instance     | Kubernetes-orchestrated containers  | Container orchestration enables automated failover, rolling updates, and multi-site deployment management.                                                |
+| Authentication       | Session-based (basic)        | OAuth 2.0 / SAML with RBAC          | Healthcare compliance requires role-based access control, audit logging, and integration with hospital identity providers.                                |
+| **Physical Housing** | 3D Printed Case              | Injection Molded ABS                | **Cost Reduction:** At >1000 units, injection molding unit cost drops to ~$5 vs ~$50 for 3D printing.                                                     |
 
 **Scaling Calculation:**
 
