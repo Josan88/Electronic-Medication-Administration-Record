@@ -69,19 +69,58 @@ The HMI screens were designed using NB Designer, the configuration software for 
 
 The communication settings configure the HMI (192.168.250.4) as the Modbus TCP master connecting to the Node-RED edge device (192.168.250.2) acting as the slave on port 10502.
 
-### Figure 1.1: Physical Connection Diagram
+### Figure 1.1: Electrical Connection Schematic
 
-*Figure 1.1: Wiring diagram showing the physical connections between the Edge Device, Ethernet Switch, and HMI Panel.*
+*Figure 1.1: Electrical schematic showing 24V DC distribution, protection components, and Modbus TCP interface wiring.*
 
 ```mermaid
-graph LR
-    Edge["Edge Device (EdgeAI CM5)<br/>RJ45 Port"] -- "Cat6 Ethernet" --> Switch["Ethernet Switch<br/>(Unmanaged)"]
-    Switch -- "Cat6 Ethernet" --> HMI["HMI Panel (Omron NB)<br/>RJ45 Port"]
-    Switch -- "Cat6 Ethernet" --> PLC["PLC Controller<br/>(Optional/Simulated)"]
-    Power["24V DC Power Supply"] -- "V+/V-" --> Edge
-    Power -- "V+/V-" --> HMI
-    Power -- "V+/V-" --> Switch
+graph TD
+    subgraph PowerSource ["Power Supply Unit"]
+        VCC(("+24V DC"))
+        GND(("0V GND"))
+    end
+
+    subgraph Protection ["Protection Circuit"]
+        F1["Fuse F1<br/>2A Slow-Blow"]
+        D1["Diode D1<br/>1N5408<br/>Reverse Protection"]
+        TB_V["Terminal Block +"]
+        TB_G["Terminal Block -"]
+    end
+
+    subgraph Loads ["System Loads"]
+        CM5["Edge Device<br/>EdgeAI CM5<br/>(Terminals)"]
+        HMI["HMI Panel<br/>Omron NB7W<br/>(DC In)"]
+        SW["Ethernet Switch<br/>Unmanaged<br/>(DC In)"]
+    end
+
+    VCC ==> F1
+    F1 ==> D1
+    D1 ==> TB_V
+    GND ==> TB_G
+
+    TB_V -- "18 AWG Red" --> CM5
+    TB_V -- "18 AWG Red" --> HMI
+    TB_V -- "18 AWG Red" --> SW
+
+    TB_G -- "18 AWG Black" --> CM5
+    TB_G -- "18 AWG Black" --> HMI
+    TB_G -- "18 AWG Black" --> SW
 ```
+
+**Modbus TCP Interface (RJ45 T-568B):**
+
+|   Pin   | Signal | Function        | Connection    |
+| :-----: | :----- | :-------------- | :------------ |
+|    1    | TX+    | Transmit Data + | Switch Port X |
+|    2    | TX-    | Transmit Data - | Switch Port X |
+|    3    | RX+    | Receive Data +  | Switch Port X |
+|    6    | RX-    | Receive Data -  | Switch Port X |
+| 4,5,7,8 | N/C    | Unused          | Not Connected |
+
+**Component Specifications:**
+- **Rail Voltage:** 24V DC (SELV compliant)
+- **Overcurrent Protection:** 2A Slow-Blow Fuse (F1) inline with VCC
+- **Reverse Polarity Protection:** 1N5408 Diode (D1) in series
 
 **Physical Network Topology:**
 
@@ -93,8 +132,8 @@ graph LR
 
 ### Figure 1: HMI Interface Screens
 
-| Main Menu | Patient ID Entry | Medication Display |
-| :---: | :---: | :---: |
+|                Main Menu                 |              Patient ID Entry              |                     Medication Display                     |
+| :--------------------------------------: | :----------------------------------------: | :--------------------------------------------------------: |
 | ![Main Menu](./images/hmi_main_menu.jpg) | ![Patient ID](./images/hmi_patient_id.jpg) | ![Medication Display](./images/hmi_medication_display.jpg) |
 *Figure 1: The three primary user interface screens deployed on the Omron NB HMI.*
 
@@ -509,12 +548,12 @@ With 3 retry attempts, the system achieves 99.99% delivery reliability, with fai
 
 The power consumption of the administration subsystem is a key factor for sustainable operation, particularly if deployed on mobile carts.
 
-| Component | Voltage | Current (Max) | Power (W) | Duty Cycle | Avg Power (W) |
-|-----------|---------|---------------|-----------|------------|---------------|
-| Edge Device (EdgeAI CM5) | 12V-24V | 0.5A @ 12V | 6.0 W | 100% | 6.0 W |
-| HMI Panel (Omron NB7W) | 24V | 0.4A | 9.6 W | 100% | 9.6 W |
-| Ethernet Switch (5-port) | 5V | 0.6A | 3.0 W | 100% | 3.0 W |
-| **Total System** | | | **18.6 W** | | **18.6 W** |
+| Component                | Voltage | Current (Max) | Power (W)  | Duty Cycle | Avg Power (W) |
+| ------------------------ | ------- | ------------- | ---------- | ---------- | ------------- |
+| Edge Device (EdgeAI CM5) | 12V-24V | 0.5A @ 12V    | 6.0 W      | 100%       | 6.0 W         |
+| HMI Panel (Omron NB7W)   | 24V     | 0.4A          | 9.6 W      | 100%       | 9.6 W         |
+| Ethernet Switch (5-port) | 5V      | 0.6A          | 3.0 W      | 100%       | 3.0 W         |
+| **Total System**         |         |               | **18.6 W** |            | **18.6 W**    |
 
 **Total Daily Energy Consumption:**
 $$E_{daily} = 18.6\text{W} \times 24\text{h} = 446.4 \text{ Wh} \approx 0.45 \text{ kWh}$$
@@ -541,14 +580,14 @@ The design decisions for the eMAR system are directly derived from the identifie
 
 ### Traceability Matrix
 
-| Req ID | Requirement Description | Design Feature | Verification Method | Test Evidence |
-| :--- | :--- | :--- | :--- | :--- |
-| REQ-01 | System shall store prescriptions within 60s of entry | Persistent Queue + Background Worker | Integration test: measure queue processing time | `test_queue_integration.py` (PASS) |
-| REQ-02 | System shall display prescriptions at HMI within 15 minutes | Node-RED 10-minute poll + ThingSpeak sync | End-to-end test: timestamp comparison | `test_e2e.py` (PASS) |
-| REQ-03 | System shall survive application restarts | JSON file persistence for queues | Recovery test: kill process, restart, verify queue | `test_hybrid_service_fallback.py` (PASS) |
-| REQ-04 | System shall prevent XSS attacks | HTML escaping in validators | Security test: inject `<script>` payloads | `test_validation.py` (PASS) |
-| REQ-05 | System shall communicate with Modbus PLCs | FC3/FC5/FC16 implementation | Protocol test: register read/write verification | Manual Validation (Modbus Poll) |
-| REQ-06 | System shall log all administrations | Tracking channel write on "Served" | Audit test: verify cloud records match events | `test_tracking_integration.py` (PASS) |
+| Req ID | Requirement Description                                     | Design Feature                            | Verification Method                                | Test Evidence                            |
+| :----- | :---------------------------------------------------------- | :---------------------------------------- | :------------------------------------------------- | :--------------------------------------- |
+| REQ-01 | System shall store prescriptions within 60s of entry        | Persistent Queue + Background Worker      | Integration test: measure queue processing time    | `test_queue_integration.py` (PASS)       |
+| REQ-02 | System shall display prescriptions at HMI within 15 minutes | Node-RED 10-minute poll + ThingSpeak sync | End-to-end test: timestamp comparison              | `test_e2e.py` (PASS)                     |
+| REQ-03 | System shall survive application restarts                   | JSON file persistence for queues          | Recovery test: kill process, restart, verify queue | `test_hybrid_service_fallback.py` (PASS) |
+| REQ-04 | System shall prevent XSS attacks                            | HTML escaping in validators               | Security test: inject `<script>` payloads          | `test_validation.py` (PASS)              |
+| REQ-05 | System shall communicate with Modbus PLCs                   | FC3/FC5/FC16 implementation               | Protocol test: register read/write verification    | Manual Validation (Modbus Poll)          |
+| REQ-06 | System shall log all administrations                        | Tracking channel write on "Served"        | Audit test: verify cloud records match events      | `test_tracking_integration.py` (PASS)    |
 
 ---
 
@@ -560,14 +599,14 @@ The current prototype is designed for a single hospital ward (approximately 20 p
 
 **Current State → Production Migration:**
 
-| Component | Prototype | Production | Rationale |
-| --- | --- | --- | --- |
-| Primary Database | Local JSON files | PostgreSQL / TimescaleDB | JSON file I/O does not scale beyond ~10,000 records; relational database provides indexing, concurrent access, and ACID compliance. |
-| Cloud Platform | ThingSpeak (Free Tier) | MQTT Broker (HiveMQ / AWS IoT Core) | ThingSpeak's 15-second rate limit (240 writes/hour) is insufficient for enterprise scale; MQTT supports thousands of messages/second with QoS guarantees. |
-| Queue System | In-memory + JSON persistence | Redis / RabbitMQ | Distributed message queue enables horizontal scaling across multiple application instances with guaranteed delivery. |
-| Edge Deployment | Single Node-RED instance | Kubernetes-orchestrated containers | Container orchestration enables automated failover, rolling updates, and multi-site deployment management. |
-| Authentication | Session-based (basic) | OAuth 2.0 / SAML with RBAC | Healthcare compliance requires role-based access control, audit logging, and integration with hospital identity providers. |
-| **Physical Housing** | 3D Printed Case | Injection Molded ABS | **Cost Reduction:** At >1000 units, injection molding unit cost drops to ~$5 vs ~$50 for 3D printing. |
+| Component            | Prototype                    | Production                          | Rationale                                                                                                                                                 |
+| -------------------- | ---------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary Database     | Local JSON files             | PostgreSQL / TimescaleDB            | JSON file I/O does not scale beyond ~10,000 records; relational database provides indexing, concurrent access, and ACID compliance.                       |
+| Cloud Platform       | ThingSpeak (Free Tier)       | MQTT Broker (HiveMQ / AWS IoT Core) | ThingSpeak's 15-second rate limit (240 writes/hour) is insufficient for enterprise scale; MQTT supports thousands of messages/second with QoS guarantees. |
+| Queue System         | In-memory + JSON persistence | Redis / RabbitMQ                    | Distributed message queue enables horizontal scaling across multiple application instances with guaranteed delivery.                                      |
+| Edge Deployment      | Single Node-RED instance     | Kubernetes-orchestrated containers  | Container orchestration enables automated failover, rolling updates, and multi-site deployment management.                                                |
+| Authentication       | Session-based (basic)        | OAuth 2.0 / SAML with RBAC          | Healthcare compliance requires role-based access control, audit logging, and integration with hospital identity providers.                                |
+| **Physical Housing** | 3D Printed Case              | Injection Molded ABS                | **Cost Reduction:** At >1000 units, injection molding unit cost drops to ~$5 vs ~$50 for 3D printing.                                                     |
 
 **Scaling Calculation:**
 
@@ -697,17 +736,17 @@ Power management is a critical consideration for mobile cart reliability, as inc
 
 ### 3.7.7 Future Considerations References
 
-| Ref | Source | Description |
-|-----|--------|-------------|
-| [1] | ProSoft Technology | Industrial Wireless Solutions - RLX2 Series Product Catalog |
-| [2] | Siemens | Industrial Wireless LAN (IWLAN) - SCALANCE W Series Documentation |
-| [3] | Wi-Fi Alliance | Wi-Fi 6: High Performance, Low Latency Technical Specification |
-| [4] | Wi-Fi Alliance | Wi-Fi Certified WPA3: Security Technical Overview |
-| [5] | Modbus Organization | Modbus Security Protocol Specification |
-| [6] | Real Time Automation | Modbus TCP/IP Unplugged - Addressing, Binding, and Best Practices |
-| [7] | U.S. FDA | Radio Frequency Wireless Technology in Medical Devices - Guidance for Industry |
-| [8] | IEC | IEC 80001-1:2010 Application of risk management for IT-networks incorporating medical devices |
-| [9] | Zebra Technologies | ET5x Series Enterprise Tablets - Healthcare Solutions Documentation |
+| Ref | Source               | Description                                                                                   |
+| --- | -------------------- | --------------------------------------------------------------------------------------------- |
+| [1] | ProSoft Technology   | Industrial Wireless Solutions - RLX2 Series Product Catalog                                   |
+| [2] | Siemens              | Industrial Wireless LAN (IWLAN) - SCALANCE W Series Documentation                             |
+| [3] | Wi-Fi Alliance       | Wi-Fi 6: High Performance, Low Latency Technical Specification                                |
+| [4] | Wi-Fi Alliance       | Wi-Fi Certified WPA3: Security Technical Overview                                             |
+| [5] | Modbus Organization  | Modbus Security Protocol Specification                                                        |
+| [6] | Real Time Automation | Modbus TCP/IP Unplugged - Addressing, Binding, and Best Practices                             |
+| [7] | U.S. FDA             | Radio Frequency Wireless Technology in Medical Devices - Guidance for Industry                |
+| [8] | IEC                  | IEC 80001-1:2010 Application of risk management for IT-networks incorporating medical devices |
+| [9] | Zebra Technologies   | ET5x Series Enterprise Tablets - Healthcare Solutions Documentation                           |
 
 ## Acronyms
 
