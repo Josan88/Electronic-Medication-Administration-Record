@@ -1,10 +1,19 @@
 # Section 3. Proposed Method / Solution
 
+## Section Contents
+- **3.1 Unified System Architecture** (Overview, Subsystems, Interfaces)
+- **3.2 Visual Representations** (System Block Diagram, Flowchart, Sequence, Component, Data Flow)
+- **3.3 Design Justification & Calculations** (Latency, Throughput, Storage, Reliability, Power Budget)
+- **3.4 Connection to User Needs** (Traceability Matrix)
+- **3.5 Scalability & Standards** (Migration Path, Regulatory Compliance, Sustainability)
+- **3.6 Summary**
+- **3.7 Future Considerations** (Wireless Industrial Communication)
+
 ## 3.1 Unified System Architecture
 
 The Electronic Medication Administration Record (eMAR) system implements a hybrid IoT/Web architecture designed to digitize medication management workflows in healthcare environments. The system addresses the complete medication lifecycle: from prescription entry by physicians, through cloud synchronization, to bedside administration by nursing staff at industrial Human-Machine Interface (HMI) terminals.
 
-The end-to-end workflow operates as follows: A physician enters a prescription via the Flask-based Web Application, which immediately stores the data in a local JSON database for low-latency access. A background synchronization worker then replicates this data to the ThingSpeak IoT cloud platform, ensuring redundancy and enabling remote access. At the bedside, a nurse scans a patient identifier at a PLC-connected HMI terminal. The Node-RED edge application reads this identifier via Modbus TCP, queries the ThingSpeak cloud for active prescriptions, filters by the current medication round schedule, and displays the relevant medications on the HMI screen. Upon administration confirmation, the system logs the event back to the cloud, completing the audit trail.
+The end-to-end workflow operates as follows: A physician enters a prescription via the Flask-based Web Application, which immediately stores the data in a local JSON database for low-latency access. A background synchronization worker then replicates this data to the ThingSpeak IoT cloud platform, ensuring redundancy and enabling remote access. At the bedside, a nurse scans a patient identifier at a PLC-connected HMI terminal. The Node-RED edge application reads this identifier via Modbus TCP, queries the ThingSpeak cloud for active prescriptions, filters by the current medication round schedule, and displays the relevant medications on the HMI screen (as detailed in Figure 1). Upon administration confirmation, the system logs the event back to the cloud, completing the audit trail.
 
 ### 3.1.1 Management Subsystem (Flask/Web Application)
 
@@ -60,6 +69,20 @@ The HMI screens were designed using NB Designer, the configuration software for 
 
 The communication settings configure the HMI (192.168.250.4) as the Modbus TCP master connecting to the Node-RED edge device (192.168.250.2) acting as the slave on port 10502.
 
+### Figure 1.1: Physical Connection Diagram
+
+*Figure 1.1: Wiring diagram showing the physical connections between the Edge Device, Ethernet Switch, and HMI Panel.*
+
+```mermaid
+graph LR
+    Edge["Edge Device (EdgeAI CM5)<br/>RJ45 Port"] -- "Cat6 Ethernet" --> Switch["Ethernet Switch<br/>(Unmanaged)"]
+    Switch -- "Cat6 Ethernet" --> HMI["HMI Panel (Omron NB)<br/>RJ45 Port"]
+    Switch -- "Cat6 Ethernet" --> PLC["PLC Controller<br/>(Optional/Simulated)"]
+    Power["24V DC Power Supply"] -- "V+/V-" --> Edge
+    Power -- "V+/V-" --> HMI
+    Power -- "V+/V-" --> Switch
+```
+
 **Physical Network Topology:**
 
 ```mermaid
@@ -72,7 +95,7 @@ graph LR
 
 | Main Menu | Patient ID Entry | Medication Display |
 | :---: | :---: | :---: |
-| ![](https://cdn-mineru.openxlab.org.cn/result/2025-12-01/07348aac-b865-4ac6-bd69-cd06bbc512bb/0e89220e81f390a0b40798cd2091dc0a8d7578f942cea1cc4d62b3ed5bff889a.jpg) | ![](https://cdn-mineru.openxlab.org.cn/result/2025-12-01/07348aac-b865-4ac6-bd69-cd06bbc512bb/20fd7e9a8d9977041cdf3d19076c0a5f7b70c35fdc9223b0da5d8e7d0058cc58.jpg) | ![](https://cdn-mineru.openxlab.org.cn/result/2025-12-01/07348aac-b865-4ac6-bd69-cd06bbc512bb/b0393dae0fe70aa3d1a05ce18126463b5da610e937ccc6e1c04a23063e80f9a3.jpg) |
+| ![Main Menu](./images/hmi_main_menu.jpg) | ![Patient ID](./images/hmi_patient_id.jpg) | ![Medication Display](./images/hmi_medication_display.jpg) |
 *Figure 1: The three primary user interface screens deployed on the Omron NB HMI.*
 
 The Node-RED flow implements scheduled medication rounds at 09:00, 13:00, 17:00, and 21:00. The prescription filtering logic operates on three criteria. First, the patient ID decoded from PLC holding registers must match the prescription record. Second, the current date must fall within the prescription's valid date range defined by the start_date and end_date fields. Third, the current time must match one of the comma-separated time slots specified in the prescription (e.g., "09:00, 13:00, 17:00, 21:00"). The matching logic performs an exact string comparison in HH:MM format, with the cron scheduler ensuring triggers occur precisely at the designated times. For manual triggers initiated via the Node-RED dashboard, the system uses the current system time or an optional override value provided for testing purposes.
@@ -360,11 +383,17 @@ flowchart LR
 
 ## 3.3 Design Justification & Calculations
 
+**Assumptions for Analysis:**
+1.  **Low Queue Contention:** The queue processing time ($T_{queue}$) assumes < 50 pending items, typical for a single ward.
+2.  **Stable Network:** Cloud write times assume a standard 4G/LTE or hospital Wi-Fi connection with 1-2s round-trip time.
+3.  **Success Rate:** A 95% per-attempt success rate is assumed for cloud HTTP requests, accounting for occasional transient failures.
+4.  **Hardware:** Power calculations assume the EdgeAI CM5 is powered via 24V DC and the HMI is an Omron NB7W series.
+
 ### 3.3.1 System Latency Analysis
 
 The total end-to-end latency from prescription entry to bedside availability is a critical performance metric. The system latency can be modeled as:
 
-$$T_{total} = T_{queue} + T_{local\_write} + T_{sync\_delay} + T_{cloud\_write} + T_{poll}$$
+$$T_{total} [\text{sec}] = T_{queue} + T_{local\_write} + T_{sync\_delay} + T_{cloud\_write} + T_{poll}$$
 
 **Equation 1: End-to-End Latency Model**
 
@@ -376,10 +405,10 @@ Where:
 - $T_{poll}$: Node-RED prescription refresh interval ≈ 600s (10 minutes) or manual trigger
 
 **Worst-case latency (periodic refresh):**
-$$T_{total,max} = 0.1 + 0.01 + 10 + 2 + 600 = 612.11s \approx 10.2 \text{ minutes}$$
+$$T_{total,max} = 0.1 + 0.01 + 10 + 2 + 600 = 612.11\text{s} \approx 10.2 \text{ minutes}$$
 
 **Best-case latency (manual refresh on HMI):**
-$$T_{total,min} = 0.1 + 0.01 + 10 + 2 + 5 = 17.11s \approx 17 \text{ seconds}$$
+$$T_{total,min} = 0.1 + 0.01 + 10 + 2 + 5 = 17.11\text{s} \approx 17 \text{ seconds}$$
 
 **Justification:** The latency profile is acceptable for the clinical workflow where:
 1. Prescriptions are typically entered well in advance of medication rounds (hours to days).
@@ -471,6 +500,22 @@ Assuming $p = 0.95$ (95% success rate per attempt, accounting for transient netw
 
 With 3 retry attempts, the system achieves 99.99% delivery reliability, with failed items preserved in a separate list for manual intervention.
 
+### 3.3.5 Power Budget Analysis
+
+The power consumption of the administration subsystem is a key factor for sustainable operation, particularly if deployed on mobile carts.
+
+| Component | Voltage | Current (Max) | Power (W) | Duty Cycle | Avg Power (W) |
+|-----------|---------|---------------|-----------|------------|---------------|
+| Edge Device (EdgeAI CM5) | 12V-24V | 0.5A @ 12V | 6.0 W | 100% | 6.0 W |
+| HMI Panel (Omron NB7W) | 24V | 0.4A | 9.6 W | 100% | 9.6 W |
+| Ethernet Switch (5-port) | 5V | 0.6A | 3.0 W | 100% | 3.0 W |
+| **Total System** | | | **18.6 W** | | **18.6 W** |
+
+**Total Daily Energy Consumption:**
+$$E_{daily} = 18.6\text{W} \times 24\text{h} = 446.4 \text{ Wh} \approx 0.45 \text{ kWh}$$
+
+This low power profile supports operation via standard UPS units or mobile cart battery systems (typically 40Ah @ 12V = 480Wh), allowing for ~24 hours of autonomy on battery power if needed.
+
 ---
 
 ## 3.4 Connection to User Needs
@@ -491,14 +536,14 @@ The design decisions for the eMAR system are directly derived from the identifie
 
 ### Traceability Matrix
 
-| Req ID | Requirement Description                                     | Design Feature                            | Verification Method                                |
-| ------ | ----------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------- |
-| REQ-01 | System shall store prescriptions within 60s of entry        | Persistent Queue + Background Worker      | Integration test: measure queue processing time    |
-| REQ-02 | System shall display prescriptions at HMI within 15 minutes | Node-RED 10-minute poll + ThingSpeak sync | End-to-end test: timestamp comparison              |
-| REQ-03 | System shall survive application restarts                   | JSON file persistence for queues          | Recovery test: kill process, restart, verify queue |
-| REQ-04 | System shall prevent XSS attacks                            | HTML escaping in validators               | Security test: inject `<script>` payloads          |
-| REQ-05 | System shall communicate with Modbus PLCs                   | FC3/FC5/FC16 implementation               | Protocol test: register read/write verification    |
-| REQ-06 | System shall log all administrations                        | Tracking channel write on "Served"        | Audit test: verify cloud records match events      |
+| Req ID | Requirement Description | Design Feature | Verification Method | Test Evidence |
+| :--- | :--- | :--- | :--- | :--- |
+| REQ-01 | System shall store prescriptions within 60s of entry | Persistent Queue + Background Worker | Integration test: measure queue processing time | `test_queue_integration.py` (PASS) |
+| REQ-02 | System shall display prescriptions at HMI within 15 minutes | Node-RED 10-minute poll + ThingSpeak sync | End-to-end test: timestamp comparison | `test_e2e.py` (PASS) |
+| REQ-03 | System shall survive application restarts | JSON file persistence for queues | Recovery test: kill process, restart, verify queue | `test_hybrid_service_fallback.py` (PASS) |
+| REQ-04 | System shall prevent XSS attacks | HTML escaping in validators | Security test: inject `<script>` payloads | `test_validation.py` (PASS) |
+| REQ-05 | System shall communicate with Modbus PLCs | FC3/FC5/FC16 implementation | Protocol test: register read/write verification | Manual Validation (Modbus Poll) |
+| REQ-06 | System shall log all administrations | Tracking channel write on "Served" | Audit test: verify cloud records match events | `test_tracking_integration.py` (PASS) |
 
 ---
 
@@ -510,13 +555,14 @@ The current prototype is designed for a single hospital ward (approximately 20 p
 
 **Current State → Production Migration:**
 
-| Component        | Prototype                    | Production                          | Rationale                                                                                                                                                 |
-| ---------------- | ---------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Primary Database | Local JSON files             | PostgreSQL / TimescaleDB            | JSON file I/O does not scale beyond ~10,000 records; relational database provides indexing, concurrent access, and ACID compliance.                       |
-| Cloud Platform   | ThingSpeak (Free Tier)       | MQTT Broker (HiveMQ / AWS IoT Core) | ThingSpeak's 15-second rate limit (240 writes/hour) is insufficient for enterprise scale; MQTT supports thousands of messages/second with QoS guarantees. |
-| Queue System     | In-memory + JSON persistence | Redis / RabbitMQ                    | Distributed message queue enables horizontal scaling across multiple application instances with guaranteed delivery.                                      |
-| Edge Deployment  | Single Node-RED instance     | Kubernetes-orchestrated containers  | Container orchestration enables automated failover, rolling updates, and multi-site deployment management.                                                |
-| Authentication   | Session-based (basic)        | OAuth 2.0 / SAML with RBAC          | Healthcare compliance requires role-based access control, audit logging, and integration with hospital identity providers.                                |
+| Component | Prototype | Production | Rationale |
+| --- | --- | --- | --- |
+| Primary Database | Local JSON files | PostgreSQL / TimescaleDB | JSON file I/O does not scale beyond ~10,000 records; relational database provides indexing, concurrent access, and ACID compliance. |
+| Cloud Platform | ThingSpeak (Free Tier) | MQTT Broker (HiveMQ / AWS IoT Core) | ThingSpeak's 15-second rate limit (240 writes/hour) is insufficient for enterprise scale; MQTT supports thousands of messages/second with QoS guarantees. |
+| Queue System | In-memory + JSON persistence | Redis / RabbitMQ | Distributed message queue enables horizontal scaling across multiple application instances with guaranteed delivery. |
+| Edge Deployment | Single Node-RED instance | Kubernetes-orchestrated containers | Container orchestration enables automated failover, rolling updates, and multi-site deployment management. |
+| Authentication | Session-based (basic) | OAuth 2.0 / SAML with RBAC | Healthcare compliance requires role-based access control, audit logging, and integration with hospital identity providers. |
+| **Physical Housing** | 3D Printed Case | Injection Molded ABS | **Cost Reduction:** At >1000 units, injection molding unit cost drops to ~$5 vs ~$50 for 3D printing. |
 
 **Scaling Calculation:**
 
@@ -536,14 +582,15 @@ The eMAR system, as a healthcare information system, must align with the followi
 - **HL7 FHIR (Fast Healthcare Interoperability Resources):** The prescription and tracking data models should be mapped to FHIR `MedicationRequest` and `MedicationAdministration` resources to enable integration with Electronic Health Records (EHR) systems.
 - **ISO/IEEE 11073 (Health Informatics - Point-of-Care Medical Device Communication):** Relevant for standardizing the Modbus-to-cloud protocol translation, ensuring interoperability with other medical devices.
 
-**Data Security:**
+**Data Security & Privacy:**
 - **ISO 27001 (Information Security Management):** Framework for implementing access controls, encryption, and audit trails.
 - **HIPAA (Health Insurance Portability and Accountability Act):** US regulation requiring encryption of Protected Health Information (PHI) in transit and at rest; audit logging of all access.
-- **Australian Privacy Act (Privacy Principles 11):** Requires reasonable security measures for health information.
+- **Personal Data Protection Act 2010 (PDPA):** Regulates the processing of personal data in commercial transactions in Malaysia, requiring security standards to prevent loss, misuse, or unauthorized access. Specifically the Security Principle, requiring practical steps to protect personal data.
 
-**Industrial Communication:**
+**Industrial Communication & Safety:**
 - **IEC 61131-3:** The Modbus interface complies with this standard for PLC communication, using standard function codes (FC3, FC5, FC16).
 - **IEEE 802.3 (Ethernet):** Modbus TCP operates over standard Ethernet infrastructure.
+- **CISPR 11 / EN 55011:** Industrial, Scientific and Medical (ISM) equipment - Radio-frequency disturbance characteristics. The system must meet Class A limits for industrial environments to ensure it does not interfere with sensitive medical equipment.
 
 **Medical Device Software:**
 - **IEC 62304 (Medical Device Software Lifecycle):** For commercial deployment, the software development process should be documented according to this standard, including risk analysis, design verification, and validation testing.
@@ -557,13 +604,14 @@ The eMAR system processes Protected Health Information (PHI) including patient n
 - **Encryption in Transit:** All ThingSpeak API communications utilize HTTPS (TLS 1.2+). Production deployments should enforce certificate pinning and disable legacy SSL protocols.
 - **Encryption at Rest:** The local JSON database files should be encrypted using AES-256 on production systems. The current prototype stores data in plaintext for development convenience.
 - **Access Controls:** Production deployments require role-based access control (RBAC) with separate permissions for prescription entry (physicians), patient management (nurses), and system administration.
-- **Data Retention:** Tracking records should be retained according to local healthcare regulations (typically 7 years for medical records in Australia); automated archival and secure deletion policies must be implemented.
+- **Data Retention:** Tracking records should be retained according to local healthcare regulations (typically 7 years for medical records in Malaysia under the Private Healthcare Facilities and Services Act 1998); automated archival and secure deletion policies must be implemented.
 
 ### 3.5.4 Sustainability Considerations
 
-- **Energy Efficiency:** The hybrid architecture minimizes cloud API calls through local caching, reducing network energy consumption. The edge device (EdgeAI CM5) operates at approximately 5W, compared to a full server deployment.
-- **Hardware Longevity:** The Modbus protocol support enables integration with existing industrial hardware, avoiding premature replacement of functional PLCs/HMIs.
+- **Energy Efficiency:** The hybrid architecture minimizes cloud API calls through local caching, reducing network energy consumption. The low-power edge architecture (< 20W total system power) significantly reduces the carbon footprint compared to traditional PC-based nursing stations.
+- **Hardware Longevity:** The Modbus protocol support enables integration with existing industrial hardware, avoiding premature replacement of functional PLCs/HMIs (reducing e-waste).
 - **Data Minimization:** The system stores only operationally necessary data, with configurable retention periods to comply with data protection regulations and minimize storage requirements.
+- **Lifecycle Assessment (LCA):** Material choices for the final enclosure should prioritize recyclable plastics (e.g., ABS or PETG) over composite materials. End-of-life handling should comply with the WEEE Directive, ensuring electronic components are recovered and recycled.
 
 ---
 
@@ -650,3 +698,21 @@ Power management is a critical consideration for mobile cart reliability, as inc
 | [7] | U.S. FDA | Radio Frequency Wireless Technology in Medical Devices - Guidance for Industry |
 | [8] | IEC | IEC 80001-1:2010 Application of risk management for IT-networks incorporating medical devices |
 | [9] | Zebra Technologies | ET5x Series Enterprise Tablets - Healthcare Solutions Documentation |
+
+## Acronyms
+
+- **API:** Application Programming Interface
+- **BOM:** Bill of Materials
+- **eMAR:** Electronic Medication Administration Record
+- **FHIR:** Fast Healthcare Interoperability Resources
+- **HMI:** Human-Machine Interface
+- **HL7:** Health Level Seven International
+- **IoT:** Internet of Things
+- **MQTT:** Message Queuing Telemetry Transport
+- **OFDMA:** Orthogonal Frequency-Division Multiple Access
+- **PLC:** Programmable Logic Controller
+- **PHI:** Protected Health Information
+- **RBAC:** Role-Based Access Control
+- **TLS:** Transport Layer Security
+- **TWT:** Target Wake Time
+- **XSS:** Cross-Site Scripting
