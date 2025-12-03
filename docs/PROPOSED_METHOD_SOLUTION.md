@@ -411,9 +411,9 @@ graph LR
     TSSvc --> TS_Cloud
 ```
 
-### Figure 6: Data Flow - Hybrid Storage Architecture
+### Figure 7: Data Flow - Hybrid Storage Architecture
 
-*Figure 6: Data flow diagram showing the hybrid local/cloud storage strategy with sync operations.*
+*Figure 7: Data flow diagram showing the hybrid local/cloud storage strategy with sync operations.*
 
 ```mermaid
 flowchart LR
@@ -451,10 +451,10 @@ flowchart LR
     style SyncQ fill:#FFE4B5
 ```
 
-### Figure 7: Mechanical Enclosure Design
+### Figure 8: Mechanical Enclosure Design
 
 ![CAD Exploded View](./images/CAD_Render.png)
-*Figure 7: Conceptual exploded CAD view of the proposed industrial enclosure (AI-generated visualization).*
+*Figure 8: Conceptual exploded CAD view of the proposed industrial enclosure (AI-generated visualization).*
 
 ---
 
@@ -756,3 +756,4 @@ Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Feature
 - **TLS:** Transport Layer Security
 - **TWT:** Target Wake Time
 - **XSS:** Cross-Site Scripting
+ing
