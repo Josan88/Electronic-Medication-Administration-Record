@@ -570,6 +570,13 @@ The power consumption of the administration subsystem is a key factor for sustai
 | Ethernet Switch (5-port) | 5V      | 0.6A          | 3.0 W      | 100%       | 3.0 W         |
 | **Total System**         |         |               | **18.6 W** |            | **18.6 W**    |
 
+**PSU Selection with Safety Margin:**
+To ensure long-term reliability and prevent thermal stress, a standard 20% safety margin is applied to the peak power requirement:
+
+$$P_{recommended} = P_{peak} \times 1.20 = 18.6\text{W} \times 1.20 = 22.32\text{W}$$
+
+**Recommendation:** A 24V DC Power Supply Unit (PSU) rated for at least **24W (1A)** is required to prevent running the supply at 100% load capacity.
+
 **Total Daily Energy Consumption:**
 $$E_{daily} = 18.6\text{W} \times 24\text{h} = 446.4 \text{ Wh} \approx 0.45 \text{ kWh}$$
 
