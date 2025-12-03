@@ -379,6 +379,11 @@ flowchart LR
     style SyncQ fill:#FFE4B5
 ```
 
+### Figure 7: Mechanical Enclosure Design
+
+![CAD Exploded View](./images/CAD_Render.png)
+*Figure 7: Conceptual exploded CAD view of the proposed industrial enclosure (AI-generated visualization).*
+
 ---
 
 ## 3.3 Design Justification & Calculations
@@ -682,6 +687,11 @@ Electromagnetic coexistence presents a particular concern in healthcare environm
 ### 3.7.6 Mobile Medication Cart Hardware
 
 Modern healthcare workstations designed for mobile medication administration incorporate several features essential for reliable wireless operation. Manufacturers such as Zebra Technologies (ET5x series) and Capsa Healthcare produce ruggedized tablets specifically designed for clinical environments. These devices are engineered to withstand repeated cleaning with hospital-grade disinfectants and can survive drops from cart height onto hard floors. Integrated barcode scanners support patient and medication verification workflows, while support for the latest Wi-Fi standards ensures reliable connectivity during roaming [9].
+
+### Figure 8: Mobile Medication Cart Integration
+
+![Mobile Cart Context](./images/In-Context.png)
+*Figure 8: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
 
 Power management is a critical consideration for mobile cart reliability, as inconsistent power delivery can cause the Wi-Fi radio to drop out during high-current events. Modern medication carts increasingly utilize LiFePO4 (Lithium Iron Phosphate) battery chemistry rather than traditional Lead-Acid batteries. LiFePO4 cells provide a longer cycle life (typically 2000+ cycles versus 500 cycles for Lead-Acid), more stable voltage output throughout the discharge cycle, and faster charging capability. The stable voltage characteristic is particularly important for maintaining consistent Wi-Fi connectivity during motor-driven cart height adjustments or when powering peripheral devices [9].
 
