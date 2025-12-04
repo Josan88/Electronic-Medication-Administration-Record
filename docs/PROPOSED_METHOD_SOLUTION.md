@@ -40,7 +40,7 @@ graph TB
     end
 
     subgraph Edge["Administration Domain (Edge Device)"]
-        NodeRED["Node-RED<br/>(EdgeAI CM5)"]
+        NodeRED["Node-RED<br/>(IRIV PiControl (CM5 Core))"]
         Modbus["Modbus TCP<br/>(Port 10502)"]
         PLC["PLC/HMI<br/>Controller"]
         Display["HMI Display<br/>(8 lines x 20 chars)"]
@@ -223,7 +223,9 @@ The subsystem employs a **Persistent Queue Architecture** to handle the inherent
 
 ### 3.1.2 Cloud Data Subsystem (ThingSpeak IoT Platform)
 
-The Cloud Data Subsystem utilizes ThingSpeak as the central data bridge between the Management and Administration subsystems. ThingSpeak provides RESTful API access to three dedicated channels:
+The Cloud Data Subsystem utilizes ThingSpeak as the central data bridge between the Management and Administration subsystems. ThingSpeak provides RESTful API access to three dedicated channels (detailed in **Table 1**):
+
+### Table 1: ThingSpeak Channel Configuration
 
 | Channel               | ID      | Purpose                | Fields                                                                        |
 | --------------------- | ------- | ---------------------- | ----------------------------------------------------------------------------- |
@@ -320,9 +322,13 @@ flowchart TD
 
 ### 3.1.3 Administration Subsystem (Node-RED/PLC Interface)
 
-The Administration Subsystem executes on an edge computing device (IRIV EdgeAI CM5) running Node-RED, providing the bridge between the cloud platform and industrial automation hardware. The system communicates with PLCs/HMIs via **Modbus TCP** protocol on port 10502.
+The Administration Subsystem executes on an edge computing device (IRIV PiControl (CM5 Core)) running Node-RED, providing the bridge between the cloud platform and industrial automation hardware. The system communicates with PLCs/HMIs via **Modbus TCP** protocol on port 10502.
 
 **Modbus Register Mapping:**
+
+The specific register addresses used for patient identification and medication display are defined in **Table 2**.
+
+### Table 2: Modbus Register Map
 
 | Function                 | Operation | Register Type     | Address | Quantity | Description                                           |
 | ------------------------ | --------- | ----------------- | ------- | -------- | ----------------------------------------------------- |
@@ -360,7 +366,7 @@ graph TD
     end
 
     subgraph Loads ["System Loads"]
-        CM5["Edge Device<br/>EdgeAI CM5<br/>(Terminals)"]
+        CM5["Edge Device<br/>IRIV PiControl (CM5 Core)<br/>(Terminals)"]
         HMI1["HMI Panel 1<br/>(Bed 1)"]
         HMI2["HMI Panel 2<br/>(Bed 2)"]
         HMI3["HMI Panel 3<br/>(Bed 3)"]
@@ -387,20 +393,28 @@ graph TD
 
 **DC Wiring Schedule:**
 
+The point-to-point wiring connections for the power distribution system are detailed in **Table 3**.
+
+### Table 3: DC Wiring Schedule
+
 | Wire ID  | Source Component  | Terminal | Destination Component | Terminal  | Conductor Spec  | Color Code | Function           |
 | :------- | :---------------- | :------- | :-------------------- | :-------- | :-------------- | :--------- | :----------------- |
 | **W-01** | Power Supply Unit | +24V Out | Fuse Holder (F1)      | Line      | 18 AWG Stranded | Red        | Main Power Feed    |
 | **W-02** | Fuse Holder (F1)  | Load     | Diode (D1)            | Anode     | 18 AWG Stranded | Red        | Protected Feed     |
 | **W-03** | Diode (D1)        | Cathode  | Dist. Block (+)       | Bus Entry | 18 AWG Stranded | Red        | Rectified Bus Feed |
 | **W-04** | Power Supply Unit | 0V GND   | Dist. Block (-)       | Bus Entry | 18 AWG Stranded | Black      | Main Ground Feed   |
-| **W-05** | Dist. Block (+)   | Port 1   | EdgeAI CM5            | DC In (+) | 18 AWG Stranded | Red        | Edge Device Power  |
-| **W-06** | Dist. Block (-)   | Port 1   | EdgeAI CM5            | DC In (-) | 18 AWG Stranded | Black      | Edge Device Ground |
+| **W-05** | Dist. Block (+)   | Port 1   | IRIV PiControl (CM5 Core)            | DC In (+) | 18 AWG Stranded | Red        | Edge Device Power  |
+| **W-06** | Dist. Block (-)   | Port 1   | IRIV PiControl (CM5 Core)            | DC In (-) | 18 AWG Stranded | Black      | Edge Device Ground |
 | **W-07** | Dist. Block (+)   | Port 2   | HMI Panel 1           | 24VDC     | 18 AWG Stranded | Red        | HMI 1 Power        |
 | **W-08** | Dist. Block (-)   | Port 2   | HMI Panel 1           | 0V        | 18 AWG Stranded | Black      | HMI 1 Ground       |
 | **W-09** | Dist. Block (+)   | Port 3   | Ethernet Switch       | DC In     | 18 AWG Stranded | Red        | Switch Power       |
 | **W-10** | Dist. Block (-)   | Port 3   | Ethernet Switch       | GND       | 18 AWG Stranded | Black      | Switch Ground      |
 
 **Modbus TCP Interface (RJ45 T-568B):**
+
+The pinout configuration for the Ethernet communication interface is shown in **Table 4**.
+
+### Table 4: Modbus TCP Pinout
 
 |   Pin   | Signal | Function        |
 | :-----: | :----- | :-------------- |
@@ -411,7 +425,7 @@ graph TD
 | 4,5,7,8 | N/C    | Unused          |
 
 **Network Port Assignment:**
-- **Switch Port 1:** Edge Device (EdgeAI CM5)
+- **Switch Port 1:** Edge Device (IRIV PiControl (CM5 Core))
 - **Switch Port 2:** HMI Panel 1 (Omron NB7W - Bed 1)
 - **Switch Port 3:** HMI Panel 2 (Omron NB7W - Bed 2)
 - **Switch Port 4:** HMI Panel 3 (Omron NB7W - Bed 3)
@@ -440,9 +454,15 @@ graph LR
 |                Main Menu                 |              Patient ID Entry              |                     Medication Display                     |
 | :--------------------------------------: | :----------------------------------------: | :--------------------------------------------------------: |
 | ![Main Menu](./images/hmi_main_menu.jpg) | ![Patient ID](./images/hmi_patient_id.jpg) | ![Medication Display](./images/hmi_medication_display.jpg) |
-*Figure 7: The three primary user interface screens deployed on the Omron NB HMI.*
+*Figure 7: The three primary user interface screens deployed on the Omron NB HMI: Main Menu (Navigation), Patient ID Entry (Input), and Medication Display (Output/Action).*
 
 The Node-RED flow implements scheduled medication rounds at 09:00, 13:00, 17:00, and 21:00. The prescription filtering logic operates on three criteria. First, the patient ID decoded from PLC holding registers must match the prescription record. Second, the current date must fall within the prescription's valid date range defined by the start_date and end_date fields. Third, the current time must match one of the comma-separated time slots specified in the prescription (e.g., "09:00, 13:00, 17:00, 21:00"). The matching logic performs an exact string comparison in HH:MM format, with the cron scheduler ensuring triggers occur precisely at the designated times. For manual triggers initiated via the Node-RED dashboard, the system uses the current system time or an optional override value provided for testing purposes.
+
+**Operational Workflow Example:**
+To illustrate the system response shown in **Figure 7**:
+1.  **Input:** The nurse selects "Set Patient ID" (Left Screen) and scans a badge, populating the "Patient ID Entry" screen (Center) with ID `3124887`.
+2.  **Process:** The Node-RED logic queries the "Medicine Prescription" channel and filters for the current time slot (e.g., "09:00").
+3.  **Output:** The "Medication Display" (Right Screen) lists the matching dosage ("Paracetamol 500mg"). Pressing the "Served" button confirms administration, triggering a write to the cloud tracking channel.
 
 ### 3.1.4 Interface Specification
 
@@ -458,7 +478,7 @@ Protocol translation enables conversion between modern web protocols and legacy 
 1.  **Low Queue Contention:** The queue processing time ($T_{queue}$) assumes < 50 pending items, typical for a single ward.
 2.  **Stable Network:** Cloud write times assume a standard 4G/LTE or hospital Wi-Fi connection with 1-2s round-trip time.
 3.  **Success Rate:** A 95% per-attempt success rate is assumed for cloud HTTP requests, accounting for occasional transient failures.
-4.  **Hardware:** Power calculations assume the EdgeAI CM5 is powered via 24V DC and the HMI is an Omron NB7W series.
+4.  **Hardware:** Power calculations assume the IRIV PiControl (CM5 Core) is powered via 24V DC and the HMI is an Omron NB7W series.
 
 ### 3.2.1 System Latency Analysis
 
@@ -577,7 +597,7 @@ The power consumption of the administration subsystem is a key factor for sustai
 
 | Component                | Voltage | Current (Max) | Power (W)  | Duty Cycle | Avg Power (W) |
 | ------------------------ | ------- | ------------- | ---------- | ---------- | ------------- |
-| Edge Device (EdgeAI CM5) | 12V-24V | 0.5A @ 12V    | 6.0 W      | 100%       | 6.0 W         |
+| Edge Device (IRIV PiControl (CM5 Core)) | 12V-24V | 0.5A @ 12V    | 6.0 W      | 100%       | 6.0 W         |
 | HMI Panel (Omron NB7W)   | 24V     | 0.4A          | 9.6 W      | 100%       | 9.6 W         |
 | Ethernet Switch (5-port) | 5V      | 0.6A          | 3.0 W      | 100%       | 3.0 W         |
 | **Total System**         |         |               | **18.6 W** |            | **18.6 W**    |
@@ -592,7 +612,16 @@ $$P_{recommended} = P_{peak} \times 1.20 = 18.6\text{W} \times 1.20 = 22.32\text
 **Total Daily Energy Consumption:**
 $$E_{daily} = 18.6\text{W} \times 24\text{h} = 446.4 \text{ Wh} \approx 0.45 \text{ kWh}$$
 
-This low power profile supports operation via standard UPS units or mobile cart battery systems (typically 40Ah @ 12V = 480Wh), allowing for ~24 hours of autonomy on battery power if needed.
+**Equation 5: Battery Capacity Sizing**
+
+To achieve 24-hour autonomy, the required battery capacity ($C_{req}$) is calculated applying a depth-of-discharge (DoD) limit of 80% and a derating factor ($k_{loss}=0.85$) for inverter/regulator efficiency:
+
+$$C_{req} [Wh] = \frac{E_{daily}}{DoD \times k_{loss}} = \frac{446.4}{0.8 \times 0.85} \approx 656 \text{ Wh}$$
+
+For a 12V system, this corresponds to:
+$$C_{Ah} = \frac{656 \text{ Wh}}{12 \text{ V}} \approx 54.7 \text{ Ah}$$
+
+**Recommendation:** A standard **12V 60Ah LiFePO4** battery is recommended, providing approximately 26 hours of runtime ($60Ah \times 12V \times 0.8 \times 0.85 / 18.6W$). This chemistry is selected for its flat discharge curve and negligible Peukert effect (unlike Lead-Acid), ensuring consistent capacity delivery even under varying load conditions.
 
 ---
 
@@ -652,6 +681,12 @@ $$\text{Peak rate (1-hour round)} = \frac{16,000}{4 \times 1 \text{ hour}} = 4,0
 
 This exceeds ThingSpeak's capacity by a factor of $\frac{4000}{240} = 16.7\times$, necessitating migration to MQTT.
 
+**Manufacturing & Maintenance Strategy:**
+To support mass production and long-term serviceability, the following strategies are defined:
+- **Design for Manufacturing (DFM):** Enclosure designs will transition to injection-molded ABS with appropriate draft angles (>1.5°) and uniform wall thickness, targeting a Bill of Materials (BOM) cost reduction from ~$150 (prototype) to <$80 (volume).
+- **OTA Strategy:** Implementation of atomic Over-the-Air (OTA) updates (e.g., via Mender.io or BalenaOS) to ensure PiControl security patches and Node-RED flow updates can be deployed remotely without physical site visits.
+- **Modular Maintenance:** The use of standard DIN-rail mounts and screw-terminal connections (as detailed in **Figure 6**) ensures that individual sub-components (PSU, Switch, Edge Device) can be replaced by hospital IT staff without soldering or specialized tooling.
+
 ### 3.4.2 Relevant Standards and Regulations
 
 The eMAR system, as a healthcare information system, must align with the following standards for commercial deployment:
@@ -669,6 +704,7 @@ The eMAR system, as a healthcare information system, must align with the followi
 - **IEC 61131-3:** The Modbus interface complies with this standard for PLC communication, using standard function codes (FC3, FC5, FC16).
 - **IEEE 802.3 (Ethernet):** Modbus TCP operates over standard Ethernet infrastructure.
 - **CISPR 11 / EN 55011:** Industrial, Scientific and Medical (ISM) equipment - Radio-frequency disturbance characteristics. The system must meet Class A limits for industrial environments to ensure it does not interfere with sensitive medical equipment.
+- **IEC 60529 (Degrees of Protection):** The enclosure design targets **IP54** protection to prevent ingress of dust and splashing water, suitable for clinical environments where cleaning and disinfection occur regularly.
 
 **Medical Device Software:**
 - **IEC 62304 (Medical Device Software Lifecycle):** For commercial deployment, the software development process should be documented according to this standard, including risk analysis, design verification, and validation testing.
@@ -686,7 +722,7 @@ The eMAR system processes Protected Health Information (PHI) including patient n
 
 ### 3.4.4 Sustainability Considerations
 
-- **Energy Efficiency:** The hybrid architecture minimizes cloud API calls through local caching, reducing network energy consumption. The low-power edge architecture (< 20W total system power) significantly reduces the carbon footprint compared to traditional PC-based nursing stations.
+- **Energy Efficiency:** The hybrid architecture minimizes cloud API calls through local caching. Additionally, the HMI firmware is configured to enter a **low-power standby mode** (backlight dimming) after 5 minutes of inactivity, reducing display power consumption by ~60% during idle periods.
 - **Hardware Longevity:** The Modbus protocol support enables integration with existing industrial hardware, avoiding premature replacement of functional PLCs/HMIs (reducing e-waste).
 - **Data Minimization:** The system stores only operationally necessary data, with configurable retention periods to comply with data protection regulations and minimize storage requirements.
 - **Lifecycle Assessment (LCA):** Material choices for the final enclosure (visualized in **Figure 8**) should prioritize recyclable plastics (e.g., ABS or PETG) over composite materials. End-of-life handling should comply with the WEEE Directive, ensuring electronic components are recovered and recycled. Specific protocols must be established for LiFePO4 batteries used in mobile carts, requiring disposal via dedicated battery recycling facilities to recover lithium and prevent environmental leaching.
@@ -729,7 +765,7 @@ Transitioning to a wireless infrastructure requires addressing specific challeng
 
 ### 3.6.2 Mobile Hardware & Standards
 
-Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts. All wireless deployments must strictly adhere to **IEC 80001-1** (Risk management for IT-networks incorporating medical devices) to ensure electromagnetic coexistence with life-critical telemetry.
+Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts (as illustrated in **Figure 9**). All wireless deployments must strictly adhere to **IEC 80001-1** (Risk management for IT-networks incorporating medical devices) to ensure electromagnetic coexistence with life-critical telemetry.
 
 ### Figure 9: Mobile Medication Cart Integration
 
@@ -742,13 +778,17 @@ Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Feature
 
 - **API:** Application Programming Interface
 - **BOM:** Bill of Materials
+- **DFM:** Design for Manufacturing
+- **DoD:** Depth of Discharge
 - **eMAR:** Electronic Medication Administration Record
 - **FHIR:** Fast Healthcare Interoperability Resources
 - **HMI:** Human-Machine Interface
 - **HL7:** Health Level Seven International
+- **IP:** Ingress Protection
 - **IoT:** Internet of Things
 - **MQTT:** Message Queuing Telemetry Transport
 - **OFDMA:** Orthogonal Frequency-Division Multiple Access
+- **OTA:** Over-the-Air
 - **PLC:** Programmable Logic Controller
 - **PHI:** Protected Health Information
 - **RBAC:** Role-Based Access Control
