@@ -9,7 +9,7 @@ This document summarizes the Node-RED flows stored in `nodered/` and how they br
 
 ## Architecture Overview
 - **Modbus layer** (tab: "Modbus"): exposes a Modbus TCP server (`192.168.250.2:10502`) that reads patient IDs and serves notebook/button registers for the HMI.
-- **Logic/UI layer** (tab: "Frontend"): fetches prescriptions from ThingSpeak, filters by patient/date/time, formats the notebook payload, logs administrations, and provides a dashboard for manual testing on the EdgeAI CM5.
+- **Logic/UI layer** (tab: "Frontend"): fetches prescriptions from ThingSpeak, filters by patient/date/time, formats the notebook payload, logs administrations, and provides a dashboard for manual testing on the IRIV PiControl (CM5 Core).
 - **Link nodes** decouple layers:
   - `Set Patient ID (Modbus backend)` → `link in 3` (passes decoded patient ID).
   - `Write MedicationList to Notebook` → `link in 4` (register array for notebook display).
@@ -37,7 +37,7 @@ This document summarizes the Node-RED flows stored in `nodered/` and how they br
 3. After success: clear `servingMedList`, reset coil `1` to `0`, and clear the notebook registers.
 
 ## Dashboard (Testing)
-- Tab: **IRIV EdgeAI CM5 Dashboard** (`/ui`).
+- Tab: **IRIV PiControl (CM5 Core) Dashboard** (`/ui`).
 - Widgets:
   - Manual `currentDate` and `currentTime` text inputs to override the filters.
   - "Get full patient medication list" button (fetch prescriptions immediately).
