@@ -6,9 +6,9 @@ This section details the technical implementation of the Electronic Medication A
 - **3.1 Unified System Architecture** (Overview, Subsystems, Interfaces)
 - **3.2 Design Justification & Calculations** (Latency, Throughput, Storage, Reliability, Power Budget)
 - **3.3 Connection to User Needs** (Traceability Matrix)
-- **3.4 Scalability & Standards** (Migration Path, Regulatory Compliance, Sustainability)
-- **3.5 Summary**
-- **3.6 Future Considerations** (Wireless Industrial Communication)
+- **3.4 Operational Compliance & Context** (Standards, Safety, Current Sustainability)
+- **3.5 Future Considerations & Scalability** (Production Migration, Wireless, Hardening)
+- **3.6 Summary**
 
 ## 3.1 Unified System Architecture
 
@@ -345,101 +345,11 @@ The HMI screens were designed using NB Designer, the configuration software for 
 
 **For a detailed step-by-step configuration guide including component property settings and Modbus addressing setup, please refer to Appendix A: HMI Configuration Guide.**
 
-The communication settings configure each HMI (e.g., 192.168.250.4, 192.168.250.5) as a Modbus TCP master connecting to the shared Node-RED edge device (192.168.250.2) acting as the slave on port 10502. This architecture allows a single edge device to serve multiple bedside terminals simultaneously. The electrical connection details are shown in **Figure 6**.
+The communication settings configure each HMI (e.g., 192.168.250.4, 192.168.250.5) as a Modbus TCP master connecting to the shared Node-RED edge device (192.168.250.2) acting as the slave on port 10502. This architecture allows a single edge device to serve multiple bedside terminals simultaneously.
 
-### Figure 6: Electrical Connection Schematic
+### Figure 6: Physical Network Topology
 
-*Figure 6: Electrical schematic showing 24V DC distribution, protection components, and Modbus TCP interface wiring.*
-
-```mermaid
-graph TD
-    subgraph PowerSource ["Power Supply Unit"]
-        VCC(("+24V DC"))
-        GND(("0V GND"))
-    end
-
-    subgraph Protection ["Protection Circuit"]
-        F1["Fuse F1<br/>2A Slow-Blow"]
-        D1["Diode D1<br/>1N5408<br/>Reverse Protection"]
-        TB_V["Terminal Block +"]
-        TB_G["Terminal Block -"]
-    end
-
-    subgraph Loads ["System Loads"]
-        CM5["Edge Device<br/>IRIV PiControl (CM5 Core)<br/>(Terminals)"]
-        HMI1["HMI Panel 1<br/>(Bed 1)"]
-        HMI2["HMI Panel 2<br/>(Bed 2)"]
-        HMI3["HMI Panel 3<br/>(Bed 3)"]
-        SW["Ethernet Switch<br/>Unmanaged"]
-    end
-
-    VCC ==> F1
-    F1 ==> D1
-    D1 ==> TB_V
-    GND ==> TB_G
-
-    TB_V -- "18 AWG Red" --> CM5
-    TB_V -- "18 AWG Red" --> HMI1
-    TB_V -- "18 AWG Red" --> HMI2
-    TB_V -- "18 AWG Red" --> HMI3
-    TB_V -- "18 AWG Red" --> SW
-
-    TB_G -- "18 AWG Black" --> CM5
-    TB_G -- "18 AWG Black" --> HMI1
-    TB_G -- "18 AWG Black" --> HMI2
-    TB_G -- "18 AWG Black" --> HMI3
-    TB_G -- "18 AWG Black" --> SW
-```
-
-**DC Wiring Schedule:**
-
-The point-to-point wiring connections for the power distribution system are detailed in **Table 3**.
-
-### Table 3: DC Wiring Schedule
-
-| Wire ID  | Source Component  | Terminal | Destination Component | Terminal  | Conductor Spec  | Color Code | Function           |
-| :------- | :---------------- | :------- | :-------------------- | :-------- | :-------------- | :--------- | :----------------- |
-| **W-01** | Power Supply Unit | +24V Out | Fuse Holder (F1)      | Line      | 18 AWG Stranded | Red        | Main Power Feed    |
-| **W-02** | Fuse Holder (F1)  | Load     | Diode (D1)            | Anode     | 18 AWG Stranded | Red        | Protected Feed     |
-| **W-03** | Diode (D1)        | Cathode  | Dist. Block (+)       | Bus Entry | 18 AWG Stranded | Red        | Rectified Bus Feed |
-| **W-04** | Power Supply Unit | 0V GND   | Dist. Block (-)       | Bus Entry | 18 AWG Stranded | Black      | Main Ground Feed   |
-| **W-05** | Dist. Block (+)   | Port 1   | IRIV PiControl (CM5 Core)            | DC In (+) | 18 AWG Stranded | Red        | Edge Device Power  |
-| **W-06** | Dist. Block (-)   | Port 1   | IRIV PiControl (CM5 Core)            | DC In (-) | 18 AWG Stranded | Black      | Edge Device Ground |
-| **W-07** | Dist. Block (+)   | Port 2   | HMI Panel 1           | 24VDC     | 18 AWG Stranded | Red        | HMI 1 Power        |
-| **W-08** | Dist. Block (-)   | Port 2   | HMI Panel 1           | 0V        | 18 AWG Stranded | Black      | HMI 1 Ground       |
-| **W-09** | Dist. Block (+)   | Port 3   | Ethernet Switch       | DC In     | 18 AWG Stranded | Red        | Switch Power       |
-| **W-10** | Dist. Block (-)   | Port 3   | Ethernet Switch       | GND       | 18 AWG Stranded | Black      | Switch Ground      |
-
-**Modbus TCP Interface (RJ45 T-568B):**
-
-The pinout configuration for the Ethernet communication interface is shown in **Table 4**.
-
-### Table 4: Modbus TCP Pinout
-
-|   Pin   | Signal | Function        |
-| :-----: | :----- | :-------------- |
-|    1    | TX+    | Transmit Data + |
-|    2    | TX-    | Transmit Data - |
-|    3    | RX+    | Receive Data +  |
-|    6    | RX-    | Receive Data -  |
-| 4,5,7,8 | N/C    | Unused          |
-
-**Network Port Assignment:**
-- **Switch Port 1:** Edge Device (IRIV PiControl (CM5 Core))
-- **Switch Port 2:** HMI Panel 1 (Omron NB7W - Bed 1)
-- **Switch Port 3:** HMI Panel 2 (Omron NB7W - Bed 2)
-- **Switch Port 4:** HMI Panel 3 (Omron NB7W - Bed 3)
-- **Switch Port 5:** Maintenance / Uplink
-
-**Component Specifications:**
-- **Rail Voltage:** 24V DC (SELV compliant)
-- **Power Connections:** 
-  - Edge Device/HMIs: **Screw Terminals** (Phoenix Contact 3.5mm pitch)
-  - Ethernet Switch: **2.1mm DC Barrel Jack** (Center Positive)
-- **Overcurrent Protection:** 2A Slow-Blow Fuse (F1) inline with VCC
-- **Reverse Polarity Protection:** 1N5408 Diode (D1) in series
-
-**Physical Network Topology:**
+*Figure 6: Diagram illustrating the Ethernet-based logical topology and IP addressing scheme for the administration subsystem.*
 
 ```mermaid
 graph LR
@@ -593,7 +503,7 @@ With 3 retry attempts, the system achieves 99.99% delivery reliability, with fai
 
 ### 3.2.5 Power Budget Analysis
 
-The power consumption of the administration subsystem is a key factor for sustainable operation, particularly if deployed on mobile carts.
+The power consumption of the administration subsystem is a key factor for sustainable operation. While the current prototype utilizes a wired Ethernet connection and mains power, this analysis demonstrates the hardware's energy efficiency and suitability for future deployment on battery-powered Workstations on Wheels (WOWs), a common requirement in clinical settings.
 
 | Component                | Voltage | Current (Max) | Power (W)  | Duty Cycle | Avg Power (W) |
 | ------------------------ | ------- | ------------- | ---------- | ---------- | ------------- |
@@ -609,7 +519,7 @@ $$P_{recommended} = P_{peak} \times 1.20 = 18.6\text{W} \times 1.20 = 22.32\text
 
 **Recommendation:** A 24V DC Power Supply Unit (PSU) rated for at least **24W (1A)** is required to prevent running the supply at 100% load capacity.
 
-**Total Daily Energy Consumption:**
+**Total Daily Energy Consumption (Mobile Scenario):**
 $$E_{daily} = 18.6\text{W} \times 24\text{h} = 446.4 \text{ Wh} \approx 0.45 \text{ kWh}$$
 
 **Equation 5: Battery Capacity Sizing**
@@ -621,7 +531,7 @@ $$C_{req} [Wh] = \frac{E_{daily}}{DoD \times k_{loss}} = \frac{446.4}{0.8 \times
 For a 12V system, this corresponds to:
 $$C_{Ah} = \frac{656 \text{ Wh}}{12 \text{ V}} \approx 54.7 \text{ Ah}$$
 
-**Recommendation:** A standard **12V 60Ah LiFePO4** battery is recommended, providing approximately 26 hours of runtime ($60Ah \times 12V \times 0.8 \times 0.85 / 18.6W$). This chemistry is selected for its flat discharge curve and negligible Peukert effect (unlike Lead-Acid), ensuring consistent capacity delivery even under varying load conditions.
+**Recommendation for Mobile Deployment:** A standard **12V 60Ah LiFePO4** battery is recommended, providing approximately 26 hours of runtime ($60Ah \times 12V \times 0.8 \times 0.85 / 18.6W$). This chemistry is selected for its flat discharge curve and negligible Peukert effect (unlike Lead-Acid), ensuring consistent capacity delivery even under varying load conditions.
 
 ---
 
@@ -654,11 +564,44 @@ The design decisions for the eMAR system are directly derived from the identifie
 
 ---
 
-## 3.4 Scalability & Standards
+## 3.4 Operational Compliance & Context
 
-### 3.4.1 Scalability Pathway
+This section details how the current prototype aligns with relevant industrial standards, safety requirements, and sustainability goals.
 
-The current prototype is designed for a single hospital ward (approximately 20 patients). Scaling to enterprise deployment (2,000+ patients across multiple facilities) requires architectural evolution:
+### 3.4.1 Relevant Standards
+
+The eMAR system is designed to align with key healthcare and industrial standards:
+
+- **Industrial Communication (IEC 61131-3):** The Modbus interface uses standard function codes (FC3, FC5, FC16) to ensure compatibility with PLCs.
+- **Network Infrastructure (IEEE 802.3):** All device communication operates over standard Ethernet infrastructure, ensuring ease of integration.
+- **Protection Ratings (IEC 60529):** The enclosure design targets **IP54** protection to prevent ingress of dust and splashing water, suitable for clinical environments where cleaning and disinfection occur regularly.
+- **Data Security (HTTPS):** All cloud API communications utilize HTTPS (TLS 1.2+) to ensure encryption in transit.
+
+### 3.4.2 Privacy & Data Safety
+
+In the current implementation, patient data is protected through:
+- **Input Sanitization:** Prevention of injection attacks via rigorous input validation.
+- **Primary Key Abstraction:** The Patient ID serves as the primary linkage key.
+- **Access Control:** The system requires API keys for all cloud interactions, preventing unauthorized public access.
+
+*Note: While the prototype provides functional security, commercial deployment would require additional hardening (detailed in Section 3.5).*
+
+### 3.4.3 Sustainability Features
+
+The system incorporates specific features to minimize environmental impact:
+- **Energy Efficiency:** The HMI firmware is configured to enter a **low-power standby mode** (backlight dimming) after 5 minutes of inactivity, reducing display power consumption by ~60% during idle periods.
+- **Hardware Longevity:** The support for Modbus protocol allows integration with existing industrial hardware, extending the useful life of legacy PLCs and HMIs and reducing e-waste.
+- **Data Minimization:** The system stores only operationally necessary data, reducing storage overhead.
+
+---
+
+## 3.5 Future Considerations & Scalability
+
+To transition from the current prototype to a fully compliant commercial product, several architectural evolutions and enhancements are proposed.
+
+### 3.5.1 Scalability Pathway
+
+The current prototype is designed for a single hospital ward (approximately 20 patients). Scaling to enterprise deployment (2,000+ patients across multiple facilities) requires the following architectural evolution:
 
 **Current State → Production Migration:**
 
@@ -681,60 +624,43 @@ $$\text{Peak rate (1-hour round)} = \frac{16,000}{4 \times 1 \text{ hour}} = 4,0
 
 This exceeds ThingSpeak's capacity by a factor of $\frac{4000}{240} = 16.7\times$, necessitating migration to MQTT.
 
-**Manufacturing & Maintenance Strategy:**
-To support mass production and long-term serviceability, the following strategies are defined:
-- **Design for Manufacturing (DFM):** Enclosure designs will transition to injection-molded ABS with appropriate draft angles (>1.5°) and uniform wall thickness, targeting a Bill of Materials (BOM) cost reduction from ~$150 (prototype) to <$80 (volume).
-- **OTA Strategy:** Implementation of atomic Over-the-Air (OTA) updates (e.g., via Mender.io or BalenaOS) to ensure PiControl security patches and Node-RED flow updates can be deployed remotely without physical site visits.
-- **Modular Maintenance:** The use of standard DIN-rail mounts and screw-terminal connections (as detailed in **Figure 6**) ensures that individual sub-components (PSU, Switch, Edge Device) can be replaced by hospital IT staff without soldering or specialized tooling.
+### 3.5.2 Commercial Hardening & Compliance
 
-### 3.4.2 Relevant Standards and Regulations
-
-The eMAR system, as a healthcare information system, must align with the following standards for commercial deployment:
-
-**Data Interoperability:**
-- **HL7 FHIR (Fast Healthcare Interoperability Resources):** The prescription and tracking data models should be mapped to FHIR `MedicationRequest` and `MedicationAdministration` resources to enable integration with Electronic Health Records (EHR) systems.
-- **ISO/IEEE 11073 (Health Informatics - Point-of-Care Medical Device Communication):** Relevant for standardizing the Modbus-to-cloud protocol translation, ensuring interoperability with other medical devices.
-
-**Data Security & Privacy:**
-- **ISO 27001 (Information Security Management):** Framework for implementing access controls, encryption, and audit trails.
-- **HIPAA (Health Insurance Portability and Accountability Act):** US regulation requiring encryption of Protected Health Information (PHI) in transit and at rest; audit logging of all access.
-- **Personal Data Protection Act 2010 (PDPA):** Regulates the processing of personal data in commercial transactions in Malaysia, requiring security standards to prevent loss, misuse, or unauthorized access. Specifically the Security Principle, requiring practical steps to protect personal data.
-
-**Industrial Communication & Safety:**
-- **IEC 61131-3:** The Modbus interface complies with this standard for PLC communication, using standard function codes (FC3, FC5, FC16).
-- **IEEE 802.3 (Ethernet):** Modbus TCP operates over standard Ethernet infrastructure.
-- **CISPR 11 / EN 55011:** Industrial, Scientific and Medical (ISM) equipment - Radio-frequency disturbance characteristics. The system must meet Class A limits for industrial environments to ensure it does not interfere with sensitive medical equipment.
-- **IEC 60529 (Degrees of Protection):** The enclosure design targets **IP54** protection to prevent ingress of dust and splashing water, suitable for clinical environments where cleaning and disinfection occur regularly.
-
-**Medical Device Software:**
-- **IEC 62304 (Medical Device Software Lifecycle):** For commercial deployment, the software development process should be documented according to this standard, including risk analysis, design verification, and validation testing.
-- **ISO 13485 (Medical Devices - Quality Management Systems):** Quality management framework for medical device manufacturers.
-
-### 3.4.3 Privacy and Data Protection Considerations
-
-The eMAR system processes Protected Health Information (PHI) including patient names, identifiers, and medication records. For commercial deployment, the following data protection measures must be implemented:
-
-- **Data Anonymization:** Patient identifiers transmitted to cloud platforms should be hashed or pseudonymized. In the prototype, the Patient ID field serves as the primary key; production systems should implement a mapping table where only non-reversible tokens are transmitted externally.
-- **Encryption in Transit:** All ThingSpeak API communications utilize HTTPS (TLS 1.2+). Production deployments should enforce certificate pinning and disable legacy SSL protocols.
-- **Encryption at Rest:** The local JSON database files should be encrypted using AES-256 on production systems. The current prototype stores data in plaintext for development convenience.
-- **Access Controls:** Production deployments require role-based access control (RBAC) with separate permissions for prescription entry (physicians), patient management (nurses), and system administration.
-- **Data Retention:** Tracking records should be retained according to local healthcare regulations (typically 7 years for medical records in Malaysia under the Private Healthcare Facilities and Services Act 1998); automated archival and secure deletion policies must be implemented.
-
-### 3.4.4 Sustainability Considerations
-
-- **Energy Efficiency:** The hybrid architecture minimizes cloud API calls through local caching. Additionally, the HMI firmware is configured to enter a **low-power standby mode** (backlight dimming) after 5 minutes of inactivity, reducing display power consumption by ~60% during idle periods.
-- **Hardware Longevity:** The Modbus protocol support enables integration with existing industrial hardware, avoiding premature replacement of functional PLCs/HMIs (reducing e-waste).
-- **Data Minimization:** The system stores only operationally necessary data, with configurable retention periods to comply with data protection regulations and minimize storage requirements.
-- **Lifecycle Assessment (LCA):** Material choices for the final enclosure (visualized in **Figure 8**) should prioritize recyclable plastics (e.g., ABS or PETG) over composite materials. End-of-life handling should comply with the WEEE Directive, ensuring electronic components are recovered and recycled. Specific protocols must be established for LiFePO4 batteries used in mobile carts, requiring disposal via dedicated battery recycling facilities to recover lithium and prevent environmental leaching.
+For full commercial release, the system will require:
+- **Advanced Encryption:** Implementation of AES-256 encryption for data at rest (Database and Logs).
+- **Data Anonymization:** Implementation of a tokenization service to pseudonymize Patient IDs before cloud transmission.
+- **Lifecycle Management:** Establishment of LiFePO4 battery recycling protocols and WEEE-compliant disposal procedures.
+- **Material Transition:** Shift to injection-molded ABS/PETG for mass production to improve durability and recyclability (as visualized in **Figure 8**).
 
 ### Figure 8: Mechanical Enclosure Design
 
 ![CAD Exploded View](./images/CAD_Render.png)
 *Figure 8: Conceptual exploded CAD view of the proposed industrial enclosure (AI-generated visualization).*
 
+### 3.5.3 Wireless Industrial Communication
+
+For deployment scenarios requiring mobile medication carts or flexible ward configurations, wireless industrial communication presents a viable enhancement pathway.
+
+**Technical Challenges & Solutions:**
+
+*   **Protocol Adaptation (Latency & Jitter):** Native Modbus TCP lacks tolerance for wireless jitter. Implementation requires increasing application-layer timeouts to **1000–3000ms** (vs. 500ms wired) and implementing Application Layer Retries.
+*   **Security Architecture:** Wireless deployment necessitates **WPA3-Enterprise**, **Modbus Security (TLS)**, and **Network Segmentation** (VLANs).
+*   **Mobility & Roaming:** Mobile carts require **IEEE 802.11r (Fast Transition)** support to ensure roaming handovers between Access Points occur in <50ms.
+
+**Mobile Hardware & Standards:**
+
+Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts (as illustrated in **Figure 9**).
+
+### Figure 9: Mobile Medication Cart Integration
+
+![Mobile Cart Context](./images/In-Context.png)
+*Figure 9: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
+
+**For a comprehensive technical analysis of Wi-Fi 6 advantages, detailed security standards, and regulatory compliance reference tables, please refer to [Appendix B: Wireless Communication Analysis](./APPENDIX_B_WIRELESS_COMMUNICATION.md).**
+
 ---
 
-## 3.5 Summary
+## 3.6 Summary
 
 The eMAR system architecture successfully integrates web, cloud, and industrial automation technologies into a unified medication management solution. Key technical achievements include:
 
@@ -745,34 +671,6 @@ The eMAR system architecture successfully integrates web, cloud, and industrial 
 5. **Security by design** with multi-layer input validation, XSS prevention, and atomic file operations.
 
 The architecture provides a clear pathway to enterprise scalability through migration to industry-standard components (PostgreSQL, MQTT, Kubernetes) while maintaining the core design principles of reliability, auditability, and clinical workflow integration.
-
----
-
-## 3.6 Future Considerations: Wireless Industrial Communication
-
-The current eMAR implementation utilizes wired Modbus TCP communication between the Node-RED edge device and PLC/HMI terminals. For deployment scenarios requiring mobile medication carts or flexible ward configurations, wireless industrial communication presents a viable enhancement pathway.
-
-### 3.6.1 Technical Challenges & Solutions
-
-Transitioning to a wireless infrastructure requires addressing specific challenges regarding latency, security, and roaming to maintain industrial reliability standards.
-
-*   **Protocol Adaptation (Latency & Jitter):** Native Modbus TCP lacks tolerance for wireless jitter. Implementation requires increasing application-layer timeouts to **1000–3000ms** (vs. 500ms wired) and implementing Application Layer Retries to handle transient packet loss without alerting operators.
-*   **Security Architecture:** Modbus TCP is unencrypted. Wireless deployment necessitates a defense-in-depth approach:
-    *   **WPA3-Enterprise** with SAE key exchange to prevent dictionary attacks.
-    *   **Modbus Security (TLS)** or VPN tunneling to encrypt control traffic.
-    *   **Network Segmentation** (VLANs) to isolate industrial traffic from guest/clinical networks.
-*   **Mobility & Roaming:** Mobile carts require **IEEE 802.11r (Fast Transition)** support to ensure roaming handovers between Access Points occur in <50ms, preventing Modbus TCP session disconnects.
-
-### 3.6.2 Mobile Hardware & Standards
-
-Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts (as illustrated in **Figure 9**). All wireless deployments must strictly adhere to **IEC 80001-1** (Risk management for IT-networks incorporating medical devices) to ensure electromagnetic coexistence with life-critical telemetry.
-
-### Figure 9: Mobile Medication Cart Integration
-
-![Mobile Cart Context](./images/In-Context.png)
-*Figure 9: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
-
-**For a comprehensive technical analysis of Wi-Fi 6 advantages, detailed security standards, and regulatory compliance reference tables, please refer to [Appendix B: Wireless Communication Analysis](./APPENDIX_B_WIRELESS_COMMUNICATION.md).**
 
 ## Acronyms
 
