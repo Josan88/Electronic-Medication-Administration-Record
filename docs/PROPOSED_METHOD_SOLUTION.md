@@ -579,12 +579,11 @@ This section details how the current prototype aligns with relevant industrial s
 
 The eMAR system is designed to align with key healthcare and industrial standards:
 
-- **Industrial Communication (IEC 61131-3):** The Modbus interface uses standard function codes (FC3, FC5, FC16) to ensure compatibility with PLCs.
+- **Industrial Communication (Modbus TCP/IP):** The interface adheres to the **Modbus Application Protocol Specification V1.1b**, utilizing standard function codes (FC3, FC5, FC16) for broad compatibility.
 - **Network Infrastructure (IEEE 802.3):** All device communication operates over standard Ethernet infrastructure, ensuring ease of integration.
-- **Protection Ratings (IEC 60529):** The enclosure design targets **IP54** protection to prevent ingress of dust and splashing water, suitable for clinical environments where cleaning and disinfection occur regularly.
 - **Data Security (HTTPS):** All cloud API communications utilize HTTPS (TLS 1.2+) to ensure encryption in transit.
-- **Medical Compliance (ISO 13485):** Architectural alignment with quality management standards for medical devices.
-- **Privacy Regulations (GDPR/APPs):** Adherence to data protection principles for patient health information.
+- **Design Control (ISO 13485 Principles):** The project implements **Traceability** (Req ID $\to$ Feature $\to$ Test) and **Verification** as detailed in Section 3.3, aligning with medical device development best practices.
+- **Data Privacy (GDPR/APP Principles):** The system implements **Pseudonymization** by using numeric Patient IDs in cloud payloads, minimizing the exposure of Personally Identifiable Information (PII).
 
 ### 3.4.2 Privacy & Data Safety
 
@@ -640,6 +639,7 @@ For full commercial release, the system will require:
 - **Data Anonymization:** Implementation of a tokenization service to pseudonymize Patient IDs before cloud transmission.
 - **Lifecycle Management:** Establishment of LiFePO4 battery recycling protocols and WEEE-compliant disposal procedures.
 - **Material Transition:** Shift to injection-molded ABS/PETG for mass production to improve durability and recyclability.
+- **Ingress Protection:** Certification to **IP54** standards (IEC 60529) to ensure resistance to dust and fluid ingress in clinical environments.
 - **Design for Manufacturing (DFM):** Optimization of PCB layout for automated assembly and reduction of BOM complexity to meet mass-production cost targets.
 
 ### 3.5.3 Wireless Industrial Communication
