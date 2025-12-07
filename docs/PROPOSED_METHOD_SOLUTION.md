@@ -345,7 +345,7 @@ The Administration Subsystem executes on an edge computing device (IRIV PiContro
 
 **Modbus Register Mapping:**
 
-The specific register addresses used for patient identification and medication display are defined in **Table 2**.
+The specific register addresses used for patient identification and medication display are defined in **Table 3**.
 
 ### Table 3: Modbus Register Map
 
@@ -546,6 +546,8 @@ For analysis of energy storage requirements in mobile deployment scenarios, refe
 
 The design decisions for the eMAR system are directly derived from the identified stakeholder requirements and operational constraints of healthcare environments.
 
+**Table 6: User Needs vs. Design Solutions**
+
 | User Need / Constraint                          | Design Solution                            | Implementation                                                                                                                                                                                                             |
 | ----------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Reliability in poor network conditions**      | Persistent Queue with disk-based storage   | `PersistentQueue` class saves state to `prescription_queue.json` using atomic file operations; automatic retry with exponential backoff ensures eventual delivery.                                                         |
@@ -559,6 +561,8 @@ The design decisions for the eMAR system are directly derived from the identifie
 | **Graceful degradation during cloud outages**   | Local-first data strategy                  | `HybridService` reads from local database first; cloud unavailability does not prevent prescription display (using cached data) or local recording of administrations.                                                     |
 
 ### Traceability Matrix
+
+**Table 7: Requirement Traceability Matrix**
 
 | Req ID | Requirement Description                                     | Design Feature                            | Verification Method                                | Test Evidence                            |
 | :----- | :---------------------------------------------------------- | :---------------------------------------- | :------------------------------------------------- | :--------------------------------------- |
@@ -718,4 +722,4 @@ The architecture provides a clear pathway to enterprise scalability through migr
 - **TWT:** Target Wake Time
 - **WEEE:** Waste Electrical and Electronic Equipment
 - **WOW:** Workstation on Wheels
-- **WPA:** Wi-Fi Protected Access
+- **WPA:** Wi-Fi Protected Accessss
