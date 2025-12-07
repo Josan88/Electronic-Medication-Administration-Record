@@ -77,10 +77,22 @@ The Modbus register map was designed to optimize data organization and allow for
 - **Holding Registers 30-109 (Medication Display):** A contiguous block of 80 registers is allocated for the 8 lines of text. Keeping this block contiguous allows for efficient "Block Write" (FC16) operations, reducing network overhead compared to writing lines individually.
 - **Coil 1 (Served Button):** A separate memory area (Coils) is used for boolean control signals to distinguish control actions from data display.
 
+## Consolidated Memory Map
+
+For ease of reference during development and troubleshooting, the following table summarizes all HMI address assignments.
+
+| Address Range | Data Type | Length | Function | Access |
+| :--- | :--- | :--- | :--- | :--- |
+| **HR 0 - 9** | Holding Register | 10 Words | Patient ID Input String | Read/Write |
+| **HR 10 - 29** | Holding Register | 20 Words | *Reserved for Future Use* | - |
+| **HR 30 - 109** | Holding Register | 80 Words | Medication List Display (8 lines x 10 words) | Read Only |
+| **Coil 1** | Boolean Coil | 1 Bit | "Served" Confirmation Button | Write Only |
+
 ## Error Handling Configuration
 
-The HMI and Node-RED interface implements the following error handling strategies:
+The HMI and Node-RED interface implements the following error handling strategies (see also [Node-RED Implementation](../nodered/REPORT.md)):
 
 1.  **Communication Timeout:** If the HMI loses connection with the Node-RED edge device (e.g., network cable disconnected), the HMI is configured to display a "PLC No Response" system error message after a 3-second timeout. This alerts the user to physical connectivity issues.
 2.  **Invalid Data Display:** If the Node-RED flow encounters an error or returns empty data, it is programmed to write space characters (ASCII 32) to the display registers. This ensures the screen clears rather than showing stale or garbage data from a previous patient.
 3.  **Input Validation:** The HMI Text Input component is restricted to ASCII characters, preventing the entry of invalid control characters that could disrupt the string decoding logic in Node-RED.
+de-RED.

@@ -54,7 +54,32 @@ Wireless deployment must comply with IEC 80001-1 ("Application of risk managemen
 ### B.5.2 Mobile Hardware
 Modern healthcare workstations (e.g., Zebra ET5x, Capsa Healthcare carts) are engineered for this environment. Key features include ruggedized housing resistant to disinfectants and LiFePO4 battery systems that provide stable voltage output to maintain consistent radio performance [9].
 
-## B.6 References
+## B.6 Deployment Checklist
+
+To ensure a reliable wireless eMAR deployment, the following checklist should be verified during installation:
+
+*   **Frequency Band:** [ ] Enable 5GHz band only (disable 2.4GHz) to avoid interference with Bluetooth medical peripherals.
+*   **Signal Quality:**
+    *   [ ] RSSI > -65 dBm in all patient rooms and hallways.
+    *   [ ] SNR (Signal-to-Noise Ratio) > 25 dB.
+*   **Roaming Performance:** [ ] Packet loss < 1 packet during transition between Access Points (walking speed).
+*   **Network Capacity:** [ ] Maximum channel utilization < 40% during peak hours.
+
+## B.7 Recommended Configuration Profile
+
+Based on the analysis, the recommended wireless profile for the eMAR carts is:
+
+| Parameter | Recommendation | Rationale |
+| :--- | :--- | :--- |
+| **Standard** | Wi-Fi 6 (802.11ax) | Deterministic latency (OFDMA), Battery life (TWT). |
+| **Security** | WPA3-Enterprise | Prevention of offline dictionary attacks; centralized auth. |
+| **Roaming** | 802.11r Enabled | Fast transition (<50ms) to maintain Modbus TCP connections. |
+| **IP Scheme** | Static or Reserved DHCP | Modbus TCP requires known, fixed IP addresses. |
+| **VLAN** | Dedicated "Medical-IoT" | QoS prioritization over guest/admin traffic. |
+
+> **Note:** See the [System Architecture](../ARCHITECTURE.md) document for the complete network topology diagram including the wireless bridge placement.
+
+## B.8 References
 
 | Ref | Source | Description |
 |-----|--------|-------------|
