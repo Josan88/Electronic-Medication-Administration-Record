@@ -129,7 +129,26 @@ sequenceDiagram
     end
 ```
 
-### 3.1.1 Management Subsystem (Flask/Web Application)
+### 3.1.1 System Technical Specifications
+
+To ensure the system meets clinical and operational requirements, the following technical specifications were defined as design targets. These parameters guide the component selection and architectural decisions detailed in subsequent sections.
+
+**Table 1: Technical Specifications**
+
+| Subsystem       | Parameter           | Target Specification                          | Notes                                             |
+| :-------------- | :------------------ | :-------------------------------------------- | :------------------------------------------------ |
+| **Performance** | End-to-End Latency  | < 15 minutes (Routine)<br>< 1 minute (Manual) | Derived from nurse workflow requirements (REQ-02) |
+|                 | Cloud Throughput    | > 200 records/day                             | System capacity vs. ThingSpeak limit (240/hr)     |
+|                 | Queue Reliability   | 99.99% delivery                               | Using exponential backoff (3 retries)             |
+| **Power**       | Operating Voltage   | 12V - 24V DC                                  | Components powered via 240V AC Adapter            |
+|                 | Power Consumption   | < 25W Peak                                    | Edge Device + HMI + Switch                        |
+| **Storage**     | Local Retention     | > 30 days                                     | JSON file storage (approx. 2.3 MB/month)          |
+|                 | Cloud Retention     | > 1 year                                      | ThingSpeak channel history                        |
+| **Interface**   | HMI Display         | 7" Touchscreen                                | Omron NB Series                                   |
+|                 | Industrial Protocol | Modbus TCP                                    | Port 10502                                        |
+|                 | Network             | Ethernet / Wi-Fi 6                            | TLS 1.2+ Security                                 |
+
+### 3.1.2 Management Subsystem (Flask/Web Application)
 
 The Management Subsystem serves as the primary data entry and administrative interface, implemented using the Flask web framework with a Blueprint-based modular architecture, as shown in **Figure 3**. The subsystem comprises four core route modules:
 
@@ -328,7 +347,7 @@ The Administration Subsystem executes on an edge computing device (IRIV PiContro
 
 The specific register addresses used for patient identification and medication display are defined in **Table 2**.
 
-### Table 2: Modbus Register Map
+### Table 3: Modbus Register Map
 
 | Function                 | Operation | Register Type     | Address | Quantity | Description                                           |
 | ------------------------ | --------- | ----------------- | ------- | -------- | ----------------------------------------------------- |
@@ -505,12 +524,12 @@ With 3 retry attempts, the system achieves 99.99% delivery reliability, with fai
 
 The power consumption of the administration subsystem is a key factor for sustainable operation. While the current prototype utilizes a wired Ethernet connection and mains power, this analysis demonstrates the hardware's energy efficiency and suitability for future deployment on battery-powered Workstations on Wheels (WOWs), a common requirement in clinical settings.
 
-| Component                | Voltage | Current (Max) | Power (W)  | Duty Cycle | Avg Power (W) |
-| ------------------------ | ------- | ------------- | ---------- | ---------- | ------------- |
+| Component                               | Voltage | Current (Max) | Power (W)  | Duty Cycle | Avg Power (W) |
+| --------------------------------------- | ------- | ------------- | ---------- | ---------- | ------------- |
 | Edge Device (IRIV PiControl (CM5 Core)) | 12V-24V | 0.5A @ 12V    | 6.0 W      | 100%       | 6.0 W         |
-| HMI Panel (Omron NB7W)   | 24V     | 0.4A          | 9.6 W      | 100%       | 9.6 W         |
-| Ethernet Switch (5-port) | 5V      | 0.6A          | 3.0 W      | 100%       | 3.0 W         |
-| **Total System**         |         |               | **18.6 W** |            | **18.6 W**    |
+| HMI Panel (Omron NB7W)                  | 24V     | 0.4A          | 9.6 W      | 100%       | 9.6 W         |
+| Ethernet Switch (5-port)                | 5V      | 0.6A          | 3.0 W      | 100%       | 3.0 W         |
+| **Total System**                        |         |               | **18.6 W** |            | **18.6 W**    |
 
 **PSU Selection with Safety Margin:**
 To ensure long-term reliability and prevent thermal stress, a standard 20% safety margin is applied to the peak power requirement:
@@ -519,19 +538,7 @@ $$P_{recommended} = P_{peak} \times 1.20 = 18.6\text{W} \times 1.20 = 22.32\text
 
 **Recommendation:** A 24V DC Power Supply Unit (PSU) rated for at least **24W (1A)** is required to prevent running the supply at 100% load capacity.
 
-**Total Daily Energy Consumption (Mobile Scenario):**
-$$E_{daily} = 18.6\text{W} \times 24\text{h} = 446.4 \text{ Wh} \approx 0.45 \text{ kWh}$$
-
-**Equation 5: Battery Capacity Sizing**
-
-To achieve 24-hour autonomy, the required battery capacity ($C_{req}$) is calculated applying a depth-of-discharge (DoD) limit of 80% and a derating factor ($k_{loss}=0.85$) for inverter/regulator efficiency:
-
-$$C_{req} [Wh] = \frac{E_{daily}}{DoD \times k_{loss}} = \frac{446.4}{0.8 \times 0.85} \approx 656 \text{ Wh}$$
-
-For a 12V system, this corresponds to:
-$$C_{Ah} = \frac{656 \text{ Wh}}{12 \text{ V}} \approx 54.7 \text{ Ah}$$
-
-**Recommendation for Mobile Deployment:** A standard **12V 60Ah LiFePO4** battery is recommended, providing approximately 26 hours of runtime ($60Ah \times 12V \times 0.8 \times 0.85 / 18.6W$). This chemistry is selected for its flat discharge curve and negligible Peukert effect (unlike Lead-Acid), ensuring consistent capacity delivery even under varying load conditions.
+For analysis of energy storage requirements in mobile deployment scenarios, refer to **Section 3.5.4: Mobile Power Autonomy**.
 
 ---
 
@@ -576,6 +583,8 @@ The eMAR system is designed to align with key healthcare and industrial standard
 - **Network Infrastructure (IEEE 802.3):** All device communication operates over standard Ethernet infrastructure, ensuring ease of integration.
 - **Protection Ratings (IEC 60529):** The enclosure design targets **IP54** protection to prevent ingress of dust and splashing water, suitable for clinical environments where cleaning and disinfection occur regularly.
 - **Data Security (HTTPS):** All cloud API communications utilize HTTPS (TLS 1.2+) to ensure encryption in transit.
+- **Medical Compliance (ISO 13485):** Architectural alignment with quality management standards for medical devices.
+- **Privacy Regulations (GDPR/APPs):** Adherence to data protection principles for patient health information.
 
 ### 3.4.2 Privacy & Data Safety
 
@@ -630,12 +639,8 @@ For full commercial release, the system will require:
 - **Advanced Encryption:** Implementation of AES-256 encryption for data at rest (Database and Logs).
 - **Data Anonymization:** Implementation of a tokenization service to pseudonymize Patient IDs before cloud transmission.
 - **Lifecycle Management:** Establishment of LiFePO4 battery recycling protocols and WEEE-compliant disposal procedures.
-- **Material Transition:** Shift to injection-molded ABS/PETG for mass production to improve durability and recyclability (as visualized in **Figure 8**).
-
-### Figure 8: Mechanical Enclosure Design
-
-![CAD Exploded View](./images/CAD_Render.png)
-*Figure 8: Conceptual exploded CAD view of the proposed industrial enclosure (AI-generated visualization).*
+- **Material Transition:** Shift to injection-molded ABS/PETG for mass production to improve durability and recyclability.
+- **Design for Manufacturing (DFM):** Optimization of PCB layout for automated assembly and reduction of BOM complexity to meet mass-production cost targets.
 
 ### 3.5.3 Wireless Industrial Communication
 
@@ -649,14 +654,32 @@ For deployment scenarios requiring mobile medication carts or flexible ward conf
 
 **Mobile Hardware & Standards:**
 
-Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts (as illustrated in **Figure 9**).
+Future deployments should utilize **Wi-Fi 6 (802.11ax)** infrastructure. Features such as **OFDMA** (determinism) and **Target Wake Time (TWT)** (battery saving) are specifically advantageous for battery-powered medical carts (as illustrated in **Figure 8**).
 
-### Figure 9: Mobile Medication Cart Integration
+### Figure 8: Mobile Medication Cart Integration
 
 ![Mobile Cart Context](./images/In-Context.png)
-*Figure 9: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
+*Figure 8: Conceptual visualization of the eMAR system deployed on a standard hospital Workstation on Wheels (AI-generated context).*
 
 **For a comprehensive technical analysis of Wi-Fi 6 advantages, detailed security standards, and regulatory compliance reference tables, please refer to [Appendix B: Wireless Communication Analysis](./APPENDIX_B_WIRELESS_COMMUNICATION.md).**
+
+### 3.5.4 Mobile Power Autonomy
+
+To support the transition from the current wired prototype to a fully mobile "Workstation on Wheels," the power system must evolve to support 24-hour autonomy. Based on the power budget analysis in **Section 3.2.5** (18.6W continuous load), the energy storage requirements are calculated as follows:
+
+**Total Daily Energy Consumption:**
+$$E_{daily} = 18.6\text{W} \times 24\text{h} = 446.4 \text{ Wh} \approx 0.45 \text{ kWh}$$
+
+**Equation 5: Battery Capacity Sizing**
+
+The required battery capacity ($C_{req}$) applies a depth-of-discharge (DoD) limit of 80% and a derating factor ($k_{loss}=0.85$) for inverter/regulator efficiency:
+
+$$C_{req} [Wh] = \frac{E_{daily}}{DoD \times k_{loss}} = \frac{446.4}{0.8 \times 0.85} \approx 656 \text{ Wh}$$
+
+For a standard 12V system:
+$$C_{Ah} = \frac{656 \text{ Wh}}{12 \text{ V}} \approx 54.7 \text{ Ah}$$
+
+**Recommendation:** A standard **12V 60Ah LiFePO4** battery is specified for future mobile deployments. This provides approximately 26 hours of runtime ($60Ah \times 12V \times 0.8 \times 0.85 / 18.6W$). LiFePO4 chemistry is selected over Lead-Acid due to its flat discharge curve, negligible Peukert effect, and higher cycle life (>2000 cycles vs 500), which is critical for daily hospital charging workflows.
 
 ---
 
@@ -688,8 +711,11 @@ The architecture provides a clear pathway to enterprise scalability through migr
 - **OFDMA:** Orthogonal Frequency-Division Multiple Access
 - **OTA:** Over-the-Air
 - **PLC:** Programmable Logic Controller
-- **PHI:** Protected Health Information
+- **PSU:** Power Supply Unit
 - **RBAC:** Role-Based Access Control
+- **REST:** Representational State Transfer
 - **TLS:** Transport Layer Security
 - **TWT:** Target Wake Time
-- **XSS:** Cross-Site Scripting
+- **WEEE:** Waste Electrical and Electronic Equipment
+- **WOW:** Workstation on Wheels
+- **WPA:** Wi-Fi Protected Access
